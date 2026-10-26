@@ -1543,7 +1543,7 @@ app.get('/api/git/status', (_req, res) => {
 app.post('/api/git/push', async (req, res) => {
   try {
     const gitStored = loadGitConfig();
-    let { repoUrl, token, branch = 'main', commitMsg = 'FilamentHub v1.52 Update', haUrl, haToken } = req.body;
+    let { repoUrl, token, branch = 'main', commitMsg = 'FilamentHub v1.53 Update', haUrl, haToken } = req.body;
     
     // Fallback auf gespeicherte Git-Konfiguration
     if (!repoUrl || !repoUrl.trim()) {

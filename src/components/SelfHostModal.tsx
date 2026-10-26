@@ -30,9 +30,9 @@ interface SelfHostModalProps {
   currentVersion?: string;
 }
 
-export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, currentVersion = 'v1.52' }) => {
-  const versionNum = currentVersion ? currentVersion.replace(/^v/, '') : '1.52';
-  const versionTag = currentVersion ? (currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`) : 'v1.52';
+export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, currentVersion = 'v1.53' }) => {
+  const versionNum = currentVersion ? currentVersion.replace(/^v/, '') : '1.53';
+  const versionTag = currentVersion ? (currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`) : 'v1.53';
 
   // Standardmäßig IMMER "Zu Git posten" als aktiver Tab
   const [activeTab, setActiveTab] = useState<'git' | 'haos' | 'docker' | 'pm2' | 'data'>('git');

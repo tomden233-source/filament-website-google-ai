@@ -3,6 +3,8 @@ import {
   Wand2,
   Layers,
   ArrowUpDown,
+  Search,
+  X,
   Camera,
   Smartphone,
   Tag,
@@ -127,10 +129,10 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    // Veraltete Stände automatisch auf die neue v1.52 anheben
-    if (!saved || saved !== 'v1.52') {
-      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.52');
-      return 'v1.52';
+    // Veraltete Stände automatisch auf die neue v1.53 anheben
+    if (!saved || saved !== 'v1.53') {
+      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.53');
+      return 'v1.53';
     }
     return saved;
   });
@@ -1576,16 +1578,103 @@ export default function App() {
               </section>
             )}
 
-            {/* Filter- & Sortierleiste */}
+            {/* V1.53: Modernisierter, harmonischer Filter- & Such-Kommandobereich */}
             <section
-              className="rounded-2xl border p-4 space-y-3 shadow-sm"
+              className="rounded-2xl border p-3.5 sm:p-4 space-y-3 shadow-sm backdrop-blur-md transition-colors"
               style={{
                 backgroundColor: 'var(--app-card)',
                 borderColor: 'var(--app-border)'
               }}
             >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {/* Zeile 1: Suchfeld mit Lupe/Clear & Sortier-Dropdown */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                {/* Modernes Suchfeld mit Lupe und Schnell-Reset-Kreuz */}
+                <div className="relative flex-1 max-w-md">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" style={{ color: 'var(--app-text-muted)' }}>
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Suche Marke, Farbe, Material, Lagerort..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 rounded-xl border text-xs outline-none transition focus:ring-2 focus:ring-orange-500/25 focus:border-orange-500"
+                    style={{
+                      backgroundColor: 'var(--app-input-bg)',
+                      borderColor: 'var(--app-border)',
+                      color: 'var(--app-text)'
+                    }}
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-xs opacity-60 hover:opacity-100 cursor-pointer"
+                      style={{ color: 'var(--app-text-muted)' }}
+                      title="Suche leeren"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Sortierung & optionaler Reset-Button */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-2.5 pointer-events-none text-orange-400">
+                      <ArrowUpDown className="w-3.5 h-3.5" />
+                    </span>
+                    <select
+                      value={sortBy}
+                      onChange={e => setSortBy(e.target.value)}
+                      className="pl-8 pr-7 py-2 rounded-xl border text-xs font-semibold outline-none cursor-pointer appearance-none transition focus:ring-2 focus:ring-orange-500/25 focus:border-orange-500 shadow-sm"
+                      style={{
+                        backgroundColor: 'var(--app-input-bg)',
+                        borderColor: 'var(--app-border)',
+                        color: 'var(--app-text)'
+                      }}
+                    >
+                      <option value="drying_urgent">🔥 Trocknung (dringend zuerst)</option>
+                      <option value="drying_fresh">✨ Frisch getrocknet zuerst</option>
+                      <option value="remaining_asc">⚖️ Restgewicht (wenig zuerst)</option>
+                      <option value="remaining_desc">⚖️ Restgewicht (viel zuerst)</option>
+                      <option value="price_asc">💶 Preis €/kg (günstigste zuerst)</option>
+                      <option value="brand_asc">🏷️ Hersteller (A–Z)</option>
+                      <option value="material_asc">🧪 Material (A–Z)</option>
+                      <option value="color_asc">🎨 Farbe (A–Z)</option>
+                    </select>
+                    <span className="absolute right-2.5 pointer-events-none text-[10px] opacity-50" style={{ color: 'var(--app-text)' }}>
+                      ▼
+                    </span>
+                  </div>
+
+                  {/* Filter zurücksetzen Button bei aktivem Filter */}
+                  {(searchQuery || activeMaterialFilter !== 'ALL') && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setActiveMaterialFilter('ALL');
+                      }}
+                      className="px-2.5 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                      title="Alle Such- und Materialfilter zurücksetzen"
+                    >
+                      <X className="w-3 h-3" />
+                      <span className="hidden sm:inline">Reset</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Zeile 2: Material-Filterleiste mit Zählern & sanfter Scrollleiste */}
+              <div
+                className="pt-2 border-t flex items-center gap-2 overflow-x-auto pb-0.5"
+                style={{ borderColor: 'var(--app-border)' }}
+              >
+                <div className="flex items-center gap-1.5 shrink-0 pr-1 text-xs font-bold" style={{ color: 'var(--app-text-muted)' }}>
+                  <Tag className="w-3.5 h-3.5 text-orange-400" />
+                  <span className="hidden sm:inline">Material:</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
                   {(
                     [
                       'ALL',
@@ -1599,91 +1688,42 @@ export default function App() {
                       'PC',
                       'PET-CF / PA-CF'
                     ] as const
-                  ).map(mat => (
-                    <button
-                      key={mat}
-                      onClick={() => setActiveMaterialFilter(mat)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition whitespace-nowrap cursor-pointer ${
-                        activeMaterialFilter === mat
-                          ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                          : 'hover:border-slate-400'
-                      }`}
-                      style={{
-                        backgroundColor: activeMaterialFilter === mat ? 'var(--app-accent)' : 'var(--app-card-sub)',
-                        borderColor: activeMaterialFilter === mat ? 'var(--app-accent)' : 'var(--app-border)',
-                        color: activeMaterialFilter === mat ? '#ffffff' : 'var(--app-text)'
-                      }}
-                    >
-                      {mat === 'ALL' ? `Alle (${spools.length})` : mat}
-                    </button>
-                  ))}
-                </div>
+                  ).map(mat => {
+                    const isActive = activeMaterialFilter === mat;
+                    const count = mat === 'ALL'
+                      ? spools.length
+                      : spools.filter(s => s.material === mat).length;
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Suche Marke, Farbe, Material..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full sm:w-56 px-3 py-1.5 rounded-xl border text-xs outline-none focus:border-orange-500"
-                    style={{
-                      backgroundColor: 'var(--app-input-bg)',
-                      borderColor: 'var(--app-border)',
-                      color: 'var(--app-text)'
-                    }}
-                  />
-                  <select
-                    value={sortBy}
-                    onChange={e => setSortBy(e.target.value)}
-                    className="px-3 py-1.5 rounded-xl border text-xs font-semibold outline-none cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--app-input-bg)',
-                      borderColor: 'var(--app-border)',
-                      color: 'var(--app-text)'
-                    }}
-                  >
-                    <option value="drying_urgent">🔥 Trocknung (dringend zuerst)</option>
-                    <option value="drying_fresh">✨ Frisch getrocknet zuerst</option>
-                    <option value="remaining_asc">⚖️ Restgewicht (wenig zuerst)</option>
-                    <option value="remaining_desc">⚖️ Restgewicht (viel zuerst)</option>
-                    <option value="price_asc">💶 Preis €/kg (günstigste zuerst)</option>
-                    <option value="brand_asc">🏷️ Hersteller (A–Z)</option>
-                    <option value="material_asc">🧪 Material (A–Z)</option>
-                    <option value="color_asc">🎨 Farbe (A–Z)</option>
-                  </select>
+                    return (
+                      <button
+                        key={mat}
+                        onClick={() => setActiveMaterialFilter(mat)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                          isActive
+                            ? 'font-bold shadow-orange-500/20'
+                            : 'hover:border-orange-500/40 opacity-80 hover:opacity-100'
+                        }`}
+                        style={{
+                          backgroundColor: isActive ? 'var(--app-accent)' : 'var(--app-card-sub)',
+                          borderColor: isActive ? 'var(--app-accent)' : 'var(--app-border)',
+                          color: isActive ? '#ffffff' : 'var(--app-text)'
+                        }}
+                      >
+                        <span>{mat === 'ALL' ? 'Alle' : mat}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                            isActive
+                              ? 'bg-black/25 text-white'
+                              : 'bg-black/10 dark:bg-white/10'
+                          }`}
+                          style={{ color: isActive ? '#ffffff' : 'var(--app-text-muted)' }}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-
-              {/* Schnell-Sortier-Chips */}
-              <div
-                className="flex flex-wrap items-center gap-1.5 pt-2 border-t text-[11px]"
-                style={{ borderColor: 'var(--app-border)' }}
-              >
-                <span className="font-semibold mr-1 flex items-center gap-1" style={{ color: 'var(--app-text-muted)' }}>
-                  <ArrowUpDown className="w-3 h-3" />
-                  <span>Schnellsortierung:</span>
-                </span>
-                {[
-                  { id: 'drying_urgent', label: '🔥 Trocknung fällig' },
-                  { id: 'remaining_asc', label: '⚖️ Wenig zuerst' },
-                  { id: 'remaining_desc', label: '⚖️ Viel zuerst' },
-                  { id: 'price_asc', label: '💶 Günstigste zuerst' },
-                  { id: 'brand_asc', label: '🏷️ Nach Marke' },
-                  { id: 'color_asc', label: '🎨 Nach Farbe' }
-                ].map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => setSortBy(item.id)}
-                    className="px-2.5 py-1 rounded-lg border transition cursor-pointer"
-                    style={{
-                      backgroundColor: sortBy === item.id ? 'var(--app-accent-sub)' : 'var(--app-card-sub)',
-                      borderColor: sortBy === item.id ? 'var(--app-accent)' : 'var(--app-border)',
-                      color: sortBy === item.id ? 'var(--app-accent)' : 'var(--app-text)'
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
               </div>
             </section>
 

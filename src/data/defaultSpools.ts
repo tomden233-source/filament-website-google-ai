@@ -632,6 +632,22 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.53',
+    label: '1.53 (Harmonisierte Filter- & Suchleiste, Live-Counts & Clean-Layout)',
+    releaseDate: '26.10.2026',
+    description: 'Optische Runderneuerung der Filter- und Suchleiste: Klares 2-Zeilen-Design ohne Quetschungen und Überlappungen, modernisiertes Suchfeld mit Lupe und Schnell-Reset-Kreuz, maßgeschneidertes Sortier-Dropdown mit Icon sowie elegante Material-Chips mit Live-Spulenzählern.',
+    features: [
+      '✨ Klares 2-Zeilen-Kommando-Layout: Keine Überlagerung von Material-Chips und Suchleiste mehr – saubere Trennung von Suche/Sortierung und Material-Filtern',
+      '🔍 Aufgewertetes Suchfeld: Mit dezentem Lupen-Icon, Fokus-Leuchten und schnellem „X“-Button zum sekundenschnellen Leeren des Textes',
+      '🏷️ Material-Chips mit Live-Zählern: Jeder Chip zeigt die exakte Spulenanzahl (z. B. Alle [22], PLA [7], PETG [4]) mit sattem Theme-Akzent',
+      '⇅ Harmonisierte Sortierung: Schlankes Dropdown mit Sortier-Icon und Pfeil statt doppelter Button-Reihen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 24.100+ Codezeilen, 2.800+ Prompt-Wörter, 2.37M Tokens und 53 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
 
