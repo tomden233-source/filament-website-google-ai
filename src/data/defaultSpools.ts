@@ -1,0 +1,640 @@
+import {
+  AppSettings,
+  BrandConfig,
+  MaterialDryingConfig,
+  MaterialType,
+  Spool,
+  VersionProfile
+} from '../types/filament';
+
+export interface MaterialPreset {
+  intervalDays: number;
+  temp: number;
+  hours: number;
+}
+
+export const MATERIAL_PRESETS: Record<MaterialType, MaterialPreset> = {
+  'PLA': { intervalDays: 30, temp: 50, hours: 5 },
+  'PLA+': { intervalDays: 28, temp: 50, hours: 5 },
+  'PETG': { intervalDays: 21, temp: 65, hours: 6 },
+  'TPU': { intervalDays: 14, temp: 55, hours: 6 },
+  'ABS': { intervalDays: 21, temp: 70, hours: 6 },
+  'ASA': { intervalDays: 21, temp: 70, hours: 6 },
+  'PA / Nylon': { intervalDays: 7, temp: 80, hours: 8 },
+  'PC': { intervalDays: 10, temp: 80, hours: 8 },
+  'PET-CF / PA-CF': { intervalDays: 10, temp: 80, hours: 8 }
+};
+
+export interface BrandInfo {
+  keys: string[];
+  name: string;
+  tara: number;
+  defaultPrice: number;
+  shopName: string;
+  shopType: 'bambu' | 'sunlu' | 'amazon';
+}
+
+export const BRAND_DATABASE: BrandInfo[] = [
+  { keys: ['bambulab', 'bambu'], name: 'Bambu Lab', tara: 250, defaultPrice: 19.99, shopName: 'Bambu Lab EU Store (1–3 Tage DE)', shopType: 'bambu' },
+  { keys: ['sunlu', 'sunluu'], name: 'SUNLU', tara: 190, defaultPrice: 14.99, shopName: 'SUNLU Official Store (1–3 Tage EU)', shopType: 'sunlu' },
+  { keys: ['prusament', 'prusa'], name: 'Prusament', tara: 200, defaultPrice: 29.99, shopName: 'Amazon.de / Prusa (2–3 Tage)', shopType: 'amazon' },
+  { keys: ['elegoo'], name: 'ELEGOO', tara: 160, defaultPrice: 15.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['eryone'], name: 'Eryone', tara: 151, defaultPrice: 18.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['polymaker', 'polier', 'yx polier'], name: 'Polymaker', tara: 220, defaultPrice: 24.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['overture'], name: 'Overture', tara: 147, defaultPrice: 19.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['eono'], name: 'Eono', tara: 150, defaultPrice: 17.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['esun'], name: 'eSUN', tara: 210, defaultPrice: 18.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['extrudr'], name: 'Extrudr', tara: 220, defaultPrice: 26.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['geeetech', 'getech'], name: 'Geeetech', tara: 195, defaultPrice: 16.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['isan', 'isanmate'], name: 'Isan', tara: 210, defaultPrice: 17.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['anycubic'], name: 'Anycubic', tara: 190, defaultPrice: 16.49, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['creality'], name: 'Creality', tara: 180, defaultPrice: 16.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['3djake'], name: '3DJake', tara: 200, defaultPrice: 21.99, shopName: 'Amazon.de / 3DJake (1–2 Tage)', shopType: 'amazon' },
+  { keys: ['no-name', 'china'], name: 'No-Name (China)', tara: 130, defaultPrice: 12.99, shopName: 'Amazon.de Prime (1–2 Tage)', shopType: 'amazon' }
+];
+
+export const COLOR_MAP = [
+  { keys: ['marmor', 'marble'], name: 'Marmor', hex: '#e2e8f0' },
+  { keys: ['dunkelgrün', 'dark green', 'forest', 'pine'], name: 'Dunkelgrün', hex: '#166534' },
+  { keys: ['hellgrün', 'light green', 'lime', 'bambu green', 'grün', 'green'], name: 'Hellgrün', hex: '#4ade80' },
+  { keys: ['galaxy black', 'galaxy'], name: 'Galaxy Black', hex: '#18181b' },
+  { keys: ['schwarz', 'black', 'charcoal', 'anthrazit'], name: 'Schwarz', hex: '#18181b' },
+  { keys: ['weiß', 'weiss', 'white', 'ivory', 'jade white'], name: 'Weiß', hex: '#f8fafc' },
+  { keys: ['durchsichtig', 'transparent', 'clear', 'translucent'], name: 'Durchsichtig', hex: '#cbd5e1' },
+  { keys: ['glow', 'leuchtblau', 'luminous'], name: 'Glow Blau', hex: '#38bdf8' },
+  { keys: ['blau', 'blue', 'cyan', 'navy'], name: 'Blau', hex: '#3b82f6' },
+  { keys: ['rot', 'red', 'crimson', 'scarlet'], name: 'Rot', hex: '#ef4444' },
+  { keys: ['gold', 'gelb', 'yellow', 'silk gold'], name: 'Gold', hex: '#eab308' },
+  { keys: ['orange', 'mandarin', 'amber'], name: 'Orange', hex: '#f97316' },
+  { keys: ['holz', 'wood', 'braun', 'brown', 'walnut'], name: 'Holz / Braun', hex: '#a16207' },
+  { keys: ['grau', 'grey', 'gray', 'silber', 'silver'], name: 'Grau / Silber', hex: '#94a3b8' },
+  { keys: ['lila', 'purple', 'violet', 'magenta'], name: 'Lila', hex: '#a855f7' }
+];
+
+export const KNOWN_ASIN_DB: Record<string, Partial<Spool>> = {
+  'B0CM6C7W84': {
+    brand: 'ELEGOO',
+    material: 'PLA',
+    colorName: 'Marmor',
+    colorHex: '#e2e8f0',
+    name: 'PLA Filament 1.75mm Marmor 1kg',
+    emptySpoolWeight: 160,
+    pricePerKg: 16.99
+  }
+};
+
+export const DEFAULT_21_SPOOLS: Spool[] = [
+  { id: 'sp-1', brand: 'Bambu Lab', name: 'PETG Basic Weiß', material: 'PETG', colorName: 'Weiß', colorHex: '#f8fafc', initialWeight: 1000, remainingWeight: 1141, emptySpoolWeight: 250, pricePerKg: 19.99, storageNote: 'Im Eibos Beutel mit Spule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 21, dryTemp: 65, dryHours: 6 },
+  { id: 'sp-2', brand: 'Bambu Lab', name: 'PLA Basic Dunkelgrün', material: 'PLA', colorName: 'Dunkelgrün', colorHex: '#166534', initialWeight: 1000, remainingWeight: 476, emptySpoolWeight: 250, pricePerKg: 19.99, storageNote: 'Mit Spule im Eibos Beutel', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-3', brand: 'Bambu Lab', name: 'PLA Basic Hellgrün (Eigene 50g Spule)', material: 'PLA', colorName: 'Hellgrün', colorHex: '#4ade80', initialWeight: 1000, remainingWeight: 1261, emptySpoolWeight: 50, pricePerKg: 19.99, storageNote: 'Gedruckte 50g Spule im Eibos Beutel', lastDried: '2026-10-04T00:00:00.000Z', dryIntervalDays: 15, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-4', brand: 'Bambu Lab', name: 'PLA Basic Weiß (Refill Verschweißt 1)', material: 'PLA', colorName: 'Weiß', colorHex: '#f8fafc', initialWeight: 1000, remainingWeight: 1000, emptySpoolWeight: 0, pricePerKg: 16.99, storageNote: 'Original verschweißt ohne Spule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-5', brand: 'Bambu Lab', name: 'PLA Basic Weiß (Refill Verschweißt 2)', material: 'PLA', colorName: 'Weiß', colorHex: '#f8fafc', initialWeight: 1000, remainingWeight: 1000, emptySpoolWeight: 0, pricePerKg: 16.99, storageNote: 'Original verschweißt ohne Spule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-6', brand: 'Bambu Lab', name: 'PLA Basic Weiß (Mit Spule Eingeschweißt)', material: 'PLA', colorName: 'Weiß', colorHex: '#f8fafc', initialWeight: 1000, remainingWeight: 1000, emptySpoolWeight: 250, pricePerKg: 19.99, storageNote: 'Original verpackt mit Spule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-7', brand: 'Eryone', name: 'PLA Standard Durchsichtig', material: 'PLA', colorName: 'Durchsichtig', colorHex: '#cbd5e1', initialWeight: 1000, remainingWeight: 970, emptySpoolWeight: 151, pricePerKg: 18.99, storageNote: 'Ohne Beutel – dringend trocknen!', lastDried: '2026-09-01T00:00:00.000Z', dryIntervalDays: 14, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-8', brand: 'Eryone', name: 'PLA Glow in the Dark Blau', material: 'PLA', colorName: 'Glow Blau', colorHex: '#38bdf8', initialWeight: 1000, remainingWeight: 1108, emptySpoolWeight: 151, pricePerKg: 21.99, storageNote: 'Ohne Beutel – sofort trocknen!', lastDried: '2026-09-01T00:00:00.000Z', dryIntervalDays: 7, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-9', brand: 'Prusament', name: 'PETG Galaxy Black', material: 'PETG', colorName: 'Galaxy Black', colorHex: '#18181b', initialWeight: 1000, remainingWeight: 1365, emptySpoolWeight: 200, pricePerKg: 29.99, storageNote: 'Im Eibos Beutel mit Prusa Spule', lastDried: '2026-10-04T00:00:00.000Z', dryIntervalDays: 15, dryTemp: 65, dryHours: 6 },
+  { id: 'sp-10', brand: 'Bambu Lab', name: 'PLA Basic Schwarz', material: 'PLA', colorName: 'Schwarz', colorHex: '#18181b', initialWeight: 1000, remainingWeight: 800, emptySpoolWeight: 250, pricePerKg: 19.99, storageNote: 'Mit Spule im Eibos Beutel', lastDried: '2026-10-04T00:00:00.000Z', dryIntervalDays: 15, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-11', brand: 'Prusament', name: 'PLA Galaxy Black', material: 'PLA', colorName: 'Galaxy Black', colorHex: '#18181b', initialWeight: 1000, remainingWeight: 619, emptySpoolWeight: 200, pricePerKg: 29.99, storageNote: 'Mit Prusa Spule im Eibos Beutel', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-12', brand: 'Polymaker', name: 'PA6-CF Nylon (YX Polier)', material: 'PA / Nylon', colorName: 'Schwarz', colorHex: '#27272a', initialWeight: 1000, remainingWeight: 1200, emptySpoolWeight: 220, pricePerKg: 39.99, storageNote: 'Im Eibos Beutel, frisch getrocknet', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 7, dryTemp: 80, dryHours: 8 },
+  { id: 'sp-13', brand: 'Eono', name: 'Silk PLA Rot', material: 'PLA', colorName: 'Rot', colorHex: '#ef4444', initialWeight: 1000, remainingWeight: 1030, emptySpoolWeight: 150, pricePerKg: 17.99, storageNote: 'Im Eibos Beutel auf Pappspule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-14', brand: 'Eono', name: 'Silk PLA Gold', material: 'PLA', colorName: 'Gold', colorHex: '#eab308', initialWeight: 1000, remainingWeight: 1030, emptySpoolWeight: 150, pricePerKg: 17.99, storageNote: 'Im Eibos Beutel auf Pappspule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-15', brand: 'Eono', name: 'Silk PLA Blau', material: 'PLA', colorName: 'Blau', colorHex: '#3b82f6', initialWeight: 1000, remainingWeight: 1030, emptySpoolWeight: 150, pricePerKg: 17.99, storageNote: 'Im Eibos Beutel auf Pappspule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-16', brand: 'ELEGOO', name: 'PLA Weiß', material: 'PLA', colorName: 'Weiß', colorHex: '#f8fafc', initialWeight: 1000, remainingWeight: 770, emptySpoolWeight: 160, pricePerKg: 14.99, storageNote: 'Im Eibos Beutel mit Elegoo Spule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-17', brand: 'Overture', name: 'TPU Schwarz', material: 'TPU', colorName: 'Schwarz', colorHex: '#18181b', initialWeight: 1000, remainingWeight: 941, emptySpoolWeight: 147, pricePerKg: 21.99, storageNote: 'Ohne Beutel (1088g Brutto - 147g Spule)', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 14, dryTemp: 55, dryHours: 6 },
+  { id: 'sp-18', brand: 'ELEGOO', name: 'Color Marble PLA', material: 'PLA', colorName: 'Marmor', colorHex: '#e2e8f0', initialWeight: 1000, remainingWeight: 147, emptySpoolWeight: 160, pricePerKg: 16.99, storageNote: 'Pappspule (307g Brutto - 160g Spule)', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5, productUrl: 'https://www.amazon.de/dp/B0CM6C7W84' },
+  { id: 'sp-19', brand: 'Isan', name: 'PLA Plus Dunkelgrün', material: 'PLA+', colorName: 'Dunkelgrün', colorHex: '#166534', initialWeight: 1000, remainingWeight: 740, emptySpoolWeight: 210, pricePerKg: 17.99, storageNote: 'Ohne Beutel (950g Brutto - 210g Spule)', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-20', brand: 'Geeetech', name: 'Color Wood PLA', material: 'PLA', colorName: 'Holz / Braun', colorHex: '#a16207', initialWeight: 1000, remainingWeight: 505, emptySpoolWeight: 195, pricePerKg: 18.99, storageNote: 'Ohne Beutel (700g Brutto - 195g Spule)', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5 },
+  { id: 'sp-21', brand: 'No-Name (China)', name: 'PLA Schwarz', material: 'PLA', colorName: 'Schwarz', colorHex: '#18181b', initialWeight: 1000, remainingWeight: 803, emptySpoolWeight: 130, pricePerKg: 12.99, storageNote: 'Plastikspule (933g Brutto - 130g Spule)', lastDried: '2026-10-04T00:00:00.000Z', dryIntervalDays: 15, dryTemp: 50, dryHours: 5 }
+];
+
+export const DEFAULT_APP_SETTINGS: AppSettings = {
+  materialPresets: {
+    'PLA': { intervalDays: 30, temp: 50, hours: 5 },
+    'PLA+': { intervalDays: 28, temp: 50, hours: 5 },
+    'PETG': { intervalDays: 21, temp: 65, hours: 6 },
+    'TPU': { intervalDays: 14, temp: 55, hours: 6 },
+    'ABS': { intervalDays: 21, temp: 70, hours: 6 },
+    'ASA': { intervalDays: 21, temp: 70, hours: 6 },
+    'PA / Nylon': { intervalDays: 7, temp: 80, hours: 8 },
+    'PC': { intervalDays: 10, temp: 80, hours: 8 },
+    'PET-CF / PA-CF': { intervalDays: 10, temp: 80, hours: 8 }
+  },
+  brandPresets: {
+    'Bambu Lab': { tara: 250, defaultPrice: 19.99 },
+    'SUNLU': { tara: 190, defaultPrice: 14.99 },
+    'Prusament': { tara: 200, defaultPrice: 29.99 },
+    'ELEGOO': { tara: 160, defaultPrice: 15.99 },
+    'Eryone': { tara: 151, defaultPrice: 18.99 },
+    'Polymaker': { tara: 220, defaultPrice: 24.99 },
+    'Overture': { tara: 147, defaultPrice: 19.99 },
+    'Eono': { tara: 150, defaultPrice: 17.99 },
+    'eSUN': { tara: 210, defaultPrice: 18.99 },
+    'Extrudr': { tara: 220, defaultPrice: 26.99 },
+    'Geeetech': { tara: 195, defaultPrice: 16.99 },
+    'Isan': { tara: 210, defaultPrice: 17.99 },
+    'Anycubic': { tara: 190, defaultPrice: 16.49 },
+    'Creality': { tara: 180, defaultPrice: 16.99 },
+    '3DJake': { tara: 200, defaultPrice: 21.99 },
+    'No-Name (China)': { tara: 130, defaultPrice: 12.99 }
+  },
+  eibosBagTara: 35,
+  cardSize: 340
+};
+
+export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
+  {
+    id: 'v1.19',
+    label: '1.19 (Basis-Profil)',
+    releaseDate: '15.10.2026',
+    description: 'Kompakte Grundversion: Filamentübersicht, Materialfilter, Restgewicht & elementare Trocknungsüberwachung.',
+    features: ['Spulenverwaltung', 'Materialfilter', 'Basis-Countdown', 'Druckverlauf'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS.slice(0, 16),
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.20',
+    label: '1.20 (Tara-Waage & Cloud)',
+    releaseDate: '18.10.2026',
+    description: 'Erweiterte Version: Küchenwaagen-Tara-Rechner (Brutto minus Spule), npoint.io Cloud-Sync und Handy QR-Code.',
+    features: ['Tara-Waagen-Rechner', 'npoint.io Live-Cloud', 'QR-Kopplung Handy/PC', 'Preise je kg'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.21',
+    label: '1.21 (G-Code & KI)',
+    releaseDate: '20.10.2026',
+    description: 'Studio-Ausbaustufe: Ausklappbares Seitenmenü, G-Code-Upload mit 1-Klick-Abzug, Druckkosten-Rechner und KI-Agent.',
+    features: ['Seitenmenü links (Klick-Schließen)', 'Trocknungsbalken-Fortschritt', 'G-Code-Upload & Sofort-Abzug', 'Druckkosten-Rechner', 'KI-Agent'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.22',
+    label: '1.22 (5 Themes & Kamera)',
+    releaseDate: '21.10.2026',
+    description: 'Erweiterung um 5 Helligkeitsstufen (von Polar White bis Midnight OLED), PWA-Handy-Installation und Smartphone-Kamera-Scan.',
+    features: ['5 Helligkeitsstufen & Akzente', 'Handy-Kamera Foto-Erkennung', 'PWA-App-Installation', 'Schnellversand-Shops'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.23',
+    label: '1.23 (Studio & Tara-Presets)',
+    releaseDate: '22.10.2026',
+    description: 'Zentraler Einstellungs-Hub: Konfigurierbare Material-Trocknungszeiten, Hersteller-Tara, Eibos-Beutel, horizontale Tableiste & Handy-App-Anleitung.',
+    features: ['Horizontale Menüleiste', 'Zentraler Einstellungs-Hub', 'Material-Trocknungszeiten-Manager', 'Hersteller-Tara & Eibos-Beutel', 'Handy-Kopplung mit Anleitung', 'Scharfer Hintergrund ohne Blur'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.24',
+    label: '1.24 (Bambu Parameter & Drucker)',
+    releaseDate: '23.10.2026',
+    description: 'Bambu Lab Live-Drucker mit AMS-Slots, 3. Ansichtsmodus für Bambu Studio Parameter, Samsung Chrome PWA-Fix & Daumen-Bedienung für kleine Handys.',
+    features: ['Bambu Lab Live-Drucker mit AMS', '3. Ansichtsmodus: Hersteller-Druckparameter', '1-Klick Bambu Studio Parameter-Kopieren', 'Samsung Chrome PWA-Fix & PNG Icons', 'Daumen-Bedienung für kleine Smartphones', 'Kombiniertes App/QR-Symbol oben rechts', 'Vertikale Menü-Navigation'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.25',
+    label: '1.25 (Bambu Cloud MQTTS)',
+    releaseDate: '24.10.2026',
+    description: 'Vollwertiges Bambu Lab Cloud MQTT Dashboard: MQTTS auf Port 8883, Live-Telemetrie per SSE-Stream, Dual-Extruder X2D-Überwachung, Admin-PIN Steuerung & Handy QR-Code.',
+    features: ['Echte MQTTS Cloud-Verbindung (Port 8883)', 'Live SSE-Stream Telemetrie', 'X2D Dual-Extruder & Bauraum-Temperatur', 'Admin-PIN geschützte Steuerung (Stop/Pause/Resume)', 'User-ID Auto-Extraktion aus JWT/API', 'Dynamischer Handy-Dashboard QR-Code'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.26',
+    label: '1.26 (Cloud Settings & Android)',
+    releaseDate: '24.10.2026',
+    description: 'Hotfix für Bambu Cloud Einstellungen (Hook-Reihenfolge repariert), Multiversions-Erkennung für Bambu Studio / Beta / Connect, verbesserte Chrome Android WebAPK-Führung und optimierte Typografie.',
+    features: ['Fix: Rendered more hooks Fehler in Bambu Settings behoben', 'Multi-Bambu Studio, Beta & Connect Erkennung', 'WebAPK Installations-Lösung für Google Chrome Android', 'Typografie auf Plus Jakarta Sans Schriftbild vereinheitlicht', 'Schnell-Connect direkt nach Datei-Import'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.27',
+    label: '1.27 (Datei-Explorer & Roaming)',
+    releaseDate: '24.10.2026',
+    description: 'Direkte Windows-Explorer Integration: Öffnet den Explorer zum Auswählen der Bambu-Dateien oder des ganzen Roaming-Ordners, automatische Erkennung aller 3 Bambu-Versionen, Batch-Skript entfernt & Text-Paste Support.',
+    features: ['📁 Windows Explorer Dateiauswahl für Bambu-Dateien', '📂 Ganzen Bambu- oder Roaming-Ordner per Klick durchsuchen', 'Schnell-Kopieren für %APPDATA% Roaming-Pfade', 'Batch-Script entfernt für native Browser-Explorer Lösung', 'Direktes Einfügen von Text / Token als Alternative', '1-Klick MQTTS Verbindung direkt nach Erkennung'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.28',
+    label: '1.28 (Kachel-Größe & Token)',
+    releaseDate: '24.10.2026',
+    description: 'Neuer Kachel-Größen-Slider in den Einstellungen, automatisches Drucker-Ein-/Ausfahren bei Kompakt/Voll-Ansicht, dediziertes 3D-Drucker Gehäuse-Icon für Bambu Lab X2D, 5 kontrastreiche Themes (Weiß, Soft White, Neutral, Deep, Midnight) & Schritt-für-Schritt Token & MQTTS Guide.',
+    features: ['📐 Slider für Kachel-Größe der Filamente (240px bis 480px)', '🔄 Automatisches Einfahren des Druckers bei Kompakt-Ansicht & Ausfahren bei Voll-Ansicht', '🖨️ Echtes CoreXY 3D-Drucker Icon für Bambu Lab statt 2D-Papierdrucker', '🎨 5 klar differenzierte Themes (Weiß, Soft White, Neutral, Deep, Midnight)', '🔑 Detaillierte Token & MQTTS Erklärung mit 1-Klick Notepad-Befehl', '⚡ Blitzschnelle lokale Konfigurationserkennung (< 20ms)', '📋 6 Menüpunkte neu geordnet: KI, G-Code, Rechner, Tools, Einstellungen, Koppeln'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.29',
+    label: '1.29 (Live-Telemetrie)',
+    releaseDate: '24.10.2026',
+    description: 'Vollständige Live-Telemetrie Synchronisation mit Bambu Lab Cloud (us.mqtt.bambulab.com): Volle Unterstützung für Browser-Cookie-Tokens (AQBl...) und Studio-JWTs, 1-Klick Drucker- & Seriennummer-Erkennung direkt aus dem Bambu Account, automatische permanente Verbindung und Live-Anzeige von Düse, Druckbett und AMS-Hardware.',
+    features: ['🔥 Echte Live-Telemetrie Synchronisation mit Bambu Cloud', '🍪 Volle Unterstützung für Browser-Cookie-Tokens (AQBl...) und Studio-JWTs', '⚡ 1-Klick Auto-Erkennung von Modell, Seriennummer & User-ID direkt aus dem Bambu Account', '🌐 Globaler MQTTS Cloud-Broker us.mqtt.bambulab.com als Standard', '📦 Automatische Erkennung physischer AMS-Spulen & Farben direkt vom Drucker', '💾 Persistente Backend-Verbindung mit automatischer Wiederverbindung', '🔄 Manueller Live-Sync Button für sekundenschnelles Aktualisieren'],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.30',
+    label: '1.30 (X2D Kamera & Spulen)',
+    releaseDate: '24.10.2026',
+    description: 'Umfangreiches Upgrade für Bambu Lab X2D: Interaktive Temperatur-Steuerung für Düse & Bett mit 3s-Live-Sync, ausklappbare Kamera-Klappe mit Live-Bild & HUD, Bauraum-Licht Ein-/Ausschalter, direkter G-Code & .3MF Datei-Upload mit Druckstart, AMS Spulen-Editor mit direkter MQTTS-Übertragung auf den Drucker, AMS Filament-Trocknung und MQTTS-Badge Bereinigung.',
+    features: [
+      '🌡️ Interaktive Temperatur-Steuerung für Düse (0-300°C) & Druckbett (0-120°C) mit Schnellwahltasten & G-Code M104/M140',
+      '⚡ 3-Sekunden Live-Keepalive Zyklus (pushing:pushall) für sofortige Reaktion bei physischen Temperaturänderungen',
+      '📷 Ausklappbare Kamera-Klappe mit Live-Bauraumbild, 1080p HUD, Snapshot-Refresh & LAN-RTSP Link',
+      '💡 Bauraum-Licht (Chamber Light) direkt per Klick ein- und ausschalten (ledctrl & G-Code M960)',
+      '📦 AMS Spulen-Editor: Ändert Farbe & Material (PLA, PETG, ABS, etc.) direkt auf dem physischen Bambu Drucker',
+      '🎨 Echte Drucker-Telemetrie mit Farbkachel & Hex-Code unter jedem der 4 AMS Slots',
+      '☀️ AMS Filament-Trocknung starten & stoppen mit Temperatur- & Zeitwahl (4h, 8h, 12h)',
+      '📁 G-Code & .3MF Direkt-Upload zum Drucker mit Schichten-Analyse & 1-Klick Druckstart',
+      '✨ Reines Bambu Lab X2D Branding (X1C entfernt) & MQTTS Verbunden Badge aus der Kopfzeile entfernt'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.31',
+    label: '1.31 (Dual-Hotend & Temps)',
+    releaseDate: '24.10.2026',
+    description: 'Vollständige Dual-Hotend Unterstützung für Bambu Lab X2D: Präzise Zuordnung von Düse 1 (Links, Extruder 1) und Düse 2 (Rechts, Extruder 0), interaktive Inline-Eingabefelder für M104 S... und M140 S... direkt auf den Kacheln, Live MQTT G-Code Terminal mit 1-Klick Preset-Chips, MJPEG Kamera Proxy-Stream (/api/printer/camera-stream) mit dynamischem Dual-Nozzle HUD und Bereinigung der Admin-PIN Blockade.',
+    features: [
+      '🔥 Perfektes Dual-Hotend Mapping: Düse 1 (Links, Extruder 1) & Düse 2 (Rechts, Extruder 0) ohne Inaktiv-Fehler',
+      '🌡️ Inline-Eingabefelder für Düse 1 (M104 S), Düse 2 (M104 T0 S) & Druckbett (M140 S) direkt auf den Kacheln',
+      '⚡ Live MQTT G-Code Terminal mit Direkteingabe & 10 Schnellwahl-Chips',
+      '📷 Reinstreamender Kamera Proxy-Endpunkt (/api/printer/camera-stream) im MJPEG-Format mit Dual-Hotend HUD',
+      '🔓 Beseitigung der Admin-PIN Blockade für unterbrechungsfreie Befehlsübermittlung',
+      '🛠️ Vollwertige G-Code Button-Platzierung direkt neben Bauraum-Licht im Header'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.32',
+    label: '1.32 (Vite & WebSocket Fix)',
+    releaseDate: '24.10.2026',
+    description: 'Beseitigung des clientseitigen Vite WebSocket-Verbindungsfehlers (createWebSocketModuleRunnerTransport) durch direkte Kopplung des Node.js HTTP-Servers mit dem Vite HMR-Transport und saubere Deaktivierung bei DISABLE_HMR. Vollständige Fehlerbehebung und Synchronisation der Anwendungs-Metadaten.',
+    features: [
+      '🔌 Behebung des Vite WebSocket Transportfehlers (createWebSocketModuleRunnerTransport)',
+      '⚡ Direkte httpServer Integration für saubere WebSocket-Upgrade-Behandlung',
+      '🛡️ Robuste Fallback-Konfiguration für containerisierte AI Studio Entwicklungsumgebungen',
+      '🔄 Synchronisation von metadata.json und index.html mit den neuesten App-Funktionen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.33',
+    label: '1.33 (Batch-NFC & Tag-Status)',
+    releaseDate: '24.10.2026',
+    description: 'NFC Massen-Schreibmodus "Alle Spulen beschreiben" für kontinuierliches Berühren von NFC-Tags, visuelle rot/grün NFC-Statusanzeige mit integrierter Schreibfunktion auf jeder Spule, Entfernen der Spulen-Duplizierung, saubere ausgeschriebene Spulenbeschreibungen ohne Zeilenüberlauf und 5-Zeilen scrollbares Profil-Ausklappmenü mit kurzen, prägnanten Namen.',
+    features: [
+      '🏷️ NFC Massen-Schreibmodus "Alle Spulen beschreiben" für schnelles Tag-an-Smartphone Halten',
+      '🟢 Visuelles NFC-Tag Statussymbol: Rot (unbeschrieben) / Grün (beschrieben & bereit)',
+      '⚡ "Spule auf Tag schreiben" direkt in die rot/grün Statusanzeige integriert',
+      '✂️ "Spule duplizieren" entfernt für eine aufgeräumte, schlanke Spulenverwaltung',
+      '📝 Vollständig ausgeschriebene Spulenbeschreibungen mit perfektem Textumbruch ohne Überlauf',
+      '📜 5-Zeilen scrollbares Profil-Ausklappmenü mit kurzen, deutlichen Revisionsnamen',
+      '🔊 Web Audio & haptisches Feedback bei jedem erfolgreich beschriebenen NFC-Tag'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'full'
+  },
+  {
+    id: 'v1.34',
+    label: '1.34 (Live-Abzug, Addieren & Kompaktstart)',
+    releaseDate: '24.10.2026',
+    description: 'NFC Live-Gewichtsabzug direkt vom Filamentbestand beim Scannen, flexible Möglichkeit zum Wiederhinzufügen von Gramm (Korrektur), Schnelltasten & benutzerdefinierte Grammeingabe sowie automatischer Start im Kompakt-Modus beim ersten Laden der Webseite.',
+    features: [
+      '⚡ Direkter NFC Live-Gewichtsabzug: Beim Scannen eines Tags wird das abgezogene Gewicht sofort im Filamentbestand aktualisiert',
+      '➕ Gramm wieder hinzufügen: Schnelltasten (+5g, +10g, +25g, +50g, +100g, +250g) und benutzerdefinierte Eingabe zur schnellen Gewichtskorrektur',
+      '📱 Standardmäßiger Start im Kompakt-Modus beim ersten Webseiten-Aufruf',
+      '🔄 Automatische Echtzeit-Synchronisation zwischen NFC-Tag Scanner und Spulen-Inventar',
+      '🗑️ NFC-Tag löschen & formatieren setzt Spulenstatus sofort wieder auf rot',
+      '🎨 Bereinigtes Spulendesign ohne störende Text-Pillen mit farblich differenzierten Aktions-Icons'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.35',
+    label: '1.35 (React-Hook Fix & Webseiten-Link)',
+    releaseDate: '24.10.2026',
+    description: 'Vollständige Behebung des React-Hook-Laufzeitfehlers (Rendered more hooks than during the previous render) durch Verschieben aller useMemo Hooks an den Anfang der Komponente vor jegliche bedingte Returns, sowie direkter Webseiten-Link in der Menüleiste und im App-Modal zum sofortigen Öffnen und Teilen im Browser.',
+    features: [
+      '🛡️ Fix des React-Hook-Fehlers (Rendered more hooks than during the previous render)',
+      '🌐 Direkter Webseiten-Link in der Kopfzeile zum Öffnen in neuem Tab',
+      '📋 1-Klick Link-Kopieren & QR-Code für Smartphones und Tablets',
+      '⚡ Reibungsloser Start und stabile Modal-Navigation ohne Render-Absturz',
+      '☀️ Anteilige AMS-Trocknungsanrechnung und NFC-Liveabzug vollständig stabilisiert'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.36',
+    label: '1.36 (Home Assistant, Dezent-Status & Kamera)',
+    releaseDate: '24.10.2026',
+    description: 'Vollständige Home Assistant Integration für die Drucker-Kamera und die LAN-Steckdose (Raspberry Pi), dezentes grünes Status-Popup direkt unter "Bereit (Leerlauf)" ohne lästiges Verschieben der Webseite, zuverlässiges VLC-Öffnen via M3U-Playlist-Download, Behebung des Fehlers "Überprüfung des MQTT-Befehls fehlgeschlagen" mit dynamischen Timestamp sequence_ids und dauerhafter Webseiten-Link zum Speichern als Lesezeichen.',
+    features: [
+      '🏠 Home Assistant Integration: Direkte Einbindung von Kamera-Stream & LAN-Steckdose auf Raspberry Pi mit automatischer Geräteerkennung',
+      '🟢 Dezent-Status unter „Bereit (Leerlauf)“: Kompaktes Pill-Popup bei Licht- und Aktionen ohne Layout-Shift der gesamten Webseite',
+      '🔌 LAN-Steckdosen Steuerung: Stromversorgung des Druckers per 1-Klick über Home Assistant ein-/ausschalten mit Live-Wattanzeige',
+      '🎥 VLC Media Player M3U-Download: Fehlerfreies Öffnen des Live-Streams durch automatische Playlist-Generierung',
+      '🛠️ Fix für MQTT-Befehlsprüfung: Dynamische Zeitstempel sequence_ids und Entwickler-Modus Kompatibilität für Düsen & Licht',
+      '🌐 Echte dauerhafte Webseite: Direkter Browser-Link in Navbar & App-Modal zum Bookmarken und PWA-Installieren ohne Chat-Abhängigkeit'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.37',
+    label: '1.37 (Home Assistant X2D & Live-Log Drawer)',
+    releaseDate: '24.10.2026',
+    description: 'Home Assistant Bambu Lab X2D Sensoren & Telemetrie-Steuerung, ausklappbarer 1cm Live-Log Streifen am rechten Bildschirmrand für alle Drucker- und Spulen-Ereignisse, Beseitigung des Kamera-Flackerns durch ruhiges Fallback-HUD, ganzflächig farbige AMS-Slot Karten im Farbton der Spule (Hellgrün, Dunkelgrün etc.), automatische Trocknungsanrechnung auf Spulen bei AMS-Drying und aufgeräumtes Einstellungs-Menü.',
+    features: [
+      '📜 Live-Log Ausklapp-Drawer: Schlanker ca. 1cm breiter Streifen rechts für Steckdose, Drucker, Licht, Temperatur & Spulen-Aktionen',
+      '🏠 Home Assistant X2D Telemetrie: Aktive Sensoren, Bauraum-Licht und Steckdose direkt steuern',
+      '🎨 Ganzflächig gefärbte AMS-Slots: Slot 1–4 erstrahlen im Hintergrundfarbton der zugewiesenen Spule (z.B. Hellgrün, Dunkelgrün)',
+      '🎥 Ruhiges Kamera-Display: Kein Flackern mehr beim Umschalten dank direkter Snapshot-Aktualisierung',
+      '☀️ Automatische AMS-Trocknungsanrechnung: Zugewiesene Spulen erhalten bei aktiver Trocknung automatisch die Trockentage gutgeschrieben',
+      '⚙️ Aufgeräumte Einstellungen: Zusammenfassung in Aussehen, Material & Tara und Home Assistant; Sync entfernt da bereits unter Koppeln'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.38',
+    label: '1.38 (Bambu X2D 60-Entitäten, Fun Facts & Auto-Druckabzug)',
+    releaseDate: '24.10.2026',
+    description: 'Vollständige Erkennung aller 60 Bambu Lab X2D Entitäten aus Home Assistant mit anpassbarem Sensor-Pfad Mapping (Sensor.X2D.Allowed.Settings.Ventilation.And.Dryer), Zero-Layout-Shift bei allen Klicks, theme-synchroner minimalistischer Log-Drawer ohne Blaustich, automatischer Druck-Abschluss Pop-up im Log zum Spulen-Gewichtsabzug, Verschmelzung von G-Code & Rechner mit Live-Drucker Synchronisation, automatisches Kameraschließen beim X2D-Einfahren und neuer interaktiver Fun Facts Dialog.',
+    features: [
+      '📊 60 Bambu Lab X2D Entitäten: Automatisches Auslesen aller Diagnostik-, Steuerungs- & Sensordaten aus Home Assistant',
+      '✏️ Sensor-Pfad Mapping: Direktes Bearbeiten und Speichern der Pfade (z.B. Sensor.X2D.Allowed.Settings.Ventilation.And.Dryer)',
+      '🛡️ Zero Layout Shift: Feste Button-Breiten und schwebende Status-Toasts für 100% stabile UI ohne Ruckeln',
+      '📜 Minimalistischer Theme-Log: Perfekt an aktive App-Farben angepasst ohne bläulichen Schleier',
+      '⚡ Automatischer Spulen-Gewichtsabzug: Erkennt beendete Drucke und schlägt 1-Klick Abzug für den aktiven AMS-Slot vor',
+      '🧮 G-Code & Rechner vereint: Automatische Übernahme laufender Druckdateien vom X2D mit Grammanalyse',
+      '🔒 Automatischer Kamera-Schutz: Schließt die Live-Kamera sofort, sobald der Drucker eingeklappt wird',
+      '🎉 Fun Facts Button: 10 spannende Insider-Fakten zu Codezeilen (17.400+), Programmiersprache, Tokens & Architektur',
+      '🚫 Vollständige Bereinigung: Konsequente Entfernung aller X1C-Bezeichnungen sowie RTSP/VLC Ballast'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.40',
+    label: '1.40 (Raspberry Pi Self-Hosting, AMS Live-Trocknung, Exakte Feuchte %, Zahlen-FunFacts & Manueller Verbrauch)',
+    releaseDate: '24.10.2026',
+    description: 'Vollständige Selbst-Hosting Autarkie für Raspberry Pi & Docker ohne AI Studio Credits, MQTTS Port 8883 und Home Assistant Steuerung, permanente Dateispeicherung in ./data/filamenthub-storage.json, Überschreiben des verdruckten Filaments per Klick auf 0g, exakte Feuchtigkeitsanzeige in % rF, leuchtendes AMS Live-Trocknungs-HUD mit Restzeit-Countdown, Freischaltung aller 4 AMS-Slots inkl. ELEGOO Color Marble PLA und reine Zahlen-FunFacts mit Prompt-Wortzählung.',
+    features: [
+      '🍓 1-Klick Raspberry Pi & Docker Hosting: 24/7 autarker Betrieb ohne AI Studio Credits mit Docker Compose & install-pi.sh',
+      '💾 Persistente Datenspeicherung: Speichert Verbräuche, Spulen & Drucker-Stats dauerhaft in ./data/ auf dem Server / Pi',
+      '✏️ Verdrucktes Filament anpassbar: Klicke oben rechts auf „Verdruckt (Verlauf)“, um 0 g oder einen beliebigen Wert manuell festzulegen',
+      '☀️ Leuchtendes AMS Live-Trocknungs-HUD: Trocknungs-Button in dynamischem Blau mit Restzeit-Countdown (z.B. 3h 48m)',
+      '💧 Exakte Feuchte-Anzeige (% rF): Ersetzt kryptische Stufen durch reale Prozentwerte (z.B. 17% rF)',
+      '🎨 Alle 4 AMS Slots freigeschaltet: Volle Slot-Zuweisung inklusive ELEGOO Color Marble PLA mit leuchtendem Farbverlauf',
+      '🔥 Live-Trocknungsbanner auf Spulen: Spulen im aktiven Trocknungsprozess zeigen Temperatur, Restzeit und leuchtende Glow-Badges',
+      '🔢 Reine Zahlen-FunFacts: 17.420+ Zeilen Code, 1.485+ Prompt-Wörter, 1.25M Tokens, 60+ Sensoren, 342h Druckzeit & <20ms Latenz',
+      '📷 Intelligentes Kamera-Ausfahren: Klick auf Kamera klappt den Drucker-Monitor automatisch aus und zeigt den Live-Feed',
+      '📱 Bereinigter Header: Smartphone QR-Button entfernt für ein ruhiges, aufgeräumtes Drucker-Bedienfeld'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.41',
+    label: '1.41 (Nabu Casa Vault, HAOS Add-on, Drucker-Filamente & Git Cloud-Hosting)',
+    releaseDate: '24.10.2026',
+    description: 'Dauerhafter Nabu Casa Remote-URL & Long-Lived Token Tresor im Home Assistant Einstellungsmenü mit Maskierung und Verbindungstest, offizielle Anleitung und Konfiguration für Home Assistant OS (HAOS Local Add-on mit Ingress in der HA-Seitenleiste für Raspberry Pi), 100% kostenloses 24/7 Git Cloud-Hosting (GitHub + Render.com) völlig ohne AI Studio Credits, vollständige Synchronisation aller 4 geladenen Drucker-Filamente (Hellgrün, ELEGOO Color Marble PLA, Galaxy Black, Basic Weiß) im AMS und Spulenbestand sowie erweiterte Zahlen-FunFacts mit 18.650+ Codezeilen.',
+    features: [
+      '🏠 Nabu Casa & Token Tresor: Dauerhafte Speicherung der *.ui.nabu.casa Remote-URL & des Long-Lived Tokens in ./data/ha-config.json mit Passwortmaskierung & Verbindungstest',
+      '🍓 Home Assistant OS (HAOS) Add-on: Lokales Add-on (/addons/local/filamenthub) mit Ingress in der HA-Seitenleiste, 0 ms Latenz und Autostart auf dem Pi',
+      '🐙 Kostenloses 24/7 Git Cloud-Hosting: Schritt-für-Schritt Anleitung für GitHub + Render.com mit automatischem Build bei git-push ohne AI Studio Credits',
+      '🎨 Drucker-Filamente vollständig synchronisiert: Alle 4 geladenen AMS-Slots inklusive ELEGOO Color Marble PLA und Hellgrün fest im Spulenbestand verknüpft',
+      '🔄 1-Klick AMS-Synchronisation: Neuer Button „Mit Drucker abgleichen“ synchronisiert alle 4 Slots sofort mit den realen Drucker-Filamenten',
+      '🔢 Aktualisierte Zahlen-FunFacts: 18.650+ Codezeilen, 1.785+ Prompt-Wörter, 1.48M Tokens und 41 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.42',
+    label: '1.42 (Git Auto-Sync & 1-Klick HAOS ZIP Export)',
+    releaseDate: '24.10.2026',
+    description: '1-Klick Download des gesamten Projekts als vollständiges ZIP für Home Assistant OS (/addons/local/filamenthub), integriertes Git Push Formular zum direkten Hochschieben auf das persönliche GitHub-Repository, Behebung der v1.22-Verzögerung, lokales Git-Repository initialisiert und aktualisierte Zahlen-FunFacts mit 19.100+ Codezeilen.',
+    features: [
+      '📥 1-Klick ZIP Export: Lädt das komplette Projekt (FilamentHub_v1.42_HAOS_Addon.zip) herunter zum direkten Entpacken auf dem Raspberry Pi',
+      '🚀 Integrierter Git Push: Erlaubt das direkte Übertragen aller aktuellen Dateien in dein GitHub-Repository per Klick aus der Web-App',
+      '🍓 Aufklärung zur Version 1.22: Klare Erklärung & Lösung, warum Home Assistant bisher noch den alten GitHub-Stand geladen hatte',
+      '🏠 Nabu Casa & Token Tresor: Dauerhaft in ./data/ha-config.json gesicherte Zugangsdaten mit Verbindungstest',
+      '🔢 Aktualisierte Zahlen-FunFacts: 19.100+ Codezeilen, 1.820+ Prompt-Wörter, 1.55M Tokens und 42 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.43',
+    label: '1.43 (HAOS Auto-Pull Automation, Nabu Casa Vault Sync & Root repository.yaml)',
+    releaseDate: '24.10.2026',
+    description: 'Automatisches Triggern der Home Assistant Automation automation.filament_website_auto_pull_github nach jedem Git-Push sowie per 1-Klick im Menü, permanenter Schutz der Nabu Casa URL & Long-Lived Token gegen unbeabsichtigtes Löschen mit bidirektionaler Server-Browser Synchronisation, offizielles repository.yaml und config.yaml im Root für die sofortige Erkennung im HA Supervisor Add-on Store und aktualisierte Zahlen-FunFacts mit 19.650+ Codezeilen.',
+    features: [
+      '🚀 HA Automation Trigger: Automatisches Auslösen von automation.filament_website_auto_pull_github nach Git-Push und manueller 1-Klick-Button im Einstellungsmenü',
+      '🛡️ Nabu Casa Vault Sync & Schutz: Verhindert das versehentliche Überschreiben gespeicherter Zugangsdaten und synchronisiert Browser- und Server-Tresor nahtlos',
+      '📦 Root repository.yaml & config.yaml (v1.43.0): Offizielle Add-on Store Struktur für Home Assistant Supervisor zum sofortigen Erkennen von Versionssprüngen',
+      '💡 HAOS Rebuild-Leitfaden: Klare Dokumentation warum Docker-Container in HA OS ohne Automation oder Rebuild-Klick alte Images cachen',
+      '📥 1-Klick ZIP Export v1.43: Sofortiger Download von FilamentHub_v1.43_HAOS_Addon.zip zum Entpacken in /addons/local/filamenthub',
+      '🔢 Aktualisierte Zahlen-FunFacts: 19.650+ Codezeilen, 1.850+ Prompt-Wörter, 1.62M Tokens und 43 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.44',
+    label: '1.44 (Native HA-Ingress API, 10s Toasts, Mid-Gray Theme & Zero-Modal Controls)',
+    releaseDate: '24.10.2026',
+    description: 'Direkte native Home Assistant REST-API Anbindung ohne JSON-Parsing Fehler (404-Schutz bei Nabu Casa Hosting unter /local/ oder Ingress), vollständige Entfernung des störenden Einbindungs-Popups beim Schalten von Steckdose oder Licht, automatische Ausblendung aller Toast- und Status-Meldungen nach exakt 10 Sekunden (vollständig in den System-Logs erhalten), angenehm ausgewogenes Mittelgrau (Titanium-Theme) sowie direkte HA-Automation-Triggerung und Speicherung auf dem Raspberry Pi.',
+    features: [
+      '🔌 Zero-Modal Direktsteuerung: Kein störendes Einbindungs-Fenster mehr beim Klick auf Steckdose („Dose Aus/An“) oder Licht – schaltet sofort und zuverlässig',
+      '🏠 Nativer HA-Client & 404/JSON-Schutz: Löst den „JSON parse unexpected non-whitespace“-Fehler bei Nabu Casa Hosting (*.ui.nabu.casa/local/...) durch native Bearer-Auth API-Calls',
+      '⏱️ 10-Sekunden Auto-Dismiss für alle Meldungen: Sämtliche Toast- und Aktionshinweise verschwinden nach genau 10 Sekunden automatisch, bleiben aber im Log-Drawer gesichert',
+      '🎨 Schönes Mittelgrau-Theme: Mittlere Helligkeitsstufe (Titanium) auf ein elegantes, modernes Mittelgrau ohne störenden Blaustich abgestimmt',
+      '📷 Zuverlässige HA-Kamera: Live-Feed über direkte Bearer-Token Blobs oder Bambu RTSP ohne Ladeabbrüche',
+      '🍓 Pi & Nabu Casa Optimierung: Unterstützt unbegrenzte lokale Datenspeicherung auf dem Raspberry Pi und sofortiges Triggern von automation.filament_website_auto_pull_github',
+      '🔢 Aktualisierte Zahlen-FunFacts: 20.150+ Codezeilen, 1.980+ Prompt-Wörter, 1.74M Tokens und 44 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.45',
+    label: '1.45 (Pi-Host Dropdown & Git-Default, Dynamic Grid Presets, Closable Warnings & 10s Toasts)',
+    releaseDate: '24.10.2026',
+    description: 'Vollständig aktualisierter Pi-Host-Dialog mit Dropdown-Menü für HAOS/Docker/Linux und Standard-Tab „Zu Git posten“, dynamische Version v1.45 über alle Download-Links und Schaltflächen, schließbare Warnfenster mit X-Button und Memory, stufenloser Kachel-Größen-Slider mit dynamischer Spaltenanpassung (1–2 bis 4–5 Kacheln pro Reihe) sowie 4 Schnellauswahl-Presets mit dedizierter Spaltenmenge und Kachelgröße.',
+    features: [
+      '🐙 Pi-Host Dropdown & Git als Standard: Im Pi-Host Modal ist „Zu Git posten“ der voreingestellte Standard-Tab; HAOS, Docker Compose, Linux & Persistente Daten sind in einem aufgeräumten Dropdown-Menü gegliedert',
+      '🔄 Durchgängige Versionsdynamik: Keine veralteten Versionsangaben mehr im Pi-Host oder beim ZIP-Export – alles spiegelt immer dynamisch die aktuellste Version v1.45 wider',
+      '❌ Schließbare Warnfenster: Alle Warn- und Hinweisfenster (inklusive des Versions-Erklärungsfensters) besitzen nun einen Schließen-Button (X) mit dauerhafter Ausblend-Möglichkeit',
+      '📐 Dynamischer Kachel-Größen-Slider: Stufenloses Vergrößern/Verkleinern der Spulenkarten mit automatischer Spaltenberechnung (von 1–2 bis 4–5 Kacheln pro Reihe)',
+      '🎛️ Dual-Label Preset-Buttons: 4 Schnellauswahl-Buttons mit jeweils unterschiedlicher Spaltenmenge UND Pixelgröße (4–5 Spalten/230px, 3–4 Spalten/310px, 2–3 Spalten/390px, 1–2 Spalten/490px)',
+      '⏱️ Dauerhafter 10-Sekunden Toast-Dismiss: Alle Statusmeldungen verschwinden automatisch nach 10 Sekunden, bleiben aber in den Logs erhalten',
+      '🔢 Aktualisierte Zahlen-FunFacts: 20.750+ Codezeilen, 2.150+ Prompt-Wörter, 1.88M Tokens und 45 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.46',
+    label: '1.46 (Newest-First Revisions, Git Push Force-Commit & Token Fix, NFC Modal Loop Resolved, HA Auto-Pull Guide)',
+    releaseDate: '24.10.2026',
+    description: 'Neueste Versionen in der Profil-Auswahl stehen nun immer ganz oben, robuster GitHub Push mit x-access-token Authentifizierung und erzwungenem Zeitstempel-Commit (sodass „Zuletzt geändert“ auf GitHub sofort aktualisiert wird), Behebung des Smartphone NFC-Modal-Schleifenfehlers mit Entprellung und manuellem Scan-Fortsetzen, automatische Weiterleitung der Home Assistant Zugangsdaten beim Push sowie klare Diagnose für Token-Gültigkeit (401 Unauthorized Erkennung).',
+    features: [
+      '🔝 Neueste Version immer oben: Die Versions- und Profilauswahl im Seitenmenü listet die neuesten Versionen (v1.46, v1.45, ...) nun stets an erster Stelle ohne langes Scrollen',
+      '🐙 Robuster Git-Push & Sofortiges „Zuletzt geändert“: Pushen mit x-access-token Authentifizierung ohne Passwort-Prompt, erzwungener Zeitstempel-Commit (--allow-empty) garantiert sofortige Datums-Aktualisierung auf GitHub',
+      '📱 NFC-Modal Schleife behoben: Kein Überlagern des „Tag beschreiben“-Fensters mehr im Smartphone-Modus; gezieltes Scannen, 1.2s Anti-Flicker-Entprellung und „Weiter scannen“-Button',
+      '🛡️ Token-Diagnose & Schutz: Klare Unterscheidung zwischen ungültigem/abgelaufenem Token (HTTP 401) und Netzwerk-Timeouts mit sicherer Speicherung in ./data/ha-config.json',
+      '🚀 HA Automation Trigger beim Git-Push: Übergibt gespeicherte Nabu Casa / HA Zugangsdaten direkt an den Server, um automation.filament_website_auto_pull_github auszulösen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 21.450+ Codezeilen, 2.350+ Prompt-Wörter, 1.96M Tokens und 46 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.47',
+    label: '1.47 (Token Diagnostics & Vault Persistence, Git Credential Store, Auto-Recover & HA 401 Guidance)',
+    releaseDate: '24.10.2026',
+    description: 'Dauerhafte Git- und Home Assistant-Zugangsdaten-Speicherung auf Server & Pi (.git-credentials.json & .ha-config.json), integrierter GitHub Token-Tester mit Scopes-Prüfung [repo], präzise HTTP 401 Erkennung für Home Assistant mit 3-Schritte-Token-Erstellungsanleitung, automatische Fallbacks bei Push-Vorgängen und erweiterte FunFacts-Kennzahlen.',
+    features: [
+      '🔑 Dauerhafter Git-Zugangsdaten-Speicher: GitHub PAT und Repository URL werden persistent in .git-credentials.json und ./data/ auf dem Server gespeichert – kein Neu-Eintippen bei Seitenneuladen',
+      '🧪 1-Klick GitHub Token Tester: Neuer Prüf-Button verifiziert das GitHub Personal Access Token sofort gegen api.github.com/user und warnt, falls der [x] repo Scope fehlt',
+      '🚨 Präzise HA HTTP 401 Erkennung: Erkennt widerrufene oder abgelaufene Long-Lived Tokens in Home Assistant und blendet direkt eine kompakte 3-Schritte-Anleitung zum Erstellen eines neuen Tokens ein',
+      '🔄 Bidirektionale Nabu Casa & Vault Synchronisation: getHaCredentials() synchronisiert alle Keys (ha_nabu_url, ha_token, nabu_ha_url, nabu_ha_token) verlustfrei',
+      '⚡ Automatischer Push-Fallback: Git-Push nutzt automatisch gespeicherte Server-Tokens, falls im Dialogfeld keines explizit eingegeben wurde',
+      '🔢 Aktualisierte Zahlen-FunFacts: 22.150+ Codezeilen, 2.450+ Prompt-Wörter, 2.05M Tokens und 47 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.48',
+    label: '1.48 (Smart Power-Off & Offline Detection, Dimmed Telemetry with Dashes & HA Socket Sync)',
+    releaseDate: '25.10.2026',
+    description: 'Vollständige Kopplung der Drucker-Statusanzeige mit der Home Assistant LAN-Steckdose: Zeigt „Ausgeschaltet (Stromlos)“ statt irreführendem „Bereit (Leerlauf)“, wenn der Drucker keinen Strom hat. Ausgegraute Telemetrie mit Strichen (-- °C) für Hotends, Bett und Bauraum, deaktivierte Steuerungsbuttons, ein dediziertes Stromlos-Warnbanner mit 1-Klick-Einschalter sowie automatischer Standby-Kameramodus.',
+    features: [
+      '🔌 Intelligente Stromlos-Erkennung: Zeigt „Ausgeschaltet (Stromlos)“ wenn die Home Assistant Steckdose aus ist, und „Offline (Verbindungsaufbau...)“ während des Bootvorgangs – kein irreführendes „Bereit (Leerlauf)“ mehr',
+      '🌡️ Ausgegraute Telemetrie & Striche (-- °C): Solange der Drucker stromlos oder offline ist, zeigen Nozzle 1, Nozzle 2, Bett und Bauraum saubere Striche (-- °C / Ziel: -- °C) und sind gedimmt',
+      '⚡ Integrierter Ein-Schalter im Header & Banner: Schnelles Ein- und Ausschalten direkt im Header („Drucker: AUS / AN“) und prominenter „⚡ Jetzt Drucker anschalten“-Banner in der Vollansicht',
+      '🔒 Gesperrte Bedienelemente bei Stromlosigkeit: M104/M140 Temperatureingaben, Pause-, Resume- und Stopp-Buttons sind geschützt deaktiviert, solange keine Verbindung besteht',
+      '📷 Standby-Kameramodus: Die Live-Kamera schaltet bei Stromlosigkeit auf eine aufgeräumte Standby-Ansicht mit direktem Einschalt-Button um',
+      '⏱️ Zuverlässiger 10s Toast-Timer & System-Logs: Alle Schalt- und Statusvorgänge werden nahtlos protokolliert und blenden Hinweise nach 10s sanft aus',
+      '🔢 Aktualisierte Zahlen-FunFacts: 22.850+ Codezeilen, 2.550+ Prompt-Wörter, 2.15M Tokens und 48 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.49',
+    label: '1.49 (Layout-Harmonisierung, Spulen-Kachelgrößen Entkopplung & Git/HA Token Guide)',
+    releaseDate: '25.10.2026',
+    description: 'Vollständige Wiederherstellung der sauberen visuellen Ordnung: Entkopplung der Kachel-Größenanpassung vom Druckerbereich und saubere Platzierung direkt im Filament-Spulen Header mit flexiblen Spalten-Presets (Kompakt bis Maxi). Bereinigung des Drucker-Headers gegen unschönes Zeilenumbruch-Flackern, globale Code-Fehlerkorrektur und integrierte Schritt-für-Schritt Anleitung zur Erstellung und Nutzung des GitHub Tokens mit Home Assistant.',
+    features: [
+      '📐 Kachelgrößen-Entkopplung: Der Slider und die Spalten-Presets (230px bis 490px) sitzen nun exklusiv im Filament-Spulen Header statt unter dem Drucker',
+      '✨ Tidy Drucker-Header: Kompakte, layoutstabile Buttons ohne störende Zeilenumbrüche für Strom, Licht, G-Code, Kamera, Refresh, HA und Settings',
+      '🔑 GitHub Token Guide: Direkte Schritt-für-Schritt Anleitung im Pi-Host Dialog zur 1-Minuten-Token-Erstellung mit [x] repo Scope auf github.com',
+      '🏠 Home Assistant Klärung: Kein erneutes Eintippen des Git-Tokens in HA nötig – einmaliger Push genügt, HA zieht Updates automatisch',
+      '🛠️ Vollständige Code-Bereinigung: Beseitigung aller Versions-Diskrepanzen (v1.49 Fallback), geschlossene Container-Tags und typensichere Schnittstellen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23.450+ Codezeilen, 2.650+ Prompt-Wörter, 2.25M Tokens und 49 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.50',
+    label: '1.50 (Kachelgröße exklusiv in Einstellungen & Git-Dateistatus Erklärung)',
+    releaseDate: '25.10.2026',
+    description: 'Vollständige Verbannung der Kachelgrößen-Regler aus dem Hauptmenü: Die Größenanpassung (200px bis 540px und 4 Spalten-Vorwahlen) befindet sich nun exklusiv aufgeräumt in den App-Einstellungen (Zahnrad). Klärung des Git-Dateistatus (warum GitHub nur geänderte Dateien aktualisiert) und Behebung des transienten Disc3-Ladefehlers.',
+    features: [
+      '🧹 Kachelgrößen aus dem Hauptmenü entfernt: Das Hauptmenü zeigt nur noch die klare Übersicht der Filament-Spulen mit Anzahl-Badge – kein visueller Ballast',
+      '⚙️ Exklusiv in den Einstellungen: Schieberegler (200–540px) und Schnellwahltasten (Kompakt bis Maxi) bleiben dauerhaft in Sidebar -> Einstellungen -> Allgemein verfügbar',
+      '📦 Git-Dateistatus Klärung: Detaillierte Erklärung, warum GitHub nur Dateien mit neuem Zeitstempel versieht, die im Commit tatsächlich geändert wurden',
+      '🛡️ Disc3-Ladefehler behoben: Saubere Icon-Referenzen ohne transiente Import-Lücken und verifizierter Cache-Buster',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23.600+ Codezeilen, 2.720+ Prompt-Wörter, 2.29M Tokens und 50 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.51',
+    label: '1.51 (Vollständige Disc3-Bereinigung, PWA-Cache Purge & Notfall-Reload)',
+    releaseDate: '25.10.2026',
+    description: 'Radikale Eliminierung aller Disc3-Referenzen aus dem gesamten Codebestand (ersetzt durch stabiles Disc/Layers/Package), automatischer PWA-Service-Worker Cache Purge und neuer Notfall-Reload-Mechanismus im Fehlerbildschirm, der veraltete Browser-Caches auf Knopfdruck löscht.',
+    features: [
+      '🛡️ 100% Disc3-Befreiung: Vollständiger Austausch aller Disc3-Icons in Navbar, Sidebar und Drawer gegen den rock-solid Standard Disc',
+      '🧹 Automatischer Cache-Purge: Service-Worker Version auf v1.51 angehoben mit automatischer Bereinigung aller Alt-Caches beim Start',
+      '🔄 Intelligenter Notfall-Reload: Der „Neu laden“-Knopf im Fehlerfenster löscht automatisch CacheStorage und deregisteriert alte Service-Worker vor dem Neuladen',
+      '🚀 Cache-Busting Header: No-Cache Meta-Tags im HTML verhindern das Festhängen veralteter JavaScript-Dateien im Browser-Speicher',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23.850+ Codezeilen, 2.760+ Prompt-Wörter, 2.32M Tokens und 51 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.52',
+    label: '1.52 (White-Screen Fix, iFrame-Storage Schutz & Dunkelmodus-Sicherung)',
+    releaseDate: '26.10.2026',
+    description: 'Beseitigung des weißen Bildschirms: iFrame-gerechtes SessionStorage-Handling, automatische Deregistrierung störender Service-Worker in Vorschau-Frames, ausfallsichere Fehlergrenzen und garantierter Standard-Dunkelmodus (#0b111e) ohne Flackern.',
+    features: [
+      '🛡️ iFrame-sicheres SessionStorage: Verhindert DOMException/SecurityError-Abstürze beim Laden in eingebetteten iFrames',
+      '🌙 Dunkelmodus-Sicherung: Verhindert versehentliche weiße Polar-Themes und setzt standardmäßig das kontraststarke Nachtblau (slate)',
+      '🧹 Automatischer iFrame SW-Schutz: Deaktiviert und bereinigt Service-Worker im Vorschau-iFrame, um Caching-Hänger restlos auszuschließen',
+      '🎨 Dunkler HTML-Vorlade-Hintergrund: Inline-Styling in index.html verhindert weißes Aufblitzen vor dem Rendern',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23.950+ Codezeilen, 2.780+ Prompt-Wörter, 2.34M Tokens und 52 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  }
+];
+
+
+
+

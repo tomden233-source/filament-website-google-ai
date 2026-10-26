@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+:root {
+  --app-bg: #0b111e;
+  --app-card: #141c2c;
+  --app-card-sub: #0d1422;
+  --app-border: #1e293b;
+  --app-text: #f1f5f9;
+  --app-text-muted: #94a3b8;
+  --app-input-bg: #090e18;
+  --app-accent: #f97316;
+  --app-accent-hover: #ea580c;
+  --app-accent-sub: rgba(249, 115, 22, 0.15);
+}
+
+/* 1. WEISS (100% Hell - Reines Weiß) */
+[data-theme="polar"] {
+  --app-bg: #ffffff;
+  --app-card: #f8fafc;
+  --app-card-sub: #f1f5f9;
+  --app-border: #e2e8f0;
+  --app-text: #0f172a;
+  --app-text-muted: #64748b;
+  --app-input-bg: #ffffff;
+}
+
+/* 2. SOFT WHITE (75% Hell - Sanftes Warmweiß / Hellgrau) */
+[data-theme="warm"] {
+  --app-bg: #f1f5f9;
+  --app-card: #ffffff;
+  --app-card-sub: #f8fafc;
+  --app-border: #e2e8f0;
+  --app-text: #0f172a;
+  --app-text-muted: #64748b;
+  --app-input-bg: #ffffff;
+}
+
+/* 3. NEUTRAL (50% Neutral - Schönes, nicht zu dunkles Mittelgrau) */
+[data-theme="titanium"] {
+  --app-bg: #374151;
+  --app-card: #475569;
+  --app-card-sub: #334155;
+  --app-border: #64748b;
+  --app-text: #f8fafc;
+  --app-text-muted: #cbd5e1;
+  --app-input-bg: #334155;
+}
+
+/* 4. DEEP (25% Blau - Sattes, tiefes Nachtblau) */
+[data-theme="slate"] {
+  --app-bg: #060b19;
+  --app-card: #0d1730;
+  --app-card-sub: #081024;
+  --app-border: #1b2a4a;
+  --app-text: #e2e8f0;
+  --app-text-muted: #8ca3c7;
+  --app-input-bg: #070e22;
+}
+
+/* 5. MIDNIGHT (0% Schwarz - 100% Reines Tiefschwarz für OLED) */
+[data-theme="midnight"] {
+  --app-bg: #000000;
+  --app-card: #0a0a0a;
+  --app-card-sub: #000000;
+  --app-border: #1f1f23;
+  --app-text: #ffffff;
+  --app-text-muted: #a1a1aa;
+  --app-input-bg: #050505;
+}
+
+/* AKZENTFARBEN & SYNCHRONE BALKEN */
+[data-accent="orange"] {
+  --app-accent: #f97316;
+  --app-accent-hover: #ea580c;
+  --app-accent-sub: rgba(249, 115, 22, 0.15);
+  --app-accent-bar: #f97316;
+  --app-accent-gradient: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
+}
+[data-accent="emerald"] {
+  --app-accent: #10b981;
+  --app-accent-hover: #059669;
+  --app-accent-sub: rgba(16, 185, 129, 0.15);
+  --app-accent-bar: #10b981;
+  --app-accent-gradient: linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%);
+}
+[data-accent="cyan"] {
+  --app-accent: #06b6d4;
+  --app-accent-hover: #0891b2;
+  --app-accent-sub: rgba(6, 182, 212, 0.15);
+  --app-accent-bar: #06b6d4;
+  --app-accent-gradient: linear-gradient(90deg, #0891b2 0%, #06b6d4 50%, #38bdf8 100%);
+}
+[data-accent="violet"] {
+  --app-accent: #8b5cf6;
+  --app-accent-hover: #7c3aed;
+  --app-accent-sub: rgba(139, 92, 246, 0.15);
+  --app-accent-bar: #8b5cf6;
+  --app-accent-gradient: linear-gradient(90deg, #7c3aed 0%, #8b5cf6 50%, #a78bfa 100%);
+}
+[data-accent="mono"] {
+  --app-accent: #94a3b8;
+  --app-accent-hover: #64748b;
+  --app-accent-sub: rgba(148, 163, 184, 0.2);
+  --app-accent-bar: #cbd5e1;
+  --app-accent-gradient: linear-gradient(90deg, #64748b 0%, #94a3b8 50%, #e2e8f0 100%);
+}
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+.font-mono-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgba(244, 63, 94, 0.85);
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.25);
+  }
+  50% {
+    border-color: rgba(244, 63, 94, 0.3);
+    box-shadow: 0 0 16px 2px rgba(244, 63, 94, 0.2);
+  }
+}
+
+.overdue-card {
+  animation: pulse-border 2.2s infinite;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--app-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--app-border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-accent);
+}

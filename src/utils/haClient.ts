@@ -1,0 +1,370 @@
+import { safeStorage } from './safeStorage';
+
+// Einheitliche Keys für Browser & Server
+const KEY_NABU_URL = 'ha_nabu_url';
+const KEY_HA_URL = 'ha_url';
+const KEY_LONG_LIVED_TOKEN = 'ha_long_lived_token';
+const KEY_HA_TOKEN = 'ha_token';
+const KEY_CAMERA_ENTITY = 'ha_camera_entity';
+const KEY_SWITCH_ENTITY = 'ha_switch_entity';
+
+// Fallback Nabu Casa URL aus Benutzer-Konfiguration
+export const DEFAULT_NABU_URL = 'https://tylfgfybmxzyfz2lycc0ea6ozjeja4w5.ui.nabu.casa';
+export const DEFAULT_CAMERA_ENTITY = 'camera.bambu_x2d';
+export const DEFAULT_SWITCH_ENTITY = 'switch.3d_drucker_steckdose';
+
+export interface HaCredentials {
+  url: string;
+  token: string;
+  cameraEntity: string;
+  switchEntity: string;
+  isDirectOrigin: boolean;
+}
+
+/**
+ * Ermittelt die Home Assistant Basis-URL und Zugangsdaten intelligent:
+ * Wenn die Website direkt in HA (z.B. unter *.ui.nabu.casa/local/...) läuft,
+ * wird automatisch der aktuelle Origin verwendet!
+ */
+export function getHaCredentials(): HaCredentials {
+  let isDirectOrigin = false;
+  let url = safeStorage.getItem(KEY_NABU_URL) || safeStorage.getItem(KEY_HA_URL) || safeStorage.getItem('nabu_ha_url') || '';
+
+  // Wenn wir direkt in Home Assistant / Nabu Casa laufen (z.B. /local/filament-website/...)
+  if (typeof window !== 'undefined') {
+    const loc = window.location;
+    if (loc && (loc.hostname?.includes('nabu.casa') || loc.pathname?.includes('/local/') || loc.port === '8123')) {
+      isDirectOrigin = true;
+      if (!url || url.includes('homeassistant.local') || url.includes('xxxxxxxxxxxx')) {
+        url = loc.origin || '';
+      }
+    }
+  }
+
+  if (!url || url.includes('xxxxxxxxxxxx')) {
+    url = DEFAULT_NABU_URL;
+  }
+
+  url = url.trim().replace(/\/+$/, '');
+
+  const token = (
+    safeStorage.getItem(KEY_LONG_LIVED_TOKEN) ||
+    safeStorage.getItem(KEY_HA_TOKEN) ||
+    safeStorage.getItem('nabu_ha_token') ||
+    ''
+  ).trim();
+
+  const cameraEntity = safeStorage.getItem(KEY_CAMERA_ENTITY) || DEFAULT_CAMERA_ENTITY;
+  const switchEntity = safeStorage.getItem(KEY_SWITCH_ENTITY) || DEFAULT_SWITCH_ENTITY;
+
+  return {
+    url,
+    token,
+    cameraEntity,
+    switchEntity,
+    isDirectOrigin
+  };
+}
+
+/**
+ * Speichert Zugangsdaten dauerhaft in allen relevanten Keys
+ */
+export function saveHaCredentials(creds: Partial<HaCredentials>) {
+  if (creds.url) {
+    const cleanUrl = creds.url.trim().replace(/\/+$/, '');
+    safeStorage.setItem(KEY_NABU_URL, cleanUrl);
+    safeStorage.setItem(KEY_HA_URL, cleanUrl);
+    safeStorage.setItem('nabu_ha_url', cleanUrl);
+  }
+  if (creds.token !== undefined) {
+    const cleanToken = creds.token.trim();
+    safeStorage.setItem(KEY_LONG_LIVED_TOKEN, cleanToken);
+    safeStorage.setItem(KEY_HA_TOKEN, cleanToken);
+    safeStorage.setItem('nabu_ha_token', cleanToken);
+  }
+  if (creds.cameraEntity) {
+    safeStorage.setItem(KEY_CAMERA_ENTITY, creds.cameraEntity.trim());
+  }
+  if (creds.switchEntity) {
+    safeStorage.setItem(KEY_SWITCH_ENTITY, creds.switchEntity.trim());
+  }
+
+  // Optional an Express Server melden, falls vorhanden (fängt 404 sicher ab)
+  try {
+    fetch('/api/homeassistant/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        haUrl: creds.url,
+        haToken: creds.token,
+        cameraEntity: creds.cameraEntity,
+        switchEntity: creds.switchEntity
+      })
+    }).catch(() => {});
+  } catch {}
+}
+
+/**
+ * Führt einen Home Assistant REST API Service-Aufruf aus.
+ * Versucht ZUERST den direkten Browser-Aufruf (funktioniert perfekt auf Nabu Casa / Same Origin).
+ * Fällt nur bei Bedarf auf den Express Proxy zurück, ohne bei HTML-Fehlerseiten zu crashen.
+ */
+export async function callHaService(domain: string, service: string, serviceData: Record<string, any> = {}): Promise<{ success: boolean; message: string; details?: any }> {
+  const { url, token } = getHaCredentials();
+
+  // 1. Direkter Aufruf an Home Assistant
+  if (token) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+
+      const directEndpoint = `${url}/api/services/${domain}/${service}`;
+      const directRes = await fetch(directEndpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(serviceData),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      if (directRes.ok) {
+        return {
+          success: true,
+          message: `Home Assistant: ${domain}.${service} erfolgreich ausgeführt!`
+        };
+      }
+    } catch (err: any) {
+      console.warn('[HA Client] Direkter Service-Aufruf fehlgeschlagen, versuche Proxy-Fallback:', err?.message);
+    }
+  }
+
+  // 2. Fallback: Express Server Proxy (/api/homeassistant/...)
+  try {
+    let proxyEndpoint = '';
+    let bodyData: any = {};
+
+    if (domain === 'switch' && (service === 'turn_on' || service === 'turn_off' || service === 'toggle')) {
+      proxyEndpoint = '/api/homeassistant/toggle-switch';
+      bodyData = { entity: serviceData.entity_id, state: service === 'turn_on' ? 'on' : service === 'turn_off' ? 'off' : undefined };
+    } else if (domain === 'light') {
+      proxyEndpoint = '/api/homeassistant/set-light';
+      bodyData = { entity: serviceData.entity_id, mode: service === 'turn_on' ? 'on' : 'off' };
+    } else if (domain === 'automation' && service === 'trigger') {
+      proxyEndpoint = '/api/homeassistant/trigger-pull-automation';
+      bodyData = { entity_id: serviceData.entity_id, haUrl: url, haToken: token };
+    }
+
+    if (proxyEndpoint) {
+      const proxyRes = await fetch(proxyEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData)
+      });
+
+      if (proxyRes.ok && proxyRes.headers.get('content-type')?.includes('application/json')) {
+        const proxyData = await proxyRes.json();
+        if (proxyData.success) {
+          return { success: true, message: proxyData.message || 'Befehl ausgeführt!' };
+        }
+        return { success: false, message: proxyData.error || 'Home Assistant Fehler' };
+      }
+    }
+  } catch {}
+
+  if (!token) {
+    return {
+      success: false,
+      message: 'Bitte trage zuerst deinen Home Assistant Token im Menü unter Home Assistant ein.'
+    };
+  }
+
+  return {
+    success: false,
+    message: `Konnte ${domain}.${service} nicht ausführen. Prüfe ob Nabu Casa URL & Token erreichbar sind.`
+  };
+}
+
+/**
+ * Steckdose schalten
+ */
+export async function toggleHaSwitch(targetState?: 'on' | 'off'): Promise<{ success: boolean; state: 'on' | 'off' | 'error'; message: string }> {
+  const { switchEntity } = getHaCredentials();
+  const service = targetState === 'on' ? 'turn_on' : targetState === 'off' ? 'turn_off' : 'toggle';
+  const result = await callHaService('switch', service, { entity_id: switchEntity });
+
+  return {
+    success: result.success,
+    state: result.success ? (targetState || 'on') : 'error',
+    message: result.message
+  };
+}
+
+/**
+ * Bauraum-Licht schalten
+ */
+export async function toggleHaLight(targetState?: 'on' | 'off'): Promise<{ success: boolean; message: string }> {
+  const service = targetState === 'on' ? 'turn_on' : targetState === 'off' ? 'turn_off' : 'toggle';
+  return await callHaService('light', service, { entity_id: 'light.x2d_chamber_light' });
+}
+
+/**
+ * Automation triggern (z.B. automation.filament_website_auto_pull_github)
+ */
+export async function triggerHaAutomation(entityId = 'automation.filament_website_auto_pull_github'): Promise<{ success: boolean; message: string }> {
+  return await callHaService('automation', 'trigger', { entity_id: entityId });
+}
+
+/**
+ * Steckdosen-Status abfragen (Direkt oder über Proxy)
+ */
+export async function fetchHaSwitchStatus(): Promise<{ configured: boolean; state: 'on' | 'off' | 'unknown' | 'error'; power: number | null; friendly_name: string }> {
+  const { url, token, switchEntity } = getHaCredentials();
+  if (!token) {
+    return { configured: false, state: 'unknown', power: null, friendly_name: switchEntity };
+  }
+
+  // 1. Direkter Aufruf
+  try {
+    const res = await fetch(`${url}/api/states/${switchEntity}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
+      const stateObj = await res.json();
+      return {
+        configured: true,
+        state: stateObj.state === 'on' ? 'on' : stateObj.state === 'off' ? 'off' : 'unknown',
+        power: stateObj.attributes?.current_power_w || stateObj.attributes?.power || null,
+        friendly_name: stateObj.attributes?.friendly_name || switchEntity
+      };
+    }
+  } catch {}
+
+  // 2. Proxy Fallback
+  try {
+    const proxyRes = await fetch(`/api/homeassistant/switch-status?entity=${encodeURIComponent(switchEntity)}`);
+    if (proxyRes.ok && proxyRes.headers.get('content-type')?.includes('application/json')) {
+      const data = await proxyRes.json();
+      if (data && data.configured) {
+        return {
+          configured: true,
+          state: data.state || 'unknown',
+          power: data.power || null,
+          friendly_name: data.friendly_name || switchEntity
+        };
+      }
+    }
+  } catch {}
+
+  return { configured: Boolean(token), state: 'unknown', power: null, friendly_name: switchEntity };
+}
+
+/**
+ * Kamera-Snapshot abrufen (erzeugt einen sauberen ObjectURL-Blob direkt vom HA Server)
+ */
+export async function fetchHaCameraBlobUrl(): Promise<string | null> {
+  const { url, token, cameraEntity } = getHaCredentials();
+  if (!token) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
+
+    const res = await fetch(`${url}/api/camera_proxy/${cameraEntity}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (res.ok && res.headers.get('content-type')?.includes('image')) {
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    }
+  } catch {}
+
+  return null;
+}
+
+/**
+ * Testet die Home Assistant Verbindung (direkt oder via Proxy)
+ */
+export async function testHaConnection(customUrl?: string, customToken?: string): Promise<{ success: boolean; message: string; isUnauthorized?: boolean; cameras?: any[]; switches?: any[] }> {
+  const { url: defaultUrl, token: defaultToken } = getHaCredentials();
+  const url = (customUrl || defaultUrl || '').trim().replace(/\/+$/, '');
+  const token = (customToken || defaultToken || '').trim();
+
+  if (!url || !token) {
+    return {
+      success: false,
+      message: 'Bitte Home Assistant URL und Long-Lived Token angeben.'
+    };
+  }
+
+  // 1. Direkter Aufruf über Browser (funktioniert super auf Nabu Casa / Same Origin)
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(`${url}/api/states`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
+      const states = await res.json() as any[];
+      const cameras = states
+        .filter((s: any) => s.entity_id && s.entity_id.startsWith('camera.'))
+        .map((s: any) => ({ entity_id: s.entity_id, name: s.attributes?.friendly_name || s.entity_id, state: s.state }));
+
+      const switches = states
+        .filter((s: any) => s.entity_id && (s.entity_id.startsWith('switch.') || s.entity_id.startsWith('light.')))
+        .map((s: any) => ({ entity_id: s.entity_id, name: s.attributes?.friendly_name || s.entity_id, state: s.state }));
+
+      return {
+        success: true,
+        message: `Erfolgreich mit Home Assistant verbunden! Gefunden: ${cameras.length} Kameras, ${switches.length} Steckdosen/Schalter.`,
+        cameras,
+        switches
+      };
+    }
+
+    if (res.status === 401) {
+      return {
+        success: false,
+        isUnauthorized: true,
+        message: 'Home Assistant meldet HTTP 401 Unauthorized: Dein Token wurde in HA widerrufen oder ist ungültig. Bitte in HA (Profil unten links → Langlebige Zugangs-Token) ein neues Token generieren!'
+      };
+    }
+  } catch (err: any) {
+    console.warn('[HA Client] Direkter Test fehlgeschlagen, versuche Proxy-Test:', err?.message);
+  }
+
+  // 2. Proxy Fallback (/api/homeassistant/test)
+  try {
+    const proxyRes = await fetch('/api/homeassistant/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ haUrl: url, haToken: token })
+    });
+
+    if (proxyRes.headers.get('content-type')?.includes('application/json')) {
+      const data = await proxyRes.json();
+      return {
+        success: Boolean(data.success),
+        isUnauthorized: data.status === 401 || (typeof data.error === 'string' && data.error.includes('401')),
+        message: data.message || data.error || 'Verbindung zu Home Assistant fehlgeschlagen.'
+      };
+    }
+  } catch {}
+
+  return {
+    success: false,
+    message: 'Verbindung zu Home Assistant fehlgeschlagen. Bitte prüfe ob Nabu Casa online ist und der Token gültig ist.'
+  };
+}

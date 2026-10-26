@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <radialGradient id="hole" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0b111e"/>
+      <stop offset="100%" stop-color="#162032"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="#0b111e"/>
+  <circle cx="256" cy="256" r="190" fill="url(#grad)" stroke="#ffffff" stroke-width="8" stroke-opacity="0.15"/>
+  <circle cx="256" cy="256" r="130" fill="#0b111e" stroke="#ffffff" stroke-width="6" stroke-opacity="0.1"/>
+  <circle cx="256" cy="256" r="70" fill="url(#grad)"/>
+  <circle cx="256" cy="256" r="32" fill="#0b111e"/>
+  <!-- Filament windings -->
+  <path d="M 256 96 A 160 160 0 0 1 416 256" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-dasharray="16 12" stroke-opacity="0.6"/>
+  <path d="M 256 120 A 136 136 0 0 1 392 256" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-dasharray="12 10" stroke-opacity="0.4"/>
+</svg>

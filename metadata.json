@@ -1,0 +1,6 @@
+{
+  "name": "FilamentHub Studio",
+  "description": "FilamentHub 1.52: 3D-Druck Filament-Manager mit White-Screen Fix, iFrame-Storage Schutz & ausfallsicherem Dunkelmodus.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

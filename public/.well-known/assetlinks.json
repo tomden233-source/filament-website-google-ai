@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.filamenthub.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7F:0F:72:47:64:14:4E:FA:DE:EB:EB:6E:9E:09:A6:6C:8B:74:4A:A5:68:1B:32:1B:D4:62:3C:2C:DE"
+      ]
+    }
+  }
+]
