@@ -21,6 +21,6 @@ def export_zip(target_zip):
                 zipf.write(full_path, rel_path)
 
 if __name__ == '__main__':
-    target = sys.argv[1] if len(sys.argv) > 1 else '/tmp/FilamentHub_v1.52_HAOS_Addon.zip'
+    target = sys.argv[1] if len(sys.argv) > 1 else '/tmp/FilamentHub_v1.53_HAOS_Addon.zip'
     export_zip(target)
     print("OK")
