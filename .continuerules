@@ -1,0 +1,7 @@
+Du arbeitest am Git-Repository "filament-website-google-ai" (TypeScript, Vite, Node/Server, HTML/CSS).
+
+WICHTIGE REGELN FÜR JEDE ANTWORT:
+1. Beziehe immer die gesamte Projektstruktur (src, app, server, public) mit ein.
+2. Wenn du großen Code aufteilst oder neue Module erstellst, lege für jedes Modul eine eigene Datei mit vollständigem Code an (Format: ### FILENAME: pfad/zu/datei.ext).
+3. Nutze niemals Platzhalter wie "// restlicher Code hier", sondern schreibe Dateien immer vollständig aus.
+4. Halte Imports und Pfade zwischen den aufgeteilten Dateien immer exakt synchron.
