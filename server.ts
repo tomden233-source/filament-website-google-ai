@@ -1391,15 +1391,15 @@ app.get(['/api/download-apk', '/FilamentHub.apk'], (_req, res) => {
 });
 
 // API-Route: Projekt-Download als vollständiges ZIP für Home Assistant OS & Git
-app.get(['/api/export-project.zip', '/FilamentHub_v1.47_HAOS.zip', '/FilamentHub_v1.46_HAOS.zip', '/FilamentHub_v1.45_HAOS.zip', '/FilamentHub_v1.44_HAOS.zip', '/api/download-zip'], (_req, res) => {
+app.get(['/api/export-project.zip', '/api/download-zip'], (_req, res) => {
   try {
-    const zipPath = path.resolve('/tmp', 'FilamentHub_v1.47_HAOS_Addon.zip');
+    const zipPath = path.resolve('/tmp', 'FilamentHub_HAOS_Addon.zip');
     const scriptPath = path.resolve(__dirname, 'scripts', 'export-zip.py');
     execSync(`python3 "${scriptPath}" "${zipPath}"`, { timeout: 25000 });
 
     if (fs.existsSync(zipPath)) {
       res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', 'attachment; filename="FilamentHub_v1.47_HAOS_Addon.zip"');
+      res.setHeader('Content-Disposition', 'attachment; filename="FilamentHub_HAOS_Addon.zip"');
       return res.sendFile(zipPath);
     }
     return res.status(500).json({ error: 'Konnte ZIP-Datei nicht erstellen.' });
@@ -1746,9 +1746,24 @@ async function startServer() {
     });
   }
 
+  // Zentrale Fehlerbehandlung: einheitliche Antwort, keine internen Details nach außen
+  app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (res.headersSent) return next(err);
+    const status = typeof err?.status === 'number' && err.status >= 400 && err.status < 600 ? err.status : 500;
+    console.error('[Server] Unbehandelter Fehler:', err?.message || err);
+    return res.status(status).json({
+      success: false,
+      error: status === 500 ? 'Interner Serverfehler' : err?.message || 'Fehler'
+    });
+  });
+
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`FilamentHub Studio Server läuft auf http://localhost:${PORT}`);
   });
 }
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server] Unbehandelte Promise-Ablehnung:', reason);
+});
 
 startServer();
