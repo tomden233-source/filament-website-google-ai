@@ -1,5 +1,80 @@
 @import "tailwindcss";
 
+/* Die Akzentfarbe steuert auch alle bisherigen "orange"-Klassen (Tailwind), damit Blau, Grün usw. überall greifen */
+@theme {
+  --color-orange-100: var(--a-100);
+  --color-orange-300: var(--a-300);
+  --color-orange-400: var(--a-400);
+  --color-orange-500: var(--a-500);
+  --color-orange-600: var(--a-600);
+  --color-orange-700: var(--a-700);
+}
+
+:root {
+  --a-100: #ffedd5;
+  --a-300: #fdba74;
+  --a-400: #fb923c;
+  --a-500: #f97316;
+  --a-600: #ea580c;
+  --a-700: #c2410c;
+}
+
+[data-accent="orange"] {
+  --a-100: #ffedd5;
+  --a-300: #fdba74;
+  --a-400: #fb923c;
+  --a-500: #f97316;
+  --a-600: #ea580c;
+  --a-700: #c2410c;
+}
+[data-accent="blue"] {
+  --app-accent: #3b82f6;
+  --app-accent-hover: #2563eb;
+  --app-accent-sub: rgba(59, 130, 246, 0.15);
+  --app-accent-bar: #3b82f6;
+  --app-accent-gradient: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
+}
+[data-accent="emerald"] {
+  --a-100: #d1fae5;
+  --a-300: #6ee7b7;
+  --a-400: #34d399;
+  --a-500: #10b981;
+  --a-600: #059669;
+  --a-700: #047857;
+}
+[data-accent="cyan"] {
+  --a-100: #cffafe;
+  --a-300: #67e8f9;
+  --a-400: #22d3ee;
+  --a-500: #06b6d4;
+  --a-600: #0891b2;
+  --a-700: #0e7490;
+}
+[data-accent="blue"] {
+  --a-100: #dbeafe;
+  --a-300: #93c5fd;
+  --a-400: #60a5fa;
+  --a-500: #3b82f6;
+  --a-600: #2563eb;
+  --a-700: #1d4ed8;
+}
+[data-accent="violet"] {
+  --a-100: #ede9fe;
+  --a-300: #c4b5fd;
+  --a-400: #a78bfa;
+  --a-500: #8b5cf6;
+  --a-600: #7c3aed;
+  --a-700: #6d28d9;
+}
+[data-accent="mono"] {
+  --a-100: #f1f5f9;
+  --a-300: #cbd5e1;
+  --a-400: #a8b5c7;
+  --a-500: #94a3b8;
+  --a-600: #64748b;
+  --a-700: #475569;
+}
+
 :root {
   --app-bg: #d6dce5;
   --app-card: #eceff4;
@@ -108,7 +183,13 @@
 }
 
 @layer base {
+  html {
+    background-color: var(--app-bg);
+  }
   body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--app-bg);
     color: var(--app-text);

@@ -23,6 +23,7 @@ export const MobileAppBar: React.FC<MobileAppBarProps> = ({
           aria-label="Mobile Schnellzugriff"
           className="fixed bottom-0 left-0 right-0 z-40 border-t px-2 py-2 flex items-center justify-between gap-1 shadow-2xl backdrop-blur-md transition-colors"
           style={{
+            paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))',
             backgroundColor: 'var(--app-card)',
             borderColor: 'var(--app-border)',
             color: 'var(--app-text)'
@@ -45,7 +46,7 @@ export const MobileAppBar: React.FC<MobileAppBarProps> = ({
 
           <button
             onClick={() => setIsCameraModalOpen(true)}
-            className="flex-1 py-1.5 px-1 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-[10px] flex flex-col items-center justify-center gap-0.5 shadow-md shadow-orange-500/20 active:scale-95 transition cursor-pointer"
+            className="flex-1 py-1.5 px-1 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold text-[10px] flex flex-col items-center justify-center gap-0.5 shadow-md shadow-orange-500/20 active:scale-95 transition cursor-pointer"
           >
             <Camera className="w-3.5 h-3.5" />
             <span>Foto</span>

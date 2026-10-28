@@ -80,7 +80,7 @@ export const NfcWriteDirectTab: React.FC<NfcWriteDirectTabProps> = ({
                 <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-4">
                   <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping" />
-                    <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white shadow-xl shadow-orange-500/30">
+                    <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white shadow-xl shadow-orange-500/30">
                       <Tag className="w-8 h-8" />
                     </div>
                   </div>
@@ -103,7 +103,7 @@ export const NfcWriteDirectTab: React.FC<NfcWriteDirectTabProps> = ({
                   <button
                     onClick={() => handleWriteSpoolToCurrentTag(targetSpool)}
                     disabled={isWriting}
-                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition cursor-pointer active:scale-98"
+                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition cursor-pointer active:scale-98"
                   >
                     <PenTool className="w-4 h-4" />
                     <span>{isWriting ? 'Schreibe NFC-Tag...' : 'Spule jetzt auf NFC-Tag schreiben'}</span>

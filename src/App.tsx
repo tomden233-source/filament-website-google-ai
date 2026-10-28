@@ -1,3 +1,5 @@
+import { UpdateBanner } from './components/UpdateBanner';
+import { isAppShell } from './utils/env';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { storageApi, cloudSync } from './api';
 
@@ -88,10 +90,10 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    // Veraltete Stände automatisch auf die neue v1.60 anheben
-    if (!saved || saved !== 'v1.60') {
-      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.60');
-      return 'v1.60';
+    // Veraltete Stände automatisch auf die neue v1.61 anheben
+    if (!saved || saved !== 'v1.61') {
+      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.61');
+      return 'v1.61';
     }
     return saved;
   });
@@ -117,7 +119,10 @@ export default function App() {
 
   // Umschalter: 'desktop' (normale Desktop-Version) vs. 'app' (Smartphone-Modus)
   const [deviceMode, setDeviceMode] = useState<DeviceMode>(() => {
-    return (safeStorage.getItem('filamenthub_device_mode') as DeviceMode) || 'desktop';
+    // App-Modus ist der Standard: immer in der Android-App, der installierten Web-App und auf dem Handy.
+    // Nur auf großen Bildschirmen im Browser wird die zuletzt gewählte Ansicht beibehalten.
+    if (isAppShell() || window.innerWidth < 768) return 'app';
+    return (safeStorage.getItem('filamenthub_device_mode') as DeviceMode) || 'app';
   });
 
   const handleSetDeviceMode = useCallback((mode: DeviceMode) => {
@@ -862,6 +867,9 @@ export default function App() {
         color: 'var(--app-text)'
       }}
     >
+      {/* Hinweis auf neue App-Version (nur Android-App) */}
+      <UpdateBanner />
+
       {/* Top Navbar */}
       <Navbar
         onOpenMenu={() => setIsSidebarOpen(true)}

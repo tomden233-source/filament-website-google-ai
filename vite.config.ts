@@ -3,11 +3,17 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import fs from 'fs';
+
+const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
 export default defineConfig(() => {
   return {
     // Für GitHub Pages wird per VITE_BASE ein Unterpfad gesetzt (z. B. /filament-website-google-ai/).
     base: process.env.VITE_BASE || '/',
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version)
+    },
     plugins: [
       react(),
       tailwindcss(),

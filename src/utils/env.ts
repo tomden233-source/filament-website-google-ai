@@ -8,3 +8,19 @@ export const IS_NATIVE = import.meta.env.VITE_NATIVE === 'true';
 export const APK_URL =
   import.meta.env.VITE_APK_URL ||
   'https://github.com/tomden234/filament-website-google-ai/releases/latest/download/FilamentHub.apk';
+
+/** Installierte Web-App (PWA im Standalone-Modus) oder Android-App: läuft ohne Browser-Leiste */
+export function isAppShell(): boolean {
+  if (IS_NATIVE) return true;
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Versionsnummer dieses Builds (aus package.json, wird beim Bauen eingesetzt) */
+export const APP_VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '0.0.0';
+
+/** GitHub-Repository, aus dem Updates und die APK kommen */
+export const REPO = 'tomden234/filament-website-google-ai';

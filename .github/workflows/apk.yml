@@ -46,6 +46,14 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+          # Eigenes Mini-Plugin: Web-App färbt Status- und Navigationsleiste passend zum Theme
+          JAVA_DIR=android/app/src/main/java/com/filamenthub/app
+          cp android-native/MainActivity.java android-native/FilamentBarsPlugin.java "$JAVA_DIR/"
+          # Inhalt nicht unter die Systemleisten zeichnen (Menü oben links bleibt sichtbar), Leistenfarben sind einstellbar
+          for st in AppTheme AppTheme.NoActionBar AppTheme.NoActionBarLaunch; do
+            sed -i "/<style name=\"$st\"/a\        <item name=\"android:windowOptOutEdgeToEdgeEnforcement\">true</item>" android/app/src/main/res/values/styles.xml || echo "Hinweis: Theme nicht gefunden, Systemleisten bleiben Standard"
+          done
+          grep -n "windowOptOutEdgeToEdgeEnforcement" android/app/src/main/res/values/styles.xml || echo "Hinweis: Theme nicht gefunden, Systemleisten bleiben Standard"
           # Eigenes App-Icon statt Standard-Icon
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             cp public/pwa-512x512.png android/app/src/main/res/mipmap-$d/ic_launcher.png

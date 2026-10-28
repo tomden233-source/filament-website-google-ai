@@ -673,7 +673,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                 }}
                 className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
                   activeTab === 'batch'
-                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >

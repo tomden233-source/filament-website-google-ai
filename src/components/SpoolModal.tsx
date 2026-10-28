@@ -577,7 +577,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-lg cursor-pointer transition bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+              className="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-lg cursor-pointer transition bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700"
             >
               {spoolToEdit ? 'Änderungen speichern' : 'Spule jetzt anlegen'}
             </button>

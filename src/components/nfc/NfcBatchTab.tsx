@@ -63,7 +63,7 @@ export const NfcBatchTab: React.FC<NfcBatchTabProps> = ({
                 {/* Fortschrittsbalken */}
                 <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-400 rounded-full transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-orange-500 via-orange-400 to-emerald-400 rounded-full transition-all duration-300"
                     style={{ width: `${progressPct}%` }}
                   />
                 </div>
@@ -161,7 +161,7 @@ export const NfcBatchTab: React.FC<NfcBatchTabProps> = ({
                     <button
                       onClick={handleSimulateBatchTagContact}
                       disabled={isBatchWriting}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs shadow-md shadow-orange-500/25 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs shadow-md shadow-orange-500/25 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
                     >
                       <Zap className="w-4 h-4" />
                       <span>Tag-Kontakt ausführen (Spule schreiben)</span>

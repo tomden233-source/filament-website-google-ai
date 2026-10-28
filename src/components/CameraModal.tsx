@@ -170,7 +170,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
           <div className="space-y-3">
             <button
               onClick={() => cameraInputRef.current?.click()}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold flex flex-col items-center justify-center gap-1.5 shadow-lg shadow-orange-500/25 transition cursor-pointer"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-bold flex flex-col items-center justify-center gap-1.5 shadow-lg shadow-orange-500/25 transition cursor-pointer"
             >
               <Camera className="w-7 h-7" />
               <span className="text-sm">Kamera öffnen & Foto machen</span>

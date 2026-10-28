@@ -38,6 +38,7 @@ import { ConnectTab } from './sidebar/ConnectTab';
 import { AiAgentTab } from './sidebar/AiAgentTab';
 import { GcodeCalcTab } from './sidebar/GcodeCalcTab';
 import { ToolsTab } from './sidebar/ToolsTab';
+import { isAppShell } from '../utils/env';
 
 import { useCalculator } from './sidebar/useCalculator';
 import { useHomeAssistantPanel } from './sidebar/useHomeAssistantPanel';
@@ -383,7 +384,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-sm text-white shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center shadow-sm text-white shrink-0">
               <Disc className="w-4 h-4" />
             </div>
             <div>
@@ -556,13 +557,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             borderColor: 'var(--app-border)'
           }}
         >
-          <div className="grid grid-cols-5 gap-1">
+          <div
+            className="grid gap-1"
+            style={{ gridTemplateColumns: `repeat(${isAppShell() ? 4 : 5}, minmax(0, 1fr))` }}
+          >
             {[
               { id: 'ai', icon: Bot, label: 'KI' },
               { id: 'gcode', icon: FileCode2, labelLine1: 'G-Code', labelLine2: 'Rechner' },
               { id: 'tools', icon: Wrench, label: 'Tools' },
               { id: 'settings', icon: Settings, label: 'Einst.' },
-              { id: 'connect', icon: Smartphone, label: 'Handy' }
+              // "Handy" (App installieren, QR) ist in der installierten App überflüssig
+              ...(isAppShell() ? [] : [{ id: 'connect', icon: Smartphone, label: 'Handy' }])
             ].map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id || (item.id === 'gcode' && activeTab === 'calc');

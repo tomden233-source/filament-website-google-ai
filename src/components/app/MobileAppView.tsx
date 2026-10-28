@@ -62,7 +62,7 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-sm">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 text-white flex items-center justify-center shadow-sm">
                     <Zap className="w-3.5 h-3.5" />
                   </div>
                   <div>

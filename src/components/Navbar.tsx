@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 import { ViewMode, VersionProfile } from '../types/filament';
+import { isAppShell } from '../utils/env';
 
 export type DeviceMode = 'app' | 'desktop';
 
@@ -69,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNfc,
   activeVersionLabel,
   versionProfiles = [],
-  activeVersionId = 'v1.60',
+  activeVersionId = 'v1.61',
   onSelectVersion,
   onCreateVersionProfile,
   onRestoreDefault,
@@ -77,6 +78,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPWAInstall,
   onOpenConnectPrinter
 }) => {
+  // Installierte Web-App oder Android-App: Browser-Hilfen (Umschalter, Webseite öffnen, QR) sind dort überflüssig
+  const appShell = isAppShell();
   const [showNewDropdown, setShowNewDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header
       className="sticky top-0 z-30 backdrop-blur-xl border-b transition-colors shadow-sm"
       style={{
+        paddingTop: 'env(safe-area-inset-top)',
         backgroundColor: 'var(--app-card)',
         borderColor: 'var(--app-border)',
         color: 'var(--app-text)'
@@ -116,26 +120,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="text-xs font-bold hidden sm:inline">Menü</span>
           </button>
 
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
+          <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
             <Disc className="w-4 h-4 text-white" />
           </div>
 
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-base font-extrabold tracking-tight whitespace-nowrap" style={{ color: 'var(--app-text)' }}>
+            <span className="text-sm sm:text-base font-extrabold tracking-tight whitespace-nowrap" style={{ color: 'var(--app-text)' }}>
               FilamentHub
             </span>
 
             {/* Eingebettete Versionsanzeige in sauberer App-Schrift (Plus Jakarta Sans) */}
             <span
               className="text-xs font-bold tracking-tight px-2 py-0.5 rounded-lg border border-orange-500/30 text-orange-400 bg-orange-500/15 shrink-0 select-none shadow-sm"
-              title={`FilamentHub ${activeVersionId || 'v1.60'}`}
+              title={`FilamentHub ${activeVersionId || 'v1.61'}`}
             >
-              {activeVersionId || 'v1.60'}
+              {activeVersionId || 'v1.61'}
             </span>
           </div>
         </div>
 
-        {/* Zone 2: App vs. Desktop Toggle & Parameter-Switch */}
+        {/* Zone 2: App vs. Desktop Toggle & Parameter-Switch (nur im Browser) */}
+        {!appShell && (
         <div className="flex items-center gap-2">
           {/* Umschalter zwischen App und Desktop mit kleinen Icons */}
           <div
@@ -150,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onSetDeviceMode('app')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 deviceMode === 'app'
-                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-sm'
                   : 'hover:text-white'
               }`}
               style={{
@@ -164,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onSetDeviceMode('desktop')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 deviceMode === 'desktop'
-                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-sm'
                   : 'hover:text-white'
               }`}
               style={{
@@ -225,9 +230,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* Zone 3: App/QR Kombi, Undo/Redo & Neu-Dropdown */}
         <div className="flex flex-wrap items-center gap-1.5">
+          {!appShell && (
+            <>
           {/* DIREKTE ECHTE WEBSEITE ÖFFNEN */}
           <a
             href={typeof window !== 'undefined' ? window.location.href.split('?')[0].split('#')[0] : '#'}
@@ -261,6 +269,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <QrCode className="w-3.5 h-3.5" />
             <span className="text-[11px] font-bold hidden sm:inline">App / QR</span>
           </button>
+
+            </>
+          )}
 
           {/* Undo / Redo */}
           <div
@@ -311,7 +322,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowNewDropdown(!showNewDropdown)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-lg shadow-orange-500/20 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold shadow-lg shadow-orange-500/20 transition cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Neu</span>

@@ -1,5 +1,5 @@
 export type ThemeBrightness = 'polar' | 'warm' | 'titanium' | 'slate' | 'midnight';
-export type ThemeAccent = 'orange' | 'emerald' | 'cyan' | 'violet' | 'mono';
+export type ThemeAccent = 'orange' | 'blue' | 'emerald' | 'cyan' | 'violet' | 'mono';
 
 export interface ThemeConfig {
   brightness: ThemeBrightness;
@@ -76,6 +76,7 @@ export interface AccentOption {
 
 export const ACCENT_OPTIONS: AccentOption[] = [
   { id: 'orange', name: 'Industrie-Orange', colorHex: '#f97316' },
+  { id: 'blue', name: 'Klassisch-Blau', colorHex: '#3b82f6' },
   { id: 'emerald', name: 'Smaragd-Grün', colorHex: '#10b981' },
   { id: 'cyan', name: 'Tech-Cyan', colorHex: '#06b6d4' },
   { id: 'violet', name: 'Neon-Violett', colorHex: '#8b5cf6' },

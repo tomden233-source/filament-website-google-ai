@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ThemeBrightness, DEFAULT_BRIGHTNESS, BRIGHTNESS_OPTIONS, ThemeAccent } from '../types/theme';
 import { safeStorage } from '../utils/safeStorage';
+import { applySystemBars } from '../utils/systemBars';
 import { STORAGE_KEY_THEME_BRIGHT, STORAGE_KEY_THEME_MIGRATED, STORAGE_KEY_THEME_ACCENT } from '../utils/storageKeys';
 
 export function useThemeSettings() {
@@ -22,11 +23,13 @@ export function useThemeSettings() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', themeBrightness);
     safeStorage.setItem(STORAGE_KEY_THEME_BRIGHT, themeBrightness);
+    applySystemBars();
   }, [themeBrightness]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-accent', themeAccent);
     safeStorage.setItem(STORAGE_KEY_THEME_ACCENT, themeAccent);
+    applySystemBars();
   }, [themeAccent]);
 
   return { themeBrightness, themeAccent, setThemeBrightness, setThemeAccent };

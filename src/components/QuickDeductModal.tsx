@@ -194,7 +194,7 @@ export const QuickDeductModal: React.FC<QuickDeductModalProps> = ({
         <button
           onClick={() => handleApply()}
           disabled={!activeSpool || gramsAmount <= 0}
-          className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 text-white font-extrabold text-xs shadow-lg shadow-orange-500/25 transition cursor-pointer flex items-center justify-center gap-2"
+          className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-lg shadow-orange-500/25 transition cursor-pointer flex items-center justify-center gap-2"
         >
           <Minus className="w-4 h-4" />
           <span>{gramsAmount}g jetzt von „{activeSpool?.brand} {activeSpool?.name}“ abziehen</span>

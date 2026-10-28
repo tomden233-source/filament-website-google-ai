@@ -91,7 +91,7 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
                       <button
                         onClick={() => handleWriteSpoolToCurrentTag(targetSpool)}
                         disabled={isWriting}
-                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
                       >
                         <PenTool className="w-3.5 h-3.5" />
                         <span>Diesen Tag mit „{targetSpool.brand} {targetSpool.name}“ beschreiben</span>
@@ -297,7 +297,7 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
                 <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-4">
                   <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping" />
-                    <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white shadow-xl shadow-orange-500/30">
+                    <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white shadow-xl shadow-orange-500/30">
                       <Radio className="w-8 h-8 animate-pulse" />
                     </div>
                   </div>

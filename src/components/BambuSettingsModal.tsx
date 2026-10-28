@@ -331,7 +331,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
         {/* Header mit echtem 3D-Drucker Icon */}
         <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--app-border)' }}>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0 text-white">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0 text-white">
               <ThreeDPrinterIcon className="w-5 h-5" />
             </div>
             <div>

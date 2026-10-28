@@ -552,7 +552,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
         {/* 1-Klick Kopier-Button für Bambu Studio */}
         <button
           onClick={handleCopyBambuParameters}
-          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-1.5"
+          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-1.5"
         >
           {copiedParam ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
           <span>{copiedParam ? 'In Zwischenablage kopiert!' : '📋 Parameter für Bambu Studio kopieren'}</span>

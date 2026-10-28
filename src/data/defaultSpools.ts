@@ -769,6 +769,25 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.61',
+    label: '1.61 (Akzentfarbe überall, Systemleisten folgen dem Theme, Auto-Update & aufgeräumte App-Ansicht)',
+    releaseDate: '28.10.2026',
+    description: 'Die Akzentfarbe (jetzt auch Blau) färbt die ganze App, in der Android-App wechselt die untere Navigationsleiste live mit. Die Statusleiste verdeckt das Menü nicht mehr, die App startet immer im App-Modus und aktualisiert sich selbst. Überflüssige Knöpfe und Dateien sind entfernt.',
+    features: [
+      '🎨 Akzentfarbe überall: Alle bisher fest orangen Knöpfe, Verläufe, Symbole und Schatten folgen jetzt der gewählten Akzentfarbe, neu dazu kommt „Klassisch-Blau“',
+      '📱 Systemleisten nach Theme: In der Android-App ist die untere Navigationsleiste in der Akzentfarbe, die Statusleiste in der Hintergrundfarbe, die Symbole wechseln automatisch zwischen hell und dunkel',
+      '🔝 Menü nicht mehr verdeckt: Der Inhalt wird unter der Statusleiste und über der Navigationsleiste platziert, dazu Platz für Notch und Gestenleiste in der Web-App',
+      '🔄 Auto-Update: Die Web-App sucht alle 15 Minuten und beim Zurückkehren nach einer neuen Version und lädt sie selbst. Die Android-App zeigt oben „Neue Version verfügbar“ mit Ein-Tipp-Download',
+      '🚀 Immer im App-Modus: Android-App, installierte Web-App und Handy starten immer in der App-Ansicht, der Umschalter erscheint nur noch im Browser am PC',
+      '🧹 Aufgeräumt: Kopfzeile ohne Browser-Knöpfe (Webseite öffnen, QR, App/Desktop) in der App, Handy-Tab nur im Browser, drei unbenutzte Fenster und zwei unbenutzte Pakete entfernt',
+      '🧱 Kein hellgrauer Streifen mehr: Der feste Hellgrau-Hintergrund im Seitenkopf ist weg, dunkle Themes füllen jetzt den ganzen Bildschirm',
+      '🔢 Aktualisierte Zahlen-FunFacts: 22.100+ Codezeilen, 3.600+ Prompt-Wörter, 3M Tokens und 61 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
 

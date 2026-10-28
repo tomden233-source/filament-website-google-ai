@@ -1,7 +1,7 @@
 {
   "name": "filamenthub",
   "private": true,
-  "version": "1.60.0",
+  "version": "1.61.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -19,7 +19,6 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
-    "motion": "^12.23.24",
     "mqtt": "^5.16.1",
     "qrcode": "^1.5.4",
     "react": "^19.0.1",
@@ -33,7 +32,6 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
