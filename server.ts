@@ -5,7 +5,9 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { execSync } from 'child_process';
+import { execSync, execFile } from 'child_process';
+import { promisify } from 'util';
+import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 import { bambuService } from './server/bambuMqtt.js';
 
@@ -16,7 +18,27 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(cors());
+const execFileAsync = promisify(execFile);
+
+// CORS: nur ausdrücklich erlaubte Ursprünge (Env CORS_ORIGIN, kommagetrennt).
+// Ohne Angabe ist kein Cross-Origin-Zugriff erlaubt (Frontend wird vom selben Server ausgeliefert).
+const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean);
+app.use(cors({ origin: corsOrigins.length > 0 ? corsOrigins : false }));
+
+// Optionaler Zugriffsschutz: Ist APP_API_KEY gesetzt, verlangen alle /api-Routen den Header x-api-key.
+app.use('/api', (req, res, next) => {
+  const expected = process.env.APP_API_KEY;
+  if (!expected) return next();
+  const given = req.headers['x-api-key'];
+  if (
+    typeof given === 'string' &&
+    given.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected))
+  ) {
+    return next();
+  }
+  return res.status(401).json({ error: 'Nicht autorisiert' });
+});
 // JSON Body-Parser mit erweitertem Limit für Bild-Uploads (Base64)
 app.use(express.json({ limit: '25mb' }));
 
@@ -608,9 +630,23 @@ app.post('/api/printer/gcode-line', async (req, res) => {
   }
 });
 
+const BAMBU_ACCESS_CODE = process.env.BAMBU_ACCESS_CODE || '';
+
+// Drucker-IP nur aus privaten IPv4-Bereichen akzeptieren (verhindert SSRF und Einschleusen in SVG/M3U)
+function safePrinterIp(raw: unknown): string {
+  const fallback = '192.168.68.53';
+  if (typeof raw !== 'string') return fallback;
+  const m = raw.trim().match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return fallback;
+  const o = m.slice(1).map(Number);
+  if (o.some((n) => n > 255)) return fallback;
+  const isPrivate = o[0] === 10 || (o[0] === 192 && o[1] === 168) || (o[0] === 172 && o[1] >= 16 && o[1] <= 31);
+  return isPrivate ? o.join('.') : fallback;
+}
+
 // Echte Kamera Snapshot Proxy-Funktion für Bambu Lab X2D (port 80/8080/322)
 app.get('/api/printer/camera-snapshot', async (req, res) => {
-  const printerIp = (req.query.ip as string) || '192.168.68.53';
+  const printerIp = safePrinterIp(req.query.ip);
 
   // 1. Versuch: Echten JPEG-Snapshot direkt von der IP des Druckers im LAN abrufen
   try {
@@ -653,7 +689,7 @@ app.get('/api/printer/camera-snapshot', async (req, res) => {
 
     <!-- Info Center -->
     <text x="400" y="325" font-family="sans-serif" font-size="14" font-weight="bold" fill="#f8fafc" text-anchor="middle">
-      Live RTSP-Signal: rtsps://bblp:86a9f6dd@${printerIp}:322/streaming/live/1
+      Live RTSP-Signal: rtsps://bblp:ZUGANGSCODE@${printerIp}:322/streaming/live/1
     </text>
     <text x="400" y="350" font-family="sans-serif" font-size="11" fill="#94a3b8" text-anchor="middle">
       Klicke unten auf „In VLC öffnen“ oder binde den direkten LAN-Stream in deinem Netzwerk ein.
@@ -681,9 +717,10 @@ app.get('/api/printer/camera-stream', (_req, res) => {
 
 // 16. Direkter M3U-Download für VLC Media Player (garantiert fehlerfreies Öffnen ohne unsichere vlc:// Protokolle)
 app.get('/api/printer/stream.m3u', (req, res) => {
-  const ip = (req.query.ip as string) || '192.168.68.53';
-  const customUrl = req.query.url as string;
-  const streamTarget = customUrl || `rtsps://bblp:86a9f6dd@${ip}:322/streaming/live/1`;
+  const ip = safePrinterIp(req.query.ip);
+  const customUrl = typeof req.query.url === 'string' && /^rtsps?:\/\/\S+$/.test(req.query.url) ? req.query.url : '';
+  const credentials = BAMBU_ACCESS_CODE ? `bblp:${BAMBU_ACCESS_CODE}@` : '';
+  const streamTarget = customUrl || `rtsps://${credentials}${ip}:322/streaming/live/1`;
 
   const m3uContent = `#EXTM3U\n#EXTINF:-1,Bambu Lab X2D Live Camera\n${streamTarget}\n`;
   res.setHeader('Content-Type', 'audio/x-mpegurl; charset=utf-8');
@@ -821,7 +858,6 @@ app.get('/api/homeassistant/config', (_req, res) => {
   return res.json({
     haUrl: config.haUrl,
     hasToken: Boolean(config.haToken && config.haToken.length > 5),
-    rawToken: config.haToken || '',
     cameraEntity: config.cameraEntity,
     switchEntity: config.switchEntity,
     isConfigured: config.isConfigured
@@ -1424,7 +1460,6 @@ app.get('/api/git/config', (_req, res) => {
   return res.json({
     repoUrl: config.repoUrl,
     hasToken: Boolean(config.token && config.token.length > 5),
-    rawToken: config.token || '',
     tokenPreview: config.token ? `${config.token.slice(0, 4)}••••${config.token.slice(-4)}` : '',
     branch: config.branch || 'main'
   });
@@ -1541,6 +1576,9 @@ app.get('/api/git/status', (_req, res) => {
 
 // API-Route: Direkt zu GitHub pushen (mit Token oder Remote URL) & HA Automation triggern
 app.post('/api/git/push', async (req, res) => {
+  let secretToMask = '';
+  const mask = (text: string) =>
+    secretToMask ? text.split(secretToMask).join('***').split(encodeURIComponent(secretToMask)).join('***') : text;
   try {
     const gitStored = loadGitConfig();
     let { repoUrl, token, branch = 'main', commitMsg = 'FilamentHub v1.53 Update', haUrl, haToken } = req.body;
@@ -1557,12 +1595,23 @@ app.post('/api/git/push', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Bitte GitHub Repository URL angeben.' });
     }
 
+    // Eingaben prüfen, bevor sie irgendwo verwendet oder gespeichert werden
+    if (typeof branch !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._\/-]{0,99}$/.test(branch)) {
+      return res.status(400).json({ success: false, error: 'Ungültiger Branch-Name.' });
+    }
+    const checkedUrl = String(repoUrl).trim().replace(/^https?:\/\/[^@]+@/, 'https://');
+    if (!/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(checkedUrl)) {
+      return res.status(400).json({ success: false, error: 'Ungültige Repository URL. Erwartet: https://github.com/BESITZER/REPO' });
+    }
+
     // Falls Token im repoUrl eingebettet war (z.B. https://ghp_xxx@github.com/...)
     let cleanToken = (token || '').trim();
     const embeddedMatch = repoUrl.match(/https:\/\/(?:([^:]+):)?([^@]+)@github\.com/);
     if (!cleanToken && embeddedMatch) {
       cleanToken = embeddedMatch[2] || embeddedMatch[1] || '';
     }
+
+    secretToMask = cleanToken;
 
     // Git-Konfiguration dauerhaft sichern
     if (cleanToken || repoUrl) {
@@ -1573,50 +1622,45 @@ app.post('/api/git/push', async (req, res) => {
       });
     }
 
-    const gitDir = path.resolve(process.cwd(), '.git');
     const gitEnv = {
       ...process.env,
       GIT_TERMINAL_PROMPT: '0',
       GIT_ASKPASS: 'echo'
     };
+    // Kein Shell-Aufruf: Argumente werden einzeln übergeben, damit Eingaben nicht als Befehle laufen
+    const git = (args: string[]) =>
+      execFileAsync('git', args, { env: gitEnv, timeout: 35000, maxBuffer: 10 * 1024 * 1024 });
 
+    const gitDir = path.resolve(process.cwd(), '.git');
     if (!fs.existsSync(gitDir)) {
-      execSync('git init', { env: gitEnv });
+      await git(['init']);
     }
 
-    let authUrl = repoUrl.trim();
-    const urlWithoutAuth = repoUrl.trim().replace(/^https?:\/\/[^@]+@/, 'https://');
-    if (cleanToken) {
-      if (urlWithoutAuth.startsWith('https://github.com/')) {
-        const repoPath = urlWithoutAuth.replace('https://github.com/', '').replace(/\.git$/, '');
-        // GitHub Personal Access Token mit x-access-token Protokoll (verhindert Passwort-Prompt)
-        authUrl = `https://x-access-token:${encodeURIComponent(cleanToken)}@github.com/${repoPath}.git`;
-      }
-    } else {
-      authUrl = urlWithoutAuth;
-    }
+    const repoPath = checkedUrl.replace('https://github.com/', '').replace(/\.git$/, '');
+    const cleanUrl = `https://github.com/${repoPath}.git`;
+    // Das Token wird nur für diesen einen Push genutzt und nicht in .git/config gespeichert
+    const pushUrl = cleanToken
+      ? `https://x-access-token:${encodeURIComponent(cleanToken)}@github.com/${repoPath}.git`
+      : cleanUrl;
 
-    execSync('git config user.name "FilamentHub Builder"', { env: gitEnv });
-    execSync('git config user.email "tomden233@gmail.com"', { env: gitEnv });
-    execSync('git add -A', { env: gitEnv });
+    await git(['config', 'user.name', 'FilamentHub Builder']);
+    await git(['config', 'user.email', process.env.GIT_AUTHOR_EMAIL || 'filamenthub@users.noreply.github.com']);
+    await git(['add', '-A']);
 
     // Stets einen Zeitstempel-Commit erzwingen (--allow-empty), damit GitHub garantiert
     // das Datum "Zuletzt geändert" auf der Repository-Seite aktualisiert!
     const timestampStr = new Date().toLocaleString('de-DE');
-    const fullCommitMsg = `${commitMsg.replace(/"/g, '\\"')} [${timestampStr}]`;
-    execSync(`git commit --allow-empty -m "${fullCommitMsg}"`, { env: gitEnv });
+    const fullCommitMsg = `${String(commitMsg).slice(0, 200)} [${timestampStr}]`;
+    await git(['commit', '--allow-empty', '-m', fullCommitMsg]);
 
     try {
-      execSync('git remote remove origin', { env: gitEnv });
+      await git(['remote', 'remove', 'origin']);
     } catch {}
-    execSync(`git remote add origin ${authUrl}`, { env: gitEnv });
-    execSync(`git branch -M ${branch}`, { env: gitEnv });
+    await git(['remote', 'add', 'origin', cleanUrl]);
+    await git(['branch', '-M', branch]);
 
-    const pushOutput = execSync(`git push -u origin ${branch} --force`, {
-      encoding: 'utf-8',
-      timeout: 35000,
-      env: gitEnv
-    });
+    const pushResult = await git(['push', pushUrl, `HEAD:refs/heads/${branch}`, '--force']);
+    const pushOutput = mask(`${pushResult.stdout || ''}${pushResult.stderr || ''}`);
 
     // Falls HA Zugangsdaten mitgegeben wurden, dauerhaft speichern
     if (haUrl || haToken) {
@@ -1651,7 +1695,7 @@ app.post('/api/git/push', async (req, res) => {
       timestamp: timestampStr
     });
   } catch (err: any) {
-    const errMsg = err?.message || String(err);
+    const errMsg = mask(err?.message || String(err));
     let hint = 'Falls GitHub Authentifizierung fehlschlägt, erstelle ein Personal Access Token (classic) unter GitHub -> Settings -> Developer settings -> Personal access tokens (classic) mit Häkchen bei "repo".';
     if (errMsg.includes('401') || errMsg.includes('Authentication failed') || errMsg.includes('could not read Password') || errMsg.includes('device or address') || errMsg.includes('Bad credentials')) {
       hint = 'GitHub Authentifizierung abgewiesen (HTTP 401 Bad credentials). Bitte erstelle ein neues Personal Access Token (PAT) unter GitHub -> Settings -> Developer settings -> Personal access tokens (classic) mit Häkchen bei [x] repo.';

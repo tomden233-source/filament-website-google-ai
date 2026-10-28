@@ -319,10 +319,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return null;
       })
       .then(data => {
-        if (data?.rawToken && data.rawToken.trim().length > 0) {
-          setNabuTokenInput(data.rawToken);
-          saveHaCredentials({ token: data.rawToken });
-        }
         if (data?.haUrl && !data.haUrl.includes('xxxxxxxxxxxx')) {
           setNabuUrlInput(data.haUrl);
           saveHaCredentials({ url: data.haUrl });

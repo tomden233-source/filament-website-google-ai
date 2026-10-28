@@ -65,7 +65,7 @@ pm2 startup
 - **Bambu Lab X2D:**
   - IP: `192.168.68.53`
   - Port: `8883` (MQTTS TLS)
-  - Zugriffscode: `86a9f6dd`
+  - Zugriffscode: `DEIN_ZUGANGSCODE`
   - Seriennummer: `03909A511502473`
 - **Home Assistant:**
   - Gib in den App-Einstellungen deine Home Assistant URL (z.B. `http://homeassistant.local:8123`) und deinen Long-Lived Access Token ein.
