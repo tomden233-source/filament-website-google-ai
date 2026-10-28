@@ -282,11 +282,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       .catch(() => {});
   }, [pairUrl]);
 
-  if (!isOpen) return null;
-
-  const activeVersion =
-    versionProfiles.find(v => v.id === activeVersionId) || versionProfiles[versionProfiles.length - 1];
-
   // G-Code Upload Handler
   const {
     handlePullGcodeFromPrinter,
@@ -302,8 +297,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setCalcPricePerKg,
     setActiveTab
   });
-
-  // Kosten-Berechnung
 
   // KI-Agent Befehle verarbeiten
   const {
@@ -322,6 +315,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onMarkDried,
     onDeductWeight
   });
+
+  if (!isOpen) return null;
+
+  const activeVersion =
+    versionProfiles.find(v => v.id === activeVersionId) || versionProfiles[versionProfiles.length - 1];
+
 
   const handleCreateVersionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
