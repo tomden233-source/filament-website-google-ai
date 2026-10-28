@@ -185,7 +185,7 @@ export const PrinterCameraPanel: React.FC<PrinterCameraPanelProps> = ({
                   )}
                 </div>
                 <p className="text-[10px] text-slate-400 truncate">
-                  Raspberry Pi Home Assistant ({haCreds.url})
+                  Home Assistant ({haCreds.url})
                 </p>
               </div>
             </div>

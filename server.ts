@@ -11,7 +11,6 @@ import printerRoutes from './server/routes/printer.js';
 import printerCameraRoutes from './server/routes/printerCamera.js';
 import homeAssistantRoutes from './server/routes/homeAssistant.js';
 import haTelemetryRoutes from './server/routes/haTelemetry.js';
-import projectRoutes from './server/routes/project.js';
 import gitRoutes from './server/routes/git.js';
 
 dotenv.config();
@@ -48,7 +47,6 @@ app.use(printerRoutes);
 app.use(printerCameraRoutes);
 app.use(homeAssistantRoutes);
 app.use(haTelemetryRoutes);
-app.use(projectRoutes);
 app.use(gitRoutes);
 
 // Assetlinks (Android-App) mit passenden Headern

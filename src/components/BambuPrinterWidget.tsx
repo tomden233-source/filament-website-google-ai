@@ -48,7 +48,7 @@ const DEFAULT_LIVE_STATE: BambuLiveState = {
   connected: false,
   connecting: false,
   error: null,
-  serialNumber: '20P9BJ610801860',
+  serialNumber: '',
   userId: '',
   brokerHost: 'us.mqtt.bambulab.com',
   hasAdminPin: true,
@@ -624,7 +624,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
             </div>
 
             <p className="text-[11px] truncate flex items-center gap-2 mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
-              <span>SN: {liveState.serialNumber || '20P9BJ610801860'}</span>
+              <span>SN: {liveState.serialNumber || '–'}</span>
               {liveState.data.subtask_name && isPrinterConnected && (
                 <>
                   <span>•</span>

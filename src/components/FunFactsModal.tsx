@@ -27,20 +27,20 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
     {
       icon: Code2,
       title: 'Quellcode-Zeilen',
-      value: '25.200+ Zeilen',
-      desc: '25.200 handgeschriebene Codezeilen in TypeScript, React 19, Tailwind CSS v4 und Node.js / Express.'
+      value: '22.400+ Zeilen',
+      desc: '22.400 handgeschriebene Codezeilen in TypeScript, React 19, Tailwind CSS v4 und Node.js / Express.'
     },
     {
       icon: MessageSquare,
       title: 'Wörter in deinen Prompts',
-      value: '3.150+ Wörter',
-      desc: 'Exakt 3.150+ Wörter in deinen Benutzer-Prompts über alle tiefgreifenden Entwicklungs-Iterationen hinweg.'
+      value: '3.300+ Wörter',
+      desc: 'Exakt 3.300+ Wörter in deinen Benutzer-Prompts über alle tiefgreifenden Entwicklungs-Iterationen hinweg.'
     },
     {
       icon: Cpu,
       title: 'Verarbeitete KI-Tokens',
-      value: '2.640.000+ Tokens',
-      desc: 'Über 2,64 Millionen LLM-Tokens für präzise Algorithmen, MQTTS-Payloads, HAOS-Add-ons und UI-Logik aufgewendet.'
+      value: '2.750.000+ Tokens',
+      desc: 'Über 2,75 Millionen LLM-Tokens für präzise Algorithmen, MQTTS-Payloads, APK-Builds und UI-Logik aufgewendet.'
     },
     {
       icon: Clock,
@@ -51,7 +51,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
     {
       icon: Layers,
       title: 'Revisions-Entwicklungsstufen',
-      value: '58 Versionen (v1.00 – v1.58)',
+      value: '59 Versionen (v1.00 – v1.59)',
       desc: '57 aufeinander aufbauende Versionsprofile mit Snapshot-Wiederherstellung im Menü.'
     },
     {
@@ -135,7 +135,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
                     color: 'var(--app-accent)'
                   }}
                 >
-                  v1.58
+                  v1.59
                 </span>
               </div>
               <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>

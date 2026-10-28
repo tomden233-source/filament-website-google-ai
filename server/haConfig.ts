@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { rootDir, dataDir } from './paths.js';
 
-// --- HOME ASSISTANT INTEGRATION (Raspberry Pi / Lokales Netzwerk / Nabu Casa) ---
+// --- HOME ASSISTANT INTEGRATION (Lokales Netzwerk / Nabu Casa) ---
 const haConfigPath = path.resolve(rootDir, '.ha-config.json');
 const haDataConfigPath = path.join(dataDir, 'ha-config.json');
 

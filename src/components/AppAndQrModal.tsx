@@ -15,6 +15,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { APK_URL } from '../utils/env';
 
 interface AppAndQrModalProps {
   isOpen: boolean;
@@ -287,12 +288,11 @@ export const AppAndQrModal: React.FC<AppAndQrModalProps> = ({
             >
               <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-extrabold text-xs">
                 <Check className="w-4 h-4" />
-                <span>Signiertes Standalone-Paket bereit (ca. 29 KB):</span>
+                <span>Echte Android-App, automatisch auf GitHub gebaut:</span>
               </div>
 
               <a
-                href="/FilamentHub.apk"
-                download="FilamentHub.apk"
+                href={APK_URL}
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2 cursor-pointer text-center active:scale-98"
               >
                 <Download className="w-4 h-4 text-white" />
@@ -300,7 +300,7 @@ export const AppAndQrModal: React.FC<AppAndQrModalProps> = ({
               </a>
 
               <p className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
-                Paketname: <code>com.filamenthub.app</code> • Version: 1.28 • Android 5.0 bis 14+
+                Paketname: <code>com.filamenthub.app</code> • Immer die neueste Version • Android 7.0+
               </p>
             </div>
 

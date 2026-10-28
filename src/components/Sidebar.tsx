@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 import QRCode from 'qrcode';
 import { FunFactsModal } from './FunFactsModal';
-import { SelfHostModal } from './SelfHostModal';
 
 import {
   X,
@@ -11,10 +10,8 @@ import {
   FileCode2,
   Wrench,
   Sparkles,
-  Server,
   Layers,
   PlusCircle,
-  Download,
   Smartphone,
   Settings,
   Check,
@@ -34,6 +31,8 @@ import { ThemeBrightness, ThemeAccent } from '../types/theme';
 
 import { SettingsThemesPanel } from './sidebar/SettingsThemesPanel';
 import { SettingsPresetsPanel } from './sidebar/SettingsPresetsPanel';
+import { SettingsConnectionsPanel } from './sidebar/SettingsConnectionsPanel';
+import { BambuSettingsModal } from './BambuSettingsModal';
 import { SettingsHomeAssistantPanel } from './sidebar/SettingsHomeAssistantPanel';
 import { ConnectTab } from './sidebar/ConnectTab';
 import { AiAgentTab } from './sidebar/AiAgentTab';
@@ -168,7 +167,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Fun Facts & Self-Hosting Modal State
   const [showFunFacts, setShowFunFacts] = useState<boolean>(false);
-  const [showSelfHost, setShowSelfHost] = useState<boolean>(false);
 
   // Einstellungen Sub-State
   const {
@@ -208,7 +206,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // QR-Code Kopplung im Einstellungsreiter
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
-  const [settingsSubTab, setSettingsSubTab] = useState<'themes' | 'presets' | 'homeassistant'>('themes');
+  const [showBambuSettings, setShowBambuSettings] = useState<boolean>(false);
+  const [settingsSubTab, setSettingsSubTab] = useState<'themes' | 'presets' | 'connections'>('themes');
 
   // Home Assistant Bambu Lab X2D Telemetrie & Sensor-Pfade (60 Entitäten)
   const {
@@ -282,11 +281,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       .catch(() => {});
   }, [pairUrl]);
 
-  if (!isOpen) return null;
-
-  const activeVersion =
-    versionProfiles.find(v => v.id === activeVersionId) || versionProfiles[versionProfiles.length - 1];
-
   // G-Code Upload Handler
   const {
     handlePullGcodeFromPrinter,
@@ -302,8 +296,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setCalcPricePerKg,
     setActiveTab
   });
-
-  // Kosten-Berechnung
 
   // KI-Agent Befehle verarbeiten
   const {
@@ -322,6 +314,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onMarkDried,
     onDeductWeight
   });
+
+  if (!isOpen) return null;
+
+  const activeVersion =
+    versionProfiles.find(v => v.id === activeVersionId) || versionProfiles[versionProfiles.length - 1];
+
 
   const handleCreateVersionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -400,26 +398,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setShowSelfHost(true)}
-              className="px-2 py-1 rounded-lg text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer hover:opacity-90 active:scale-95 shadow-xs border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
-              title="FilamentHub 24/7 autark auf deinem Raspberry Pi oder Docker hosten"
-            >
-              <Server className="w-3 h-3 text-emerald-400" />
-              <span>Pi Host</span>
-            </button>
-
-            <a
-              href="/api/export-project.zip"
-              download="FilamentHub_v1.47_HAOS_Addon.zip"
-              className="px-2 py-1 rounded-lg text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer hover:opacity-90 active:scale-95 shadow-xs border-purple-500/40 bg-purple-500/15 text-purple-300"
-              title="Aktuellen Stand v1.47 als ZIP für Home Assistant OS / Git herunterladen"
-            >
-              <Download className="w-3 h-3 text-purple-400" />
-              <span>ZIP</span>
-            </a>
-
             <button
               type="button"
               onClick={() => setShowFunFacts(true)}
@@ -584,7 +562,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               { id: 'gcode', icon: FileCode2, labelLine1: 'G-Code', labelLine2: 'Rechner' },
               { id: 'tools', icon: Wrench, label: 'Tools' },
               { id: 'settings', icon: Settings, label: 'Einst.' },
-              { id: 'connect', icon: Smartphone, label: 'Koppeln' }
+              { id: 'connect', icon: Smartphone, label: 'Handy' }
             ].map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id || (item.id === 'gcode' && activeTab === 'calc');
@@ -662,16 +640,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   🧪 Material & Tara
                 </button>
                 <button
-                  onClick={() => setSettingsSubTab('homeassistant')}
+                  onClick={() => setSettingsSubTab('connections')}
                   className={`py-1.5 px-1 rounded-lg transition cursor-pointer truncate text-center font-bold ${
-                    settingsSubTab === 'homeassistant' ? 'shadow' : 'hover:opacity-80'
+                    settingsSubTab === 'connections' ? 'shadow' : 'hover:opacity-80'
                   }`}
                   style={{
-                    backgroundColor: settingsSubTab === 'homeassistant' ? 'var(--app-accent)' : 'transparent',
-                    color: settingsSubTab === 'homeassistant' ? '#ffffff' : 'var(--app-text-muted)'
+                    backgroundColor: settingsSubTab === 'connections' ? 'var(--app-accent)' : 'transparent',
+                    color: settingsSubTab === 'connections' ? '#ffffff' : 'var(--app-text-muted)'
                   }}
                 >
-                  🏠 Home Assistant
+                  🔌 Verbindungen
                 </button>
               </div>
 
@@ -792,12 +770,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {settingsSubTab === 'presets' && <SettingsPresetsPanel selectedMaterial={selectedMaterial} setSelectedMaterial={setSelectedMaterial} appSettings={appSettings} matInterval={matInterval} setMatInterval={setMatInterval} matTemp={matTemp} setMatTemp={setMatTemp} matHours={matHours} setMatHours={setMatHours} handleSaveMaterial={handleSaveMaterial} matSavedSuccess={matSavedSuccess} handleResetMaterial={handleResetMaterial} eibosTaraInput={eibosTaraInput} setEibosTaraInput={setEibosTaraInput} handleSaveEibosTara={handleSaveEibosTara} eibosSavedSuccess={eibosSavedSuccess} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand} brandTara={brandTara} setBrandTara={setBrandTara} brandDefaultPrice={brandDefaultPrice} setBrandDefaultPrice={setBrandDefaultPrice} handleSaveBrand={handleSaveBrand} brandSavedSuccess={brandSavedSuccess} handleResetBrand={handleResetBrand} />}
 
               {/* BEREICH 3: HOME ASSISTANT BAMBU LAB X2D TELEMETRIE & 60 ENTITÄTEN */}
-              {settingsSubTab === 'homeassistant' && <SettingsHomeAssistantPanel haTelemetry={haTelemetry} sensorCategoryFilter={sensorCategoryFilter} sensorSearchQuery={sensorSearchQuery} isNabuVaultOpen={isNabuVaultOpen} setIsNabuVaultOpen={setIsNabuVaultOpen} nabuUrlInput={nabuUrlInput} setNabuUrlInput={setNabuUrlInput} showNabuToken={showNabuToken} nabuTokenInput={nabuTokenInput} setNabuTokenInput={setNabuTokenInput} setShowNabuToken={setShowNabuToken} nabuTestResult={nabuTestResult} haTriggerResult={haTriggerResult} handleSaveNabuVault={handleSaveNabuVault} nabuSavedSuccess={nabuSavedSuccess} handleTestNabuConnection={handleTestNabuConnection} nabuTesting={nabuTesting} handleTriggerHaPullAutomation={handleTriggerHaPullAutomation} haTriggering={haTriggering} fetchHaTelemetry={fetchHaTelemetry} haLoading={haLoading} haActionToast={haActionToast} setHaActionToast={setHaActionToast} haLightActive={haLightActive} handleToggleHaLight={handleToggleHaLight} ventilationDryerPath={ventilationDryerPath} setVentilationDryerPath={setVentilationDryerPath} setCopiedEntityId={setCopiedEntityId} copiedEntityId={copiedEntityId} setSensorSearchQuery={setSensorSearchQuery} setSensorCategoryFilter={setSensorCategoryFilter} />}
+              {settingsSubTab === 'connections' && <SettingsConnectionsPanel haUrl={nabuUrlInput} cloudDbUrl={cloudDbUrl} onOpenBambu={() => setShowBambuSettings(true)} onOpenApp={() => setActiveTab('connect')} haPanel={<SettingsHomeAssistantPanel haTelemetry={haTelemetry} sensorCategoryFilter={sensorCategoryFilter} sensorSearchQuery={sensorSearchQuery} isNabuVaultOpen={isNabuVaultOpen} setIsNabuVaultOpen={setIsNabuVaultOpen} nabuUrlInput={nabuUrlInput} setNabuUrlInput={setNabuUrlInput} showNabuToken={showNabuToken} nabuTokenInput={nabuTokenInput} setNabuTokenInput={setNabuTokenInput} setShowNabuToken={setShowNabuToken} nabuTestResult={nabuTestResult} haTriggerResult={haTriggerResult} handleSaveNabuVault={handleSaveNabuVault} nabuSavedSuccess={nabuSavedSuccess} handleTestNabuConnection={handleTestNabuConnection} nabuTesting={nabuTesting} handleTriggerHaPullAutomation={handleTriggerHaPullAutomation} haTriggering={haTriggering} fetchHaTelemetry={fetchHaTelemetry} haLoading={haLoading} haActionToast={haActionToast} setHaActionToast={setHaActionToast} haLightActive={haLightActive} handleToggleHaLight={handleToggleHaLight} ventilationDryerPath={ventilationDryerPath} setVentilationDryerPath={setVentilationDryerPath} setCopiedEntityId={setCopiedEntityId} copiedEntityId={copiedEntityId} setSensorSearchQuery={setSensorSearchQuery} setSensorCategoryFilter={setSensorCategoryFilter} />} />}
             </div>
           )}
 
           {/* TAB 2: VERBINDEN & APK */}
-          {activeTab === 'connect' && <ConnectTab qrCodeDataUrl={qrCodeDataUrl} handleCopyPairLink={handleCopyPairLink} copiedLink={copiedLink} />}
+          {activeTab === 'connect' && <ConnectTab qrCodeDataUrl={qrCodeDataUrl} handleCopyPairLink={handleCopyPairLink} copiedLink={copiedLink} onOpenPWAInstall={onOpenPWAInstall} />}
 
           {/* TAB 3: KI-AGENT */}
           {activeTab === 'ai' && <AiAgentTab setAiInput={setAiInput} chatMessages={chatMessages} handleAiSubmit={handleAiSubmit} aiInput={aiInput} />}
@@ -838,8 +816,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </aside>
 
       {/* Fun Facts & Self-Hosting Modals */}
+      <BambuSettingsModal isOpen={showBambuSettings} onClose={() => setShowBambuSettings(false)} />
       <FunFactsModal isOpen={showFunFacts} onClose={() => setShowFunFacts(false)} />
-      <SelfHostModal isOpen={showSelfHost} onClose={() => setShowSelfHost(false)} currentVersion={activeVersion?.id || 'v1.47'} />
     </div>
   );
 };

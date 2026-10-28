@@ -732,6 +732,24 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.59',
+    label: '1.59 (Menü-Absturz behoben, Verbindungs-Menü, echte Android-App per QR & Pi-Hosting entfernt)',
+    releaseDate: '28.10.2026',
+    description: 'Das Menü stürzt nicht mehr ab (React-Fehler #310). Alles rund um Raspberry Pi, Docker und Home-Assistant-Add-on ist entfernt. Neu ist ein Menüpunkt „Verbindungen“, der Bambu Lab, Home Assistant und Handy-Sync Schritt für Schritt erklärt, und eine echte Android-App, die GitHub Actions baut und die du per QR-Code lädst.',
+    features: [
+      '🐛 Menü-Absturz behoben: Zwei Hooks standen hinter einem frühen return in der Seitenleiste (Minified React error #310). Alle Hooks laufen jetzt vor dem return, andere Fenster wurden per Skript geprüft',
+      '🔌 Neues Untermenü „Verbindungen“ (Einstellungen): Karten für Bambu Lab, Home Assistant und Handy & Cloud-Sync mit Status-Anzeige, kurzer Erklärung und Schritt-für-Schritt-Anleitung',
+      '📱 Echte Android-APK: Neuer Workflow .github/workflows/apk.yml baut bei jedem Push auf main eine signierte APK (Capacitor) und legt sie im Release „apk-latest“ ab',
+      '🔳 QR-Code im Tab „Handy“: Der Code zeigt auf den festen APK-Download, dazu Link kopieren, Installationsschritte und Web-App-Alternative',
+      '🧹 Pi-Hosting entfernt: Dockerfile, docker-compose, install-pi.sh, Pi-Anleitung, HA-Add-on-Dateien, ZIP-Export, Pi-Host-Fenster und die Platzhalter-APK sind gelöscht',
+      '🔒 Zugangsdaten aus dem Code: Fest eingetragener Bambu-Token und Standard-User-ID wurden entfernt, die Felder sind jetzt leer',
+      '🔢 Aktualisierte Zahlen-FunFacts: 22.400+ Codezeilen, 3.300+ Prompt-Wörter, 2,75M Tokens und 59 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
 
