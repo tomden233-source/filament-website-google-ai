@@ -2,6 +2,7 @@ import React from 'react';
 import { Edit3, Wand2, Camera, Search, X, ArrowUpDown, Tag, Layers } from 'lucide-react';
 import { BambuPrinterWidget } from '../BambuPrinterWidget';
 import { SpoolCard } from '../SpoolCard';
+import { LocationFilter } from '../workshop/LocationFilter';
 
 export interface DesktopDashboardProps {
   spools: any;
@@ -36,6 +37,9 @@ export interface DesktopDashboardProps {
   handleDuplicateSpool: (...args: any[]) => any;
   handleDeleteSpool: (...args: any[]) => any;
   handleOpenSpoolNfc: any;
+  locations: any;
+  activeLocationFilter: any;
+  setActiveLocationFilter: any;
 }
 
 export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
@@ -70,7 +74,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   handleMarkDried,
   handleDuplicateSpool,
   handleDeleteSpool,
-  handleOpenSpoolNfc
+  handleOpenSpoolNfc,
+  locations,
+  activeLocationFilter,
+  setActiveLocationFilter
 }) => {
   return (
 <>
@@ -303,11 +310,12 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                   </div>
 
                   {/* Filter zurücksetzen Button bei aktivem Filter */}
-                  {(searchQuery || activeMaterialFilter !== 'ALL') && (
+                  {(searchQuery || activeMaterialFilter !== 'ALL' || activeLocationFilter !== 'ALL') && (
                     <button
                       onClick={() => {
                         setSearchQuery('');
                         setActiveMaterialFilter('ALL');
+                        setActiveLocationFilter('ALL');
                       }}
                       className="px-2.5 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
                       title="Alle Such- und Materialfilter zurücksetzen"
@@ -380,6 +388,12 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                   })}
                 </div>
               </div>
+
+              {locations.length > 0 && (
+                <div className="pt-2 border-t" style={{ borderColor: 'var(--app-border)' }}>
+                  <LocationFilter locations={locations} active={activeLocationFilter} onChange={setActiveLocationFilter} />
+                </div>
+              )}
             </section>
 
             {/* Spulen-Bereich: Übersichtlicher Header mit Spulen-Anzahl (Kachelgröße exklusiv in den Einstellungen) */}

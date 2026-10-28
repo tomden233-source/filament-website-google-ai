@@ -1,6 +1,8 @@
 import React from 'react';
 import { Zap, Camera, Tag, Plus, Minus, Pencil, Trash2 } from 'lucide-react';
 import { BambuPrinterWidget } from '../BambuPrinterWidget';
+import { SpoolBadges } from '../workshop/SpoolBadges';
+import { LocationFilter } from '../workshop/LocationFilter';
 
 export interface MobileAppViewProps {
   spools: any;
@@ -24,6 +26,9 @@ export interface MobileAppViewProps {
   handleAddWeight: (...args: any[]) => any;
   handleOpenSpoolNfc: any;
   handleDeleteSpool: (...args: any[]) => any;
+  locations: any;
+  activeLocationFilter: any;
+  setActiveLocationFilter: any;
 }
 
 export const MobileAppView: React.FC<MobileAppViewProps> = ({
@@ -47,7 +52,10 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
   filteredSpools,
   handleAddWeight,
   handleOpenSpoolNfc,
-  handleDeleteSpool
+  handleDeleteSpool,
+  locations,
+  activeLocationFilter,
+  setActiveLocationFilter
 }) => {
   return (
 <div className="max-w-md mx-auto w-full space-y-3 pb-20">
@@ -209,6 +217,8 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
                   </button>
                 ))}
               </div>
+
+              <LocationFilter locations={locations} active={activeLocationFilter} onChange={setActiveLocationFilter} />
             </section>
 
             {/* SPULE-KARTEN FÜR SMARTPHONE MIT 1-KLICK ABZUG */}
@@ -251,6 +261,9 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
                             <span className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
                               {spool.material} • {spool.colorName}
                             </span>
+                            <div className="flex flex-wrap items-center gap-1 mt-1 empty:hidden">
+                              <SpoolBadges spool={spool} />
+                            </div>
                           </div>
                         </div>
 

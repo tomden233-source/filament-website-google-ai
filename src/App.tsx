@@ -44,6 +44,12 @@ import {
 } from './utils/storageKeys';
 import { useThemeSettings } from './hooks/useThemeSettings';
 import { useAppSettings } from './hooks/useAppSettings';
+import { useDryingReminders } from './hooks/useDryingReminders';
+import { LowStockBanner } from './components/workshop/LowStockBanner';
+import { WorkshopModal, WorkshopTab } from './components/workshop/WorkshopModal';
+import { getLocationStats } from './utils/spoolAlerts';
+import { getWorkshopSettings } from './utils/workshopSettings';
+import { localNotify } from './utils/notify';
 
 const LEGACY_SPOOL_KEYS = [
   'filamenthub_spools_v123',
@@ -90,10 +96,14 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    // Veraltete Stände automatisch auf die neue v1.61 anheben
-    if (!saved || saved !== 'v1.61') {
-      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.61');
-      return 'v1.61';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.70';
+    const seen = safeStorage.getItem('filamenthub_latest_seen_version');
+    // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
+    // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
+    if (!saved || seen !== latestId || !versionProfiles.some(p => p.id === saved)) {
+      safeStorage.setItem('filamenthub_latest_seen_version', latestId);
+      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, latestId);
+      return latestId;
     }
     return saved;
   });
@@ -220,6 +230,9 @@ export default function App() {
   const [activeMaterialFilter, setActiveMaterialFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('drying_urgent');
+  const [activeLocationFilter, setActiveLocationFilter] = useState<string>('ALL');
+  const [isWorkshopOpen, setIsWorkshopOpen] = useState<boolean>(false);
+  const [workshopTab, setWorkshopTab] = useState<WorkshopTab>('notices');
 
   // Schnell-Scanner
   const [quickLinkText, setQuickLinkText] = useState<string>('');
@@ -274,6 +287,9 @@ export default function App() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 10000);
   }, []);
+
+  // Erinnerung: Trocknen fällig, AMS-Trocknung fertig
+  useDryingReminders({ spools, showToast });
 
   // Zentraler Einstellungs-Hub (Material-Trocknungszeiten, Hersteller-Tara, Eibos-Beutel)
   const { appSettings, handleUpdateMaterialPreset, handleResetMaterialPreset, handleUpdateBrandPreset, handleResetBrandPreset, handleUpdateEibosBagTara, handleUpdateCardSize, handleResetAllSettings } = useAppSettings({ showToast });
@@ -367,6 +383,7 @@ export default function App() {
         setIsHistoryModalOpen(false);
         setIsCameraModalOpen(false);
         setIsNfcModalOpen(false);
+        setIsWorkshopOpen(false);
       }
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -498,7 +515,8 @@ export default function App() {
     if (!spool) return;
 
     const maxWeight = Math.max(spool.initialWeight || 1000, 3000);
-    const newRemaining = Math.max(0, Math.min(maxWeight, (spool.remainingWeight || 0) + deltaGrams));
+    const prevRemaining = spool.remainingWeight || 0;
+    const newRemaining = Math.max(0, Math.min(maxWeight, prevRemaining + deltaGrams));
     const updatedSpools = spools.map(s => (s.id === spoolId ? { ...s, remainingWeight: newRemaining } : s));
 
     const newHistoryEntry: HistoryEntry = {
@@ -515,6 +533,14 @@ export default function App() {
     setPrintHistory(updatedHistory);
     persistState(updatedSpools, updatedHistory);
     if (deltaGrams < 0) {
+      // Rest-Warnung: Schwelle gerade unterschritten
+      const ws = getWorkshopSettings();
+      if (ws.lowWarning && ws.lowWeightG > 0 && prevRemaining > ws.lowWeightG && newRemaining <= ws.lowWeightG) {
+        const warn = `${spool.brand} ${spool.name}: nur noch ${newRemaining} g übrig.`;
+        showToast(`⚠️ Fast leer! ${warn}`);
+        void localNotify('Spule fast leer', warn, { tag: 'low-' + spool.id });
+        addSystemLog('spule', `Spule fast leer: ${spool.brand} ${spool.name}`, `${newRemaining} g übrig`, 'warn');
+      }
       showToast(`${Math.abs(deltaGrams)}g abgezogen (${newRemaining}g übrig).`);
       addSystemLog('spule', `${Math.abs(deltaGrams)}g abgezogen von ${spool.brand} ${spool.name} (${newRemaining}g verbleibend)`, spool.name, 'info');
     } else {
@@ -826,15 +852,14 @@ export default function App() {
 
   // Gefilterte und sortierte Spulen
   const filteredSpools = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
+    // Mehrere Suchwörter: alle müssen vorkommen (z. B. "rot pla" oder "regal petg")
+    const tokens = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
     const result = spools.filter(s => {
       const matchesMat = activeMaterialFilter === 'ALL' || s.material === activeMaterialFilter;
-      const matchesSearch =
-        !q ||
-        `${s.brand} ${s.name} ${s.material} ${s.colorName || ''} ${s.storageNote || ''}`
-          .toLowerCase()
-          .includes(q);
-      return matchesMat && matchesSearch;
+      const matchesLoc = activeLocationFilter === 'ALL' || (s.location || '') === activeLocationFilter;
+      const hay = `${s.brand} ${s.name} ${s.material} ${s.colorName || ''} ${s.storageNote || ''} ${s.location || ''}`.toLowerCase();
+      const matchesSearch = tokens.every(t => hay.includes(t));
+      return matchesMat && matchesLoc && matchesSearch;
     });
 
     result.sort((a, b) => {
@@ -854,7 +879,9 @@ export default function App() {
     });
 
     return result;
-  }, [spools, activeMaterialFilter, searchQuery, sortBy, now]);
+  }, [spools, activeMaterialFilter, activeLocationFilter, searchQuery, sortBy, now]);
+
+  const locationStats = useMemo(() => getLocationStats(spools), [spools]);
 
   const activeVersion =
     versionProfiles.find(v => v.id === activeVersionId) || versionProfiles[versionProfiles.length - 1];
@@ -889,6 +916,7 @@ export default function App() {
         isSyncing={isSyncing}
         syncOk={syncStatus.ok}
         onOpenHistory={() => setIsHistoryModalOpen(true)}
+        onOpenWorkshop={() => setIsWorkshopOpen(true)}
         historyCount={printHistory.length}
         onOpenNewSpool={() => {
           setSpoolToEdit(null);
@@ -966,16 +994,25 @@ export default function App() {
 
       {/* Hauptbereich */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 pb-24 space-y-4 sm:space-y-5">
+        {/* Rest-Warnung: fast leere Spulen */}
+        <LowStockBanner
+          spools={spools}
+          onFocus={q => setSearchQuery(q)}
+          onOpenSettings={() => {
+            setWorkshopTab('notices');
+            setIsWorkshopOpen(true);
+          }}
+        />
         {deviceMode === 'app' ? (
           /* ============================================================== */
           /* SMARTPHONE APP-MODUS: MOBILE-FOKUSSIERT & TOUCH-OPTIMIERT     */
           /* ============================================================== */
-          <MobileAppView spools={spools} totalGrams={totalGrams} setIsCameraModalOpen={setIsCameraModalOpen} setNfcSpoolId={setNfcSpoolId} setNfcModalMode={setNfcModalMode} setIsNfcModalOpen={setIsNfcModalOpen} setSpoolToEdit={setSpoolToEdit} setSpoolPrefill={setSpoolPrefill} setIsSpoolModalOpen={setIsSpoolModalOpen} setIsQuickDeductOpen={setIsQuickDeductOpen} viewMode={viewMode} handleDeductWeight={handleDeductWeight} handleApplyDryingCredit={handleApplyDryingCredit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} setActiveMaterialFilter={setActiveMaterialFilter} activeMaterialFilter={activeMaterialFilter} filteredSpools={filteredSpools} handleAddWeight={handleAddWeight} handleOpenSpoolNfc={handleOpenSpoolNfc} handleDeleteSpool={handleDeleteSpool} />
+          <MobileAppView spools={spools} totalGrams={totalGrams} setIsCameraModalOpen={setIsCameraModalOpen} setNfcSpoolId={setNfcSpoolId} setNfcModalMode={setNfcModalMode} setIsNfcModalOpen={setIsNfcModalOpen} setSpoolToEdit={setSpoolToEdit} setSpoolPrefill={setSpoolPrefill} setIsSpoolModalOpen={setIsSpoolModalOpen} setIsQuickDeductOpen={setIsQuickDeductOpen} viewMode={viewMode} handleDeductWeight={handleDeductWeight} handleApplyDryingCredit={handleApplyDryingCredit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} setActiveMaterialFilter={setActiveMaterialFilter} activeMaterialFilter={activeMaterialFilter} filteredSpools={filteredSpools} handleAddWeight={handleAddWeight} handleOpenSpoolNfc={handleOpenSpoolNfc} handleDeleteSpool={handleDeleteSpool} locations={locationStats} activeLocationFilter={activeLocationFilter} setActiveLocationFilter={setActiveLocationFilter} />
         ) : (
           /* ============================================================== */
           /* DESKTOP-MODUS: VOLLE WERKSTATT-DASHBOARD VERSION               */
           /* ============================================================== */
-          <DesktopDashboard spools={spools} totalGrams={totalGrams} totalValue={totalValue} dueDryingCount={dueDryingCount} setEditUsedInputValue={setEditUsedInputValue} totalUsedGrams={totalUsedGrams} setIsEditUsedModalOpen={setIsEditUsedModalOpen} viewMode={viewMode} handleDeductWeight={handleDeductWeight} handleApplyDryingCredit={handleApplyDryingCredit} setSpoolToEdit={setSpoolToEdit} setSpoolPrefill={setSpoolPrefill} setIsSpoolModalOpen={setIsSpoolModalOpen} setIsCameraModalOpen={setIsCameraModalOpen} quickLinkText={quickLinkText} setQuickLinkText={setQuickLinkText} handleQuickScan={handleQuickScan} isQuickScanning={isQuickScanning} searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortBy={sortBy} setSortBy={setSortBy} activeMaterialFilter={activeMaterialFilter} setActiveMaterialFilter={setActiveMaterialFilter} filteredSpools={filteredSpools} appSettings={appSettings} now={now} handleApplyScale={handleApplyScale} handleMarkDried={handleMarkDried} handleDuplicateSpool={handleDuplicateSpool} handleDeleteSpool={handleDeleteSpool} handleOpenSpoolNfc={handleOpenSpoolNfc} />
+          <DesktopDashboard spools={spools} totalGrams={totalGrams} totalValue={totalValue} dueDryingCount={dueDryingCount} setEditUsedInputValue={setEditUsedInputValue} totalUsedGrams={totalUsedGrams} setIsEditUsedModalOpen={setIsEditUsedModalOpen} viewMode={viewMode} handleDeductWeight={handleDeductWeight} handleApplyDryingCredit={handleApplyDryingCredit} setSpoolToEdit={setSpoolToEdit} setSpoolPrefill={setSpoolPrefill} setIsSpoolModalOpen={setIsSpoolModalOpen} setIsCameraModalOpen={setIsCameraModalOpen} quickLinkText={quickLinkText} setQuickLinkText={setQuickLinkText} handleQuickScan={handleQuickScan} isQuickScanning={isQuickScanning} searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortBy={sortBy} setSortBy={setSortBy} activeMaterialFilter={activeMaterialFilter} setActiveMaterialFilter={setActiveMaterialFilter} filteredSpools={filteredSpools} appSettings={appSettings} now={now} handleApplyScale={handleApplyScale} handleMarkDried={handleMarkDried} handleDuplicateSpool={handleDuplicateSpool} handleDeleteSpool={handleDeleteSpool} handleOpenSpoolNfc={handleOpenSpoolNfc} locations={locationStats} activeLocationFilter={activeLocationFilter} setActiveLocationFilter={setActiveLocationFilter} />
         )}
       </main>
 
@@ -991,6 +1028,15 @@ export default function App() {
         spoolToEdit={spoolToEdit}
         prefillData={spoolPrefill}
         appSettings={appSettings}
+        locationOptions={locationStats.map(l => l.name)}
+      />
+
+      {/* Werkstatt: Meldungen und Helfer */}
+      <WorkshopModal
+        isOpen={isWorkshopOpen}
+        onClose={() => setIsWorkshopOpen(false)}
+        tab={workshopTab}
+        onTabChange={setWorkshopTab}
       />
 
       {/* Smartphone Kamera-Modal */}

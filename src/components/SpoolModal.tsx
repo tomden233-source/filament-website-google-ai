@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Flame, ExternalLink, Zap, Settings2, Check, Scale } from 'lucide-react';
 import { AppSettings, MaterialType, Spool } from '../types/filament';
 import { BRAND_DATABASE, MATERIAL_PRESETS } from '../data/defaultSpools';
+import { COMMON_LOCATIONS } from '../utils/spoolAlerts';
+import { getBambuProfile } from '../data/bambuParameters';
 import { findHexForColorName, generateAutoShopUrl, getBrandInfo, parseFilamentText } from '../utils/shopLinks';
 
 interface SpoolModalProps {
@@ -11,6 +13,7 @@ interface SpoolModalProps {
   spoolToEdit: Spool | null;
   prefillData?: Partial<Spool> | null;
   appSettings?: AppSettings;
+  locationOptions?: string[];
 }
 
 const COMMON_COLORS = [
@@ -35,7 +38,8 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
   onSave,
   spoolToEdit,
   prefillData,
-  appSettings
+  appSettings,
+  locationOptions = []
 }) => {
   const [modalTab, setModalTab] = useState<'quick' | 'detail'>('quick');
 
@@ -51,6 +55,9 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
   const [remainingWeight, setRemainingWeight] = useState(1000);
   const [emptySpoolWeight, setEmptySpoolWeight] = useState(250);
   const [storageNote, setStorageNote] = useState('');
+  const [location, setLocation] = useState('');
+  const [nozzleTemp, setNozzleTemp] = useState('');
+  const [bedTemp, setBedTemp] = useState('');
   const [productUrl, setProductUrl] = useState('');
   const [dryIntervalDays, setDryIntervalDays] = useState(30);
   const [dryTemp, setDryTemp] = useState(50);
@@ -78,6 +85,9 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       setRemainingWeight(spoolToEdit.remainingWeight);
       setEmptySpoolWeight(spoolToEdit.emptySpoolWeight);
       setStorageNote(spoolToEdit.storageNote || '');
+      setLocation(spoolToEdit.location || '');
+      setNozzleTemp(spoolToEdit.nozzleTemp ? String(spoolToEdit.nozzleTemp) : '');
+      setBedTemp(spoolToEdit.bedTemp ? String(spoolToEdit.bedTemp) : '');
       setProductUrl(spoolToEdit.productUrl || '');
       setDryIntervalDays(spoolToEdit.dryIntervalDays);
       setDryTemp(spoolToEdit.dryTemp);
@@ -103,6 +113,9 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       setRemainingWeight(p.remainingWeight || 1000);
       setEmptySpoolWeight(p.emptySpoolWeight !== undefined ? p.emptySpoolWeight : bInfo.tara);
       setStorageNote(p.storageNote || '');
+      setLocation(p.location || '');
+      setNozzleTemp(p.nozzleTemp ? String(p.nozzleTemp) : '');
+      setBedTemp(p.bedTemp ? String(p.bedTemp) : '');
       setProductUrl(p.productUrl || '');
       const preset = appSettings?.materialPresets[mat] || MATERIAL_PRESETS[mat] || MATERIAL_PRESETS['PLA'];
       setDryIntervalDays(p.dryIntervalDays || preset.intervalDays);
@@ -184,6 +197,9 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       remainingWeight: Number(remainingWeight) || 0,
       emptySpoolWeight: Number(emptySpoolWeight) || 0,
       storageNote: storageNote.trim(),
+      location: location.trim() || undefined,
+      nozzleTemp: Number(nozzleTemp) > 0 ? Number(nozzleTemp) : undefined,
+      bedTemp: Number(bedTemp) > 0 ? Number(bedTemp) : undefined,
       productUrl: productUrl.trim(),
       lastDried: lastDried ? new Date(lastDried).toISOString() : new Date().toISOString(),
       dryIntervalDays: Number(dryIntervalDays) || 30,
@@ -549,6 +565,64 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                       className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-white font-mono-num text-xs"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Material-Profil: beste Temperaturen, werden beim Einlegen ins AMS vorgeschlagen */}
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-sky-400">Beste Druck-Temperaturen (Profil)</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-0.5">Düse (°C)</label>
+                    <input
+                      type="number"
+                      placeholder={String(getBambuProfile(isOtherBrand ? customBrand || 'Sonstige' : brand, material).nozzleTempOtherLayers)}
+                      value={nozzleTemp}
+                      onChange={e => setNozzleTemp(e.target.value)}
+                      className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-white font-mono-num text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-0.5">Bett (°C)</label>
+                    <input
+                      type="number"
+                      placeholder={String(getBambuProfile(isOtherBrand ? customBrand || 'Sonstige' : brand, material).bedTempTexturedPEI)}
+                      value={bedTemp}
+                      onChange={e => setBedTemp(e.target.value)}
+                      className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-white font-mono-num text-xs"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500">Leer lassen = Standardwert des Materials. Trocknungszeit und -temperatur stehen oben.</p>
+              </div>
+
+              {/* Lagerort */}
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">Lagerort:</label>
+                <input
+                  type="text"
+                  list="spool-location-options"
+                  placeholder="z.B. Regal 2, Box, Trockner"
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs"
+                />
+                <datalist id="spool-location-options">
+                  {Array.from(new Set([...locationOptions, ...COMMON_LOCATIONS])).map(l => (
+                    <option key={l} value={l} />
+                  ))}
+                </datalist>
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {Array.from(new Set([...locationOptions, ...COMMON_LOCATIONS])).slice(0, 8).map(l => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setLocation(l)}
+                      className="px-2 py-0.5 rounded-lg border text-[10px] font-bold cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                    >
+                      {l}
+                    </button>
+                  ))}
                 </div>
               </div>
 

@@ -27,14 +27,14 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
     {
       icon: Code2,
       title: 'Quellcode-Zeilen',
-      value: '23.700+ Zeilen',
-      desc: '23.700 handgeschriebene Codezeilen in TypeScript, React 19, Tailwind CSS v4 und Node.js / Express.'
+      value: '25.500+ Zeilen',
+      desc: '25.500 handgeschriebene Codezeilen in TypeScript, React 19, Tailwind CSS v4 und Node.js / Express.'
     },
     {
       icon: MessageSquare,
       title: 'Wörter in deinen Prompts',
-      value: '4.000+ Wörter',
-      desc: 'Exakt 4.000+ Wörter in deinen Benutzer-Prompts über alle tiefgreifenden Entwicklungs-Iterationen hinweg.'
+      value: '4.100+ Wörter',
+      desc: 'Exakt 4.100+ Wörter in deinen Benutzer-Prompts über alle tiefgreifenden Entwicklungs-Iterationen hinweg.'
     },
     {
       icon: Cpu,
@@ -51,8 +51,8 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
     {
       icon: Layers,
       title: 'Revisions-Entwicklungsstufen',
-      value: '66 Versionen (v1.00 – v1.66)',
-      desc: '66 aufeinander aufbauende Versionsprofile mit Snapshot-Wiederherstellung im Menü.'
+      value: '67 Versionen (v1.00 – v1.67)',
+      desc: '67 aufeinander aufbauende Versionsprofile mit Snapshot-Wiederherstellung im Menü.'
     },
     {
       icon: Zap,
@@ -135,7 +135,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
                     color: 'var(--app-accent)'
                   }}
                 >
-                  v1.66
+                  v1.67
                 </span>
               </div>
               <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>

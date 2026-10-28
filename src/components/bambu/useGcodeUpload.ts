@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { printerApi } from '../../api';
+import { findGcodeWeight } from '../../utils/gcodeParser';
 
 export interface useGcodeUploadParams {
   setActionToast: any;
@@ -20,6 +21,9 @@ export function useGcodeUpload({ setActionToast, handleRefreshLiveState }: useGc
 
   const [isUploadingGcode, setIsUploadingGcode] = useState<boolean>(false);
 
+  // Gewicht des Drucks aus der G-Code-Datei (null = nicht lesbar, z. B. bei .3mf)
+  const [gcodeGrams, setGcodeGrams] = useState<number | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGcodeFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,11 +31,13 @@ export function useGcodeUpload({ setActionToast, handleRefreshLiveState }: useGc
     if (!file) return;
 
     setSelectedGcodeFile(file);
+    setGcodeGrams(null);
     const sizeKb = Math.round(file.size / 1024);
 
     const reader = new FileReader();
     reader.onload = event => {
       const text = (event.target?.result as string) || '';
+      setGcodeGrams(findGcodeWeight(text));
       const lines = text.slice(0, 15000).split('\n');
       let totalLayers = 0;
       let estMin = 0;
@@ -55,6 +61,15 @@ export function useGcodeUpload({ setActionToast, handleRefreshLiveState }: useGc
       });
     };
     reader.readAsText(file.slice(0, 25000));
+    // Manche Slicer schreiben das Gewicht ans Dateiende: dort zusätzlich suchen (nicht bei .3mf)
+    if (!/\.3mf$/i.test(file.name)) {
+      const tail = new FileReader();
+      tail.onload = ev => {
+        const w = findGcodeWeight((ev.target?.result as string) || '');
+        if (w) setGcodeGrams(prev => prev ?? w);
+      };
+      tail.readAsText(file.slice(Math.max(0, file.size - 80000)));
+    }
   };
 
   const handleUploadGcode = async (startPrint: boolean) => {
@@ -96,5 +111,5 @@ export function useGcodeUpload({ setActionToast, handleRefreshLiveState }: useGc
     }
   };
 
-  return { setShowGcodeModal, showGcodeModal, fileInputRef, handleGcodeFileSelect, selectedGcodeFile, gcodeFileInfo, setSelectedGcodeFile, setGcodeFileInfo, handleUploadGcode, isUploadingGcode };
+  return { setShowGcodeModal, showGcodeModal, fileInputRef, handleGcodeFileSelect, selectedGcodeFile, gcodeFileInfo, setSelectedGcodeFile, setGcodeFileInfo, handleUploadGcode, isUploadingGcode, gcodeGrams };
 }

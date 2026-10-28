@@ -1,29 +1,33 @@
 import { GCodeAnalysis } from '../types/filament';
 
-export function parseGCodeContent(text: string, fileName: string): GCodeAnalysis {
-  let grams = 0;
-  let hours = 1.5;
-  let mat = 'PLA';
+const WEIGHT_PATTERNS = [
+  /total filament weight \[g\]\s*[:=]\s*([\d.,\s]+)/i,
+  /total filament used \[g\]\s*=\s*([\d.]+)/i,
+  /filament used \[g\]\s*=\s*([\d.]+)/i,
+  /; filament used \[g\] = ([\d.,\s]+)/i,
+  /filament_weight\s*=\s*([\d.]+)/i,
+  /;Weight:([\d.]+)g/i,
+  /([\d.]+)\s*g\s*filament/i,
+  /filament used.*?(\d+(?:\.\d+)?)\s*g/i
+];
 
-  // Gewicht in Gramm suchen (verschiedene Slicer-Kommentare)
-  const weightPatterns = [
-    /total filament used \[g\]\s*=\s*([\d.]+)/i,
-    /filament used \[g\]\s*=\s*([\d.]+)/i,
-    /; filament used \[g\] = ([\d.,\s]+)/i,
-    /filament_weight\s*=\s*([\d.]+)/i,
-    /;Weight:([\d.]+)g/i,
-    /([\d.]+)\s*g\s*filament/i,
-    /filament used.*?(\d+(?:\.\d+)?)\s*g/i
-  ];
-
-  for (const rx of weightPatterns) {
+/** Gewicht in Gramm aus den Slicer-Kommentaren, oder null wenn nichts gefunden wurde (keine Schätzung) */
+export function findGcodeWeight(text: string): number | null {
+  for (const rx of WEIGHT_PATTERNS) {
     const m = text.match(rx);
     if (m) {
       const parts = m[1].split(/[,\s]+/).map(x => parseFloat(x)).filter(x => !isNaN(x));
-      grams = Math.round(parts.reduce((a, b) => a + b, 0));
-      if (grams > 0) break;
+      const grams = Math.round(parts.reduce((a, b) => a + b, 0));
+      if (grams > 0) return grams;
     }
   }
+  return null;
+}
+
+export function parseGCodeContent(text: string, fileName: string): GCodeAnalysis {
+  let grams = findGcodeWeight(text) || 0;
+  let hours = 1.5;
+  let mat = 'PLA';
 
   // Fallback über Filament-Meter (1m 1.75mm PLA ≈ 2.98g)
   if (!grams) {

@@ -1,3 +1,4 @@
+import { getSpoolProfile } from '../../utils/spoolProfile';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Nfc, Check, Loader2 } from 'lucide-react';
 import { printerApi } from '../../api/printerApi';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 interface Picked {
+  temps?: [number, number];
   material: string;
   colorHex: string;
   label: string;
@@ -66,14 +68,23 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose }) => {
 
   const choose = useCallback((p: Picked) => {
     setPicked(p);
-    const [a, b] = tempsFor(p.material);
+    const [a, b] = p.temps || tempsFor(p.material);
     setMinT(a);
     setMaxT(b);
     setResult(null);
   }, []);
 
   const fromSpool = useCallback(
-    (s: Spool) => choose({ material: s.material, colorHex: s.colorHex || '#888888', label: `${s.brand} ${s.name}` }),
+    (s: Spool) => {
+      // Gespeichertes Profil der Spule (eigene Temperaturen) hat Vorrang vor dem Standard
+      const prof = getSpoolProfile(s);
+      choose({
+        material: s.material,
+        colorHex: s.colorHex || '#888888',
+        label: `${s.brand} ${s.name}`,
+        temps: [prof.minTemp, prof.maxTemp]
+      });
+    },
     [choose]
   );
 

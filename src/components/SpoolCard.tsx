@@ -16,6 +16,7 @@ import {
 import { AppSettings, DryingStatus, Spool, ViewMode } from '../types/filament';
 import { getBrandInfo, getDryingStatus, getSpoolLink } from '../utils/shopLinks';
 import { getBambuProfile, formatBambuParametersText } from '../data/bambuParameters';
+import { SpoolBadges } from './workshop/SpoolBadges';
 
 interface SpoolCardProps {
   spool: Spool;
@@ -264,6 +265,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
                     <span>Trocknet ({amsInfo.remainingTime || 'aktiv'})</span>
                   </span>
                 )}
+                <SpoolBadges spool={spool} />
               </div>
               <h3 className="text-sm font-bold break-words leading-snug mt-1" style={{ color: 'var(--app-text)' }}>
                 {spool.name}
@@ -453,7 +455,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
                 <span className="text-[10px] font-mono-num text-emerald-500 font-bold">
                   {remW}g Rest
                 </span>
-
+                <SpoolBadges spool={spool} />
               </div>
               <h3 className="text-sm font-bold break-words leading-snug mt-1" style={{ color: 'var(--app-text)' }}>
                 {spool.name}
@@ -618,6 +620,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
                   <span>Wird getrocknet</span>
                 </span>
               )}
+              <SpoolBadges spool={spool} />
             </div>
             <h3 className="text-sm font-bold break-words leading-snug mt-1" style={{ color: 'var(--app-text)' }}>
               {spool.name}

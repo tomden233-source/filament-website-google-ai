@@ -496,7 +496,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // 7. G-Code Datei übertragen / starten
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [showNfcSlotModal, setShowNfcSlotModal] = useState(false);
-  const { setShowGcodeModal, showGcodeModal, fileInputRef, handleGcodeFileSelect, selectedGcodeFile, gcodeFileInfo, setSelectedGcodeFile, setGcodeFileInfo, handleUploadGcode, isUploadingGcode } = useGcodeUpload({ setActionToast, handleRefreshLiveState });
+  const { setShowGcodeModal, showGcodeModal, fileInputRef, handleGcodeFileSelect, selectedGcodeFile, gcodeFileInfo, setSelectedGcodeFile, setGcodeFileInfo, handleUploadGcode, isUploadingGcode, gcodeGrams } = useGcodeUpload({ setActionToast, handleRefreshLiveState });
 
   // 8. AMS Spuleneinstellungen direkt am Drucker ändern
 
@@ -827,7 +827,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {/* MODAL 2: G-CODE DATEI AN DRUCKER SENDEN */}
       {showNfcSlotModal && <NfcSlotModal spools={spools} onClose={() => setShowNfcSlotModal(false)} />}
       {showUsageModal && <PrintUsageModal spools={spools} onDeductWeight={onDeductWeight} onClose={() => setShowUsageModal(false)} />}
-      {showGcodeModal && <GcodeUploadModal setShowGcodeModal={setShowGcodeModal} fileInputRef={fileInputRef} handleGcodeFileSelect={handleGcodeFileSelect} selectedGcodeFile={selectedGcodeFile} gcodeFileInfo={gcodeFileInfo} setSelectedGcodeFile={setSelectedGcodeFile} setGcodeFileInfo={setGcodeFileInfo} handleUploadGcode={handleUploadGcode} isUploadingGcode={isUploadingGcode} />}
+      {showGcodeModal && <GcodeUploadModal setShowGcodeModal={setShowGcodeModal} fileInputRef={fileInputRef} handleGcodeFileSelect={handleGcodeFileSelect} selectedGcodeFile={selectedGcodeFile} gcodeFileInfo={gcodeFileInfo} setSelectedGcodeFile={setSelectedGcodeFile} setGcodeFileInfo={setGcodeFileInfo} handleUploadGcode={handleUploadGcode} isUploadingGcode={isUploadingGcode} spools={spools} amsSlots={amsSlots} gcodeGrams={gcodeGrams} />}
 
       {/* MODAL 3: AMS SPULEN-EDITOR AM ECHTEN DRUCKER */}
       {editingAmsSlot !== null && <AmsSlotEditModal setEditingAmsSlot={setEditingAmsSlot} editingAmsSlot={editingAmsSlot} setAmsEditColor={setAmsEditColor} amsEditColor={amsEditColor} setAmsEditMaterial={setAmsEditMaterial} setAmsEditMinTemp={setAmsEditMinTemp} setAmsEditMaxTemp={setAmsEditMaxTemp} amsEditMaterial={amsEditMaterial} amsEditMinTemp={amsEditMinTemp} amsEditMaxTemp={amsEditMaxTemp} handleSaveAmsSlotToPrinter={handleSaveAmsSlotToPrinter} actionLoading={actionLoading} />}

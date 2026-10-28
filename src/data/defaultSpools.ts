@@ -866,5 +866,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.67',
+    label: '1.67 (Warnungen & Spulen-Check)',
+    releaseDate: '28.10.2026',
+    description: 'Die App warnt, wenn eine Spule fast leer ist, prüft vor dem Druck ob der Rest reicht, erinnert ans Trocknen und kennt den Lagerort jeder Spule.',
+    features: [
+      '⚠️ Rest-Warnung: Banner oben, Abzeichen auf der Karte und eine Meldung, sobald eine Spule unter die Schwelle fällt (Standard 100 g, einstellbar)',
+      '✅ Reicht die Spule?: Beim G-Code-Rechner und vor „Direkt drucken“ siehst du, welche Spulen genug Rest haben (5 % Reserve)',
+      '☀️ Trocknungs-Erinnerung: Meldung, wenn Trocknen fällig oder die AMS-Trocknung fertig ist, dazu Feuchte-Hinweis pro Material (PETG, TPU, Nylon)',
+      '📍 Lagerort pro Spule: eigenes Feld, Filter-Chips und Suche mit mehreren Wörtern („rot pla“)',
+      '🌡️ Material-Profil pro Spule: beste Düsen- und Betttemperatur speichern und per Knopf an den AMS-Slot senden',
+      '🛠️ Neues Fenster „Werkstatt“ oben (Meldungen einstellen) und Fix: Kopfzeile zeigt jetzt die echte aktuelle Version',
+      '🔢 Aktualisierte Zahlen-FunFacts: 25.500+ Codezeilen, 4.100+ Prompt-Wörter, 3M Tokens und 67 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

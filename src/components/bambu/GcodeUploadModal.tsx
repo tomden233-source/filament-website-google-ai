@@ -1,5 +1,7 @@
 import React from 'react';
 import { FileCode, X, UploadCloud, RefreshCw, Play } from 'lucide-react';
+import type { Spool } from '../../types/filament';
+import { SpoolFitList } from '../workshop/SpoolFitList';
 
 export interface GcodeUploadModalProps {
   setShowGcodeModal: any;
@@ -11,6 +13,9 @@ export interface GcodeUploadModalProps {
   setGcodeFileInfo: any;
   handleUploadGcode: (...args: any[]) => any;
   isUploadingGcode: any;
+  spools?: Spool[];
+  amsSlots?: Record<number, string>;
+  gcodeGrams?: number | null;
 }
 
 export const GcodeUploadModal: React.FC<GcodeUploadModalProps> = ({
@@ -22,7 +27,10 @@ export const GcodeUploadModal: React.FC<GcodeUploadModalProps> = ({
   setSelectedGcodeFile,
   setGcodeFileInfo,
   handleUploadGcode,
-  isUploadingGcode
+  isUploadingGcode,
+  spools = [],
+  amsSlots = {},
+  gcodeGrams = null
 }) => {
   return (
 <div
@@ -97,6 +105,22 @@ export const GcodeUploadModal: React.FC<GcodeUploadModalProps> = ({
                 )}
               </div>
             )}
+
+            {/* Reicht die Spule? Nur wenn das Gewicht in der Datei steht */}
+            {selectedGcodeFile && gcodeGrams ? (
+              <SpoolFitList
+                spools={spools}
+                grams={gcodeGrams}
+                amsSlots={amsSlots}
+                onlyIds={Object.values(amsSlots).filter(Boolean)}
+                title={`Reicht das AMS? (${gcodeGrams} g)`}
+                maxRows={4}
+              />
+            ) : selectedGcodeFile ? (
+              <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
+                Gewicht nicht lesbar (bei .3mf nicht möglich). Der Spulen-Check ist nur mit .gcode-Dateien aktiv.
+              </p>
+            ) : null}
 
             <div className="flex gap-2 pt-2 border-t" style={{ borderColor: 'var(--app-border)' }}>
               <button

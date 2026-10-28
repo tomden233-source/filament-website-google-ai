@@ -13,7 +13,8 @@ import {
   Tag,
   FileText,
   Globe,
-  ExternalLink
+  ExternalLink,
+  Wrench
 } from 'lucide-react';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 import { ViewMode, VersionProfile } from '../types/filament';
@@ -36,6 +37,7 @@ interface NavbarProps {
   isSyncing: boolean;
   syncOk: boolean;
   onOpenHistory: () => void;
+  onOpenWorkshop?: () => void;
   historyCount: number;
   onOpenNewSpool: () => void;
   onOpenNfc: () => void;
@@ -65,6 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isSyncing,
   syncOk,
   onOpenHistory,
+  onOpenWorkshop,
   historyCount,
   onOpenNewSpool,
   onOpenNfc,
@@ -317,6 +320,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             <History className="w-3.5 h-3.5 text-orange-400" />
             <span className="font-mono-num text-[11px]">{historyCount}</span>
           </button>
+
+          {/* Werkstatt: Meldungen und Helfer */}
+          {onOpenWorkshop && (
+            <button
+              onClick={onOpenWorkshop}
+              title="Werkstatt: Meldungen und Helfer"
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer"
+              style={{
+                backgroundColor: 'var(--app-card-sub)',
+                borderColor: 'var(--app-border)',
+                color: 'var(--app-text)'
+              }}
+            >
+              <Wrench className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden sm:inline text-[11px]">Werkstatt</span>
+            </button>
+          )}
 
           {/* NEU BUTTON */}
           <div className="relative" ref={dropdownRef}>

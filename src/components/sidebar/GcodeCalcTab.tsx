@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileCode2, RefreshCw, UploadCloud, Check, Calculator } from 'lucide-react';
 import type { SidebarProps as ParentProps } from '../Sidebar';
+import { SpoolFitList } from '../workshop/SpoolFitList';
 
 export interface GcodeCalcTabProps {
   handlePullGcodeFromPrinter: (...args: any[]) => any;
@@ -140,6 +141,8 @@ export const GcodeCalcTab: React.FC<GcodeCalcTabProps> = ({
                       </span>
                     </div>
                   </div>
+
+                  <SpoolFitList spools={spools} grams={gcodeData.weightGrams} material={gcodeData.material} />
 
                   <div className="space-y-1.5 pt-1">
                     <label className="text-[10px] block" style={{ color: 'var(--app-text-muted)' }}>

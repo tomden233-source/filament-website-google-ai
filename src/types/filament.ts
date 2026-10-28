@@ -28,6 +28,9 @@ export interface Spool {
   productUrl?: string;
   nfcWritten?: boolean; // true = Tag beschrieben (grün), false = unbeschrieben (rot)
   nfcTagId?: string;
+  location?: string; // Lagerort, z. B. Regal 2, Box, Trockner
+  nozzleTemp?: number; // beste Düsentemperatur (°C), wird beim Einlegen vorgeschlagen
+  bedTemp?: number; // beste Betttemperatur (°C)
 }
 
 export interface HistoryEntry {

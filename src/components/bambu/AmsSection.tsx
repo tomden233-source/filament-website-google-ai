@@ -3,6 +3,8 @@ import { Box, RefreshCw, Edit3, Droplets, Sun, Square } from 'lucide-react';
 import { safeStorage } from '../../utils/safeStorage';
 import { addSystemLog } from '../../utils/logService';
 import type { PrinterExpandedPanelProps as ParentProps } from './PrinterExpandedPanel';
+import { printerApi } from '../../api';
+import { getSpoolProfile } from '../../utils/spoolProfile';
 
 export interface AmsSectionProps {
   setAmsSlots: ParentProps['setAmsSlots'];
@@ -192,6 +194,40 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                         ))}
                       </select>
                     </div>
+
+                    {/* Profil-Vorschlag: beste Temperaturen der Spule an den Slot schicken */}
+                    {spool && liveState.connected && (() => {
+                      const prof = getSpoolProfile(spool);
+                      return (
+                        <button
+                          type="button"
+                          onClick={async e => {
+                            e.stopPropagation();
+                            try {
+                              const res = await printerApi.amsFilament({
+                                slotIdx: slotIdx - 1,
+                                colorHex: prof.colorHex.replace('#', ''),
+                                material: prof.material,
+                                minTemp: prof.minTemp,
+                                maxTemp: prof.maxTemp
+                              });
+                              setActionToast({
+                                text: res.ok && res.data?.success !== false
+                                  ? `Slot ${slotIdx}: ${spool.name} (${prof.minTemp}-${prof.maxTemp} °C) an den Drucker gesendet.`
+                                  : (res.data?.error || 'Drucker hat den Befehl abgelehnt (Entwicklermodus nötig?).'),
+                                ok: res.ok && res.data?.success !== false
+                              });
+                            } catch {
+                              setActionToast({ text: 'Verbindungsfehler zum Drucker.', ok: false });
+                            }
+                          }}
+                          className="w-full px-2 py-1 rounded-lg border border-[#00AE42]/40 bg-[#00AE42]/10 hover:bg-[#00AE42]/20 text-[10px] font-bold text-[#00AE42] cursor-pointer text-left"
+                          title="Farbe, Material und Temperaturbereich dieser Spule an den Slot senden"
+                        >
+                          📡 Profil senden: {prof.material} {prof.minTemp}-{prof.maxTemp} °C · Bett {prof.bedTemp} °C{prof.custom ? ' (eigenes Profil)' : ''}
+                        </button>
+                      );
+                    })()}
 
                     {/* Trockenstand & anteilige Trocknungs-Anrechnung (z.B. 50% für halbe Zeit) */}
                     {spool && (
