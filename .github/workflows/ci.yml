@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Typprüfung: zeigt Fehler an, blockiert aber noch nicht (viele Altlasten). Später auf "blockierend" stellen.
+      - name: Typprüfung
+        run: npm run lint
+        continue-on-error: true
+      - name: Build
+        run: npm run build
