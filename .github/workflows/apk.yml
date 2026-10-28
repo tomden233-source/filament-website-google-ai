@@ -48,7 +48,13 @@ jobs:
           npx cap sync android
           # Eigenes Mini-Plugin: Web-App färbt Status- und Navigationsleiste passend zum Theme
           JAVA_DIR=android/app/src/main/java/com/filamenthub/app
-          cp android-native/MainActivity.java android-native/FilamentBarsPlugin.java "$JAVA_DIR/"
+          cp android-native/*.java "$JAVA_DIR/"
+          # Paho MQTT (Drucker ohne Server) und NFC-Berechtigung
+          sed -i '/^dependencies {/a\    implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5"' android/app/build.gradle
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\    <uses-permission android:name="android.permission.NFC" />\n    <uses-feature android:name="android.hardware.nfc" android:required="false" />' "$MANIFEST"
+          grep -n "NFC" "$MANIFEST" || echo "Hinweis: NFC-Eintrag fehlt"
+          grep -n "paho" android/app/build.gradle || echo "Hinweis: Paho fehlt"
           # Inhalt nicht unter die Systemleisten zeichnen (Menü oben links bleibt sichtbar), Leistenfarben sind einstellbar
           for st in AppTheme AppTheme.NoActionBar AppTheme.NoActionBarLaunch; do
             sed -i "/<style name=\"$st\"/a\        <item name=\"android:windowOptOutEdgeToEdgeEnforcement\">true</item>" android/app/src/main/res/values/styles.xml || echo "Hinweis: Theme nicht gefunden, Systemleisten bleiben Standard"

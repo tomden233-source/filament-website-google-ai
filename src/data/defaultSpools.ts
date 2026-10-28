@@ -788,9 +788,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.62',
+    label: '1.62 (Drucker & NFC ohne Server)',
+    releaseDate: '28.10.2026',
+    description: 'Die Android-App verbindet sich jetzt selbst mit dem Bambu-Drucker (natives MQTT) und beschreibt NFC-Tags direkt. Kein Server und kein npm mehr nötig, der Fehler „Nicht verfügbar auf GitHub Pages“ ist in der App weg.',
+    features: [
+      '🖨️ Drucker ohne Server: Token, Status, Temperaturen, Licht und Befehle laufen in der App direkt über natives MQTT (Cloud, Port 8883)',
+      '🎨 AMS bearbeiten: Farbe, Material und Restmenge pro Slot per MQTT-Befehl setzen (der AMS selbst liest nur Bambu-RFID, nicht NFC)',
+      '📲 NFC in der App: Spulen-Tags lesen und beschreiben über das neue native NFC-Plugin, die bestehende NFC-Oberfläche funktioniert unverändert',
+      '🧩 Ein Kern für alles: Server und App teilen sich denselben Drucker-Code, doppelte Logik ist entfernt',
+      '🔢 Aktualisierte Zahlen-FunFacts: 22.500+ Codezeilen, 3.700+ Prompt-Wörter, 3M Tokens und 62 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
-
-
-
-

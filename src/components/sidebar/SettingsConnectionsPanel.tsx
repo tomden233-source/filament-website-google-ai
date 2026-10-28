@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Printer, Home, Cloud, CheckCircle2, Circle, ChevronDown, ChevronUp, Info, Settings2 } from 'lucide-react';
 import { safeStorage } from '../../utils/safeStorage';
-import { IS_STATIC } from '../../utils/env';
+import { IS_STATIC, IS_NATIVE } from '../../utils/env';
 
 export interface SettingsConnectionsPanelProps {
   /** Bereits vorhandenes Home-Assistant-Panel (URL, Token, Sensoren) */
@@ -70,7 +70,7 @@ export const SettingsConnectionsPanel: React.FC<SettingsConnectionsPanelProps> =
         </p>
       </div>
 
-      {IS_STATIC && (
+      {IS_STATIC && !IS_NATIVE && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-300">
           <strong>Hinweis:</strong> Du nutzt die Web-/App-Version ohne eigenen Server. Home Assistant geht direkt aus
           dem Browser. Live-Daten vom Bambu-Drucker brauchen einen lokal laufenden Server (<code>npm run dev</code>).

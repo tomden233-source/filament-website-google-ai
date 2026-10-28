@@ -22,7 +22,7 @@ import { BambuSettingsModal } from './BambuSettingsModal';
 import { safeStorage } from '../utils/safeStorage';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 import { addSystemLog } from '../utils/logService';
-import { IS_STATIC } from '../utils/env';
+import { IS_STATIC, IS_NATIVE } from '../utils/env';
 import { PrinterCameraPanel } from './bambu/PrinterCameraPanel';
 import { TemperatureModal } from './bambu/TemperatureModal';
 import { GcodeUploadModal } from './bambu/GcodeUploadModal';
@@ -322,7 +322,24 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     };
 
     // Auf GitHub Pages gibt es keinen Server: kein Polling, kein Stream
-    if (IS_STATIC) return;
+    if (IS_STATIC && !IS_NATIVE) return;
+
+    // Android-App: Status kommt direkt vom nativen MQTT, kein Server-Stream
+    if (IS_NATIVE) {
+      let off: (() => void) | undefined;
+      let stopped = false;
+      import('../utils/bambu/NativeBambuService').then(m => {
+        if (stopped) return;
+        off = m.subscribeNativePrinter(s => setLiveState(s as any));
+      });
+      fetchStatus();
+      pollInterval = setInterval(fetchStatus, 3000);
+      return () => {
+        stopped = true;
+        off?.();
+        if (pollInterval) clearInterval(pollInterval);
+      };
+    }
 
     fetchStatus();
     connectSSE();

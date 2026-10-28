@@ -5,6 +5,10 @@ import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { registerSW } from 'virtual:pwa-register';
 import { IS_NATIVE } from './utils/env';
 import { applySystemBars } from './utils/systemBars';
+import { installNativeNfc } from './utils/nativeNfc';
+
+// Android-App: NFC über das native Plugin (Web NFC gibt es in der WebView nicht)
+installNativeNfc();
 
 // Service Worker (PWA): erzeugt von vite-plugin-pwa, Basispfad passt sich an (GitHub Pages: /Repo-Name/).
 // In der Android-App nicht nötig (die Dateien stecken in der App), dort würde er nur alte Stände festhalten.

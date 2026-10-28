@@ -1,4 +1,6 @@
-// Bambu-Cloud-HTTP-Schnittstelle (Login, Profil, gebundene Drucker, Token-Prüfung). Ohne Zustand, daher als reine Funktionen.
+// Bambu-Cloud-HTTP-Schnittstelle (Token-Prüfung, Profil, gebundene Drucker, Config-Import). Ohne Zustand und ohne Node-Abhängigkeiten,
+// damit sie im Server und in der Android-App gleich läuft.
+import { resolveBambuUserId } from '../bambuCloudLogin';
 
 /**
  * Prüft den Token gegen die Bambu Cloud API.
@@ -24,41 +26,8 @@ export async function resolveUserId(token: string, explicitUserId?: string): Pro
   if (explicitUserId && explicitUserId.trim()) {
     return explicitUserId.trim().replace(/^u_/, '');
   }
-
   if (!token) return null;
-
-  // 1. JWT Payload Dekodierung
-  try {
-    const parts = token.split('.');
-    if (parts.length >= 2) {
-      const payloadStr = Buffer.from(parts[1], 'base64').toString('utf8');
-      const payload = JSON.parse(payloadStr);
-      const candidate = payload.uid || payload.userId || payload.user_id || payload.sub;
-      if (candidate && /^\d+$/.test(String(candidate).trim())) {
-        return String(candidate).trim();
-      }
-    }
-  } catch {
-    // Weiter mit API Request
-  }
-
-  // 2. GET Request an Bambu Lab Profile API
-  try {
-    const res = await fetch('https://api.bambulab.com/v1/user-service/my/profile', {
-      headers: {
-        Authorization: `Bearer ${token.trim()}`,
-        'User-Agent': 'BambuStudio/01.09.00.00'
-      }
-    });
-    if (res.ok) {
-      const json = await res.json();
-      const uid = json.uid || json.userId || json.user_id || (json.profile && json.profile.uid);
-      if (uid) return String(uid).trim();
-    }
-  } catch (e) {
-    console.warn('Konnte User-ID nicht über Bambu Profile API auflösen:', e);
-  }
-  return null;
+  return resolveBambuUserId(token);
 }
 
 /**

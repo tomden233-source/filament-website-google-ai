@@ -1,7 +1,7 @@
 // Gemeinsame API-Schicht: ein Ort für API-Key, JSON-Handling und Timeouts.
 // Alle Aufrufe an das eigene Backend (/api/...) laufen hier durch.
 
-import { IS_STATIC } from '../utils/env';
+import { IS_STATIC, IS_NATIVE } from '../utils/env';
 
 const API_KEY_STORAGE = 'app_api_key';
 
@@ -45,7 +45,20 @@ function readApiKey(): string | null {
  * (Server-Variable APP_API_KEY, im Browser unter localStorage 'app_api_key').
  * Externe URLs (z. B. Cloud-Sync) bekommen den Key nie.
  */
+function noServerResponse(): Response {
+  return new Response(
+    JSON.stringify({ success: false, error: 'Nicht verfügbar auf GitHub Pages (kein Server). Diese Funktion braucht den lokalen Server (npm run dev).' }),
+    { status: 503, headers: { 'Content-Type': 'application/json' } }
+  );
+}
+
 export function apiFetch(path: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
+  // Android-App: Drucker-Aufrufe laufen direkt in der App (natives MQTT), ohne Server
+  if (IS_NATIVE && (path.startsWith('/api/printer/') || path.startsWith('/api/bambu/status'))) {
+    return import('../utils/bambu/NativeBambuService')
+      .then(m => m.localPrinterFetch(path, init))
+      .then(res => res ?? noServerResponse());
+  }
   // GitHub Pages hat keinen Server: /api-Aufrufe gar nicht erst senden
   if (IS_STATIC && path.startsWith('/api')) {
     return Promise.resolve(

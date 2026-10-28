@@ -71,3 +71,4 @@ npm run build   # Produktions-Build
 ```
 
 Beides läuft auch automatisch als GitHub Action bei jedem Pull Request.
+- Seit 1.62 verbindet sich die Android-App selbst mit dem Bambu-Drucker (natives MQTT, kein Server nötig) und liest/beschreibt NFC-Tags über eigene Plugins (`android-native/`).
