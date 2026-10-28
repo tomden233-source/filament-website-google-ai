@@ -4,6 +4,26 @@ import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { registerSW } from 'virtual:pwa-register';
 
+// Optionaler API-Key: Ist auf dem Server APP_API_KEY gesetzt, wird er hier aus dem Browser
+// (localStorage 'app_api_key') an alle /api-Aufrufe angehängt.
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.pathname : input.url;
+      const key = localStorage.getItem('app_api_key');
+      if (key && url.startsWith('/api')) {
+        const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
+        headers.set('x-api-key', key);
+        return originalFetch(input, { ...init, headers });
+      }
+    } catch {
+      // ohne Key weiter wie bisher
+    }
+    return originalFetch(input, init);
+  };
+}
+
 // Service-Worker Handling: Im iFrame (AI Studio Preview) keine Caches erzwingen
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   try {

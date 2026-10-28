@@ -59,9 +59,6 @@ export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, c
         if (data?.repoUrl && !gitRepoUrl) {
           setGitRepoUrl(data.repoUrl);
         }
-        if (data?.rawToken && !gitToken) {
-          setGitToken(data.rawToken);
-        }
       })
       .catch(() => {});
   }, []);
@@ -183,7 +180,7 @@ environment:
   NODE_ENV: "production"
   PORT: "3000"
   BAMBU_HOST: "192.168.68.53"
-  BAMBU_ACCESS_CODE: "86a9f6dd"
+  BAMBU_ACCESS_CODE: "DEIN_ZUGANGSCODE"
   BAMBU_SERIAL: "03909A511502473"`;
 
   const dockerComposeCode = `services:
@@ -197,7 +194,7 @@ environment:
       - PORT=3000
       - NODE_ENV=production
       - BAMBU_HOST=192.168.68.53
-      - BAMBU_ACCESS_CODE=86a9f6dd
+      - BAMBU_ACCESS_CODE=DEIN_ZUGANGSCODE
       - BAMBU_SERIAL=03909A511502473
     volumes:
       - ./data:/app/data`;

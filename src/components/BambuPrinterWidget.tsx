@@ -943,7 +943,16 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const isPaused = isPrinterConnected && liveState.data.gcode_state === 'PAUSE';
 
   // Reale RTSP-URL des Druckers
-  const realRtspUrl = `rtsps://bblp:86a9f6dd@192.168.68.53:322/streaming/live/1`;
+  // Zugangscode nicht im Code ablegen: einmalig im Browser setzen, z.B.
+  // localStorage.setItem('bambu_access_code', 'DEIN_CODE')
+  const rtspAccessCode = (() => {
+    try {
+      return localStorage.getItem('bambu_access_code') || '';
+    } catch {
+      return '';
+    }
+  })();
+  const realRtspUrl = `rtsps://bblp:${rtspAccessCode || 'DEIN_ZUGANGSCODE'}@192.168.68.53:322/streaming/live/1`;
 
   const handleCopyRtsp = () => {
     navigator.clipboard.writeText(realRtspUrl);
