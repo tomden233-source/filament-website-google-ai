@@ -48,7 +48,15 @@ jobs:
           cat live-version.json
 
       - name: Capacitor installieren (nur im Build, nicht im Projekt)
-        run: npm install --no-save --no-package-lock @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+        run: |
+          # Bis zu 3 Versuche (npm-Netz kann kurz ausfallen); bei Fehler die letzten Log-Zeilen als Annotation ausgeben
+          for i in 1 2 3; do
+            npm install --no-save --no-package-lock @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 && exit 0
+            echo "Versuch $i fehlgeschlagen"
+            sleep 15
+          done
+          tail -n 25 ~/.npm/_logs/*.log | while IFS= read -r line; do echo "::error::$line"; done
+          exit 1
 
       - name: Android-Projekt erzeugen
         run: |
