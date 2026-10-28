@@ -275,64 +275,65 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
                         />
                       </div>
 
-                      {/* 1-Klick Schnellabzug & Hinzufügen Buttons */}
-                      <div className="pt-1 border-t space-y-1.5" style={{ borderColor: 'var(--app-border)' }}>
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span className="text-[10px] font-bold text-rose-400">−</span>
-                            {[10, 25, 50, 100].map(grams => (
-                              <button
-                                key={grams}
-                                onClick={() => handleDeductWeight(spool.id, grams)}
-                                className="px-1.5 py-0.5 rounded-lg border text-[10px] font-mono-num font-bold transition cursor-pointer active:scale-95 text-rose-300 bg-rose-500/10 border-rose-500/30"
-                              >
-                                -{grams}g
-                              </button>
-                            ))}
-                            <span className="text-[10px] font-bold text-emerald-400 ml-1">+</span>
-                            {[10, 25, 50].map(grams => (
-                              <button
-                                key={grams}
-                                onClick={() => handleAddWeight(spool.id, grams)}
-                                className="px-1.5 py-0.5 rounded-lg border text-[10px] font-mono-num font-bold transition cursor-pointer active:scale-95 text-emerald-300 bg-emerald-500/10 border-emerald-500/30"
-                              >
-                                +{grams}g
-                              </button>
-                            ))}
-                          </div>
+                      {/* 1-Klick Schnellabzug & Hinzufügen: feste Raster, nichts bricht mehr um */}
+                      <div className="pt-2 border-t space-y-1.5" style={{ borderColor: 'var(--app-border)' }}>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {[10, 25, 50, 100].map(grams => (
+                            <button
+                              key={grams}
+                              onClick={() => handleDeductWeight(spool.id, grams)}
+                              className="py-1.5 rounded-lg border text-[11px] font-mono-num font-bold transition cursor-pointer active:scale-95 text-rose-400 bg-rose-500/10 border-rose-500/30"
+                            >
+                              −{grams}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {[10, 25, 50, 100].map(grams => (
+                            <button
+                              key={grams}
+                              onClick={() => handleAddWeight(spool.id, grams)}
+                              className="py-1.5 rounded-lg border text-[11px] font-mono-num font-bold transition cursor-pointer active:scale-95 text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
+                            >
+                              +{grams}
+                            </button>
+                          ))}
+                        </div>
 
-                          {/* Farblich differenzierte Aktionen */}
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => handleOpenSpoolNfc(spool.id)}
-                              className={`p-1.5 rounded-lg border text-[10px] transition cursor-pointer shadow-xs ${
-                                spool.nfcWritten
-                                  ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/35 hover:bg-emerald-500/25'
-                                  : 'text-rose-400 bg-rose-500/15 border-rose-500/35 hover:bg-rose-500/25'
-                              }`}
-                              title={spool.nfcWritten ? 'NFC: Beschrieben (Klicken für Details/Löschen)' : 'NFC: Unbeschrieben (Klicken zum Beschreiben)'}
-                            >
-                              <Tag className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSpoolToEdit(spool);
-                                setSpoolPrefill(null);
-                                setIsSpoolModalOpen(true);
-                              }}
-                              className="p-1.5 rounded-lg border text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-[10px] transition cursor-pointer shadow-xs"
-                              title="Spule bearbeiten"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSpool(spool.id)}
-                              className="p-1.5 rounded-lg border text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-[10px] transition cursor-pointer shadow-xs"
-                              title="Spule löschen"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                        <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                          <button
+                            onClick={() => handleOpenSpoolNfc(spool.id)}
+                            className={`py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer flex items-center justify-center gap-1 ${
+                              spool.nfcWritten
+                                ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30'
+                                : 'text-rose-400 bg-rose-500/10 border-rose-500/30'
+                            }`}
+                            title={spool.nfcWritten ? 'NFC: Beschrieben (Klicken für Details/Löschen)' : 'NFC: Unbeschrieben (Klicken zum Beschreiben)'}
+                          >
+                            <Tag className="w-3.5 h-3.5" />
+                            <span>NFC</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSpoolToEdit(spool);
+                              setSpoolPrefill(null);
+                              setIsSpoolModalOpen(true);
+                            }}
+                            className="py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer flex items-center justify-center gap-1"
+                            style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+                            title="Spule bearbeiten"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            <span>Ändern</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSpool(spool.id)}
+                            className="py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer flex items-center justify-center gap-1 text-rose-500 bg-rose-500/10 border-rose-500/30"
+                            title="Spule löschen"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Löschen</span>
+                          </button>
                         </div>
                       </div>
                     </div>

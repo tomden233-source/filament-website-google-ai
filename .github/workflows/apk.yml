@@ -39,6 +39,14 @@ jobs:
           VITE_STATIC: 'true'
           VITE_NATIVE: 'true'
 
+      - name: Live-Update-Paket (Oberfläche ohne neue APK)
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          (cd dist && zip -qr ../live-bundle.zip .)
+          # nativeApi muss zu NATIVE_API in android-native/FilamentLivePlugin.java passen
+          echo "{\"version\":\"$VERSION\",\"nativeApi\":1}" > live-version.json
+          cat live-version.json
+
       - name: Capacitor installieren (nur im Build, nicht im Projekt)
         run: npm install --no-save --no-package-lock @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
 
@@ -96,7 +104,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           gh release delete apk-latest --cleanup-tag --yes || true
-          gh release create apk-latest FilamentHub.apk \
+          gh release create apk-latest FilamentHub.apk live-bundle.zip live-version.json \
             --title "FilamentHub APK v$VERSION" \
             --notes "Automatisch gebaut aus Commit ${GITHUB_SHA::7}. Auf dem Handy installieren (Unbekannte Quellen erlauben)." \
             --latest

@@ -11,6 +11,7 @@ import {
   Camera,
   Lightbulb,
   FileCode,
+  Scale,
   Power,
   Plug,
   Home
@@ -33,6 +34,7 @@ import { fetchHaCameraBlobUrl } from '../utils/haClient';
 import { useAmsControl } from './bambu/useAmsControl';
 import { useHaSwitch } from './bambu/useHaSwitch';
 import { useGcodeUpload } from './bambu/useGcodeUpload';
+import { PrintUsageModal } from './bambu/PrintUsageModal';
 
 export interface BambuPrinterWidgetProps {
   spools: Spool[];
@@ -138,7 +140,7 @@ const DEFAULT_LIVE_STATE: BambuLiveState = {
 
 export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   spools,
-  onDeductWeight: _onDeductWeight,
+  onDeductWeight,
   onOpenNewSpool: _onOpenNewSpool,
   onApplyDryingCredit,
   viewMode
@@ -488,6 +490,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // 6. G-Code Datei auswählen & analysieren
 
   // 7. G-Code Datei übertragen / starten
+  const [showUsageModal, setShowUsageModal] = useState(false);
   const { setShowGcodeModal, showGcodeModal, fileInputRef, handleGcodeFileSelect, selectedGcodeFile, gcodeFileInfo, setSelectedGcodeFile, setGcodeFileInfo, handleUploadGcode, isUploadingGcode } = useGcodeUpload({ setActionToast, handleRefreshLiveState });
 
   // 8. AMS Spuleneinstellungen direkt am Drucker ändern
@@ -712,6 +715,16 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
             <span className="hidden md:inline text-[11px] whitespace-nowrap">G-Code</span>
           </button>
 
+          {/* 3b. Verbrauch der letzten Drucke (Bambu Cloud) */}
+          <button
+            onClick={() => setShowUsageModal(true)}
+            title="Verbrauch der letzten Drucke ansehen und von der Spule abziehen"
+            className="px-2.5 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+          >
+            <Scale className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden md:inline text-[11px] whitespace-nowrap">Verbrauch</span>
+          </button>
+
           {/* 4. Kamera-Klappe Toggle */}
           <button
             onClick={() => {
@@ -797,6 +810,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {tempModalTarget && <TemperatureModal setTempModalTarget={setTempModalTarget} tempModalTarget={tempModalTarget} setTempModalValue={setTempModalValue} tempModalValue={tempModalValue} handleSetTemperature={handleSetTemperature} actionLoading={actionLoading} />}
 
       {/* MODAL 2: G-CODE DATEI AN DRUCKER SENDEN */}
+      {showUsageModal && <PrintUsageModal spools={spools} onDeductWeight={onDeductWeight} onClose={() => setShowUsageModal(false)} />}
       {showGcodeModal && <GcodeUploadModal setShowGcodeModal={setShowGcodeModal} fileInputRef={fileInputRef} handleGcodeFileSelect={handleGcodeFileSelect} selectedGcodeFile={selectedGcodeFile} gcodeFileInfo={gcodeFileInfo} setSelectedGcodeFile={setSelectedGcodeFile} setGcodeFileInfo={setGcodeFileInfo} handleUploadGcode={handleUploadGcode} isUploadingGcode={isUploadingGcode} />}
 
       {/* MODAL 3: AMS SPULEN-EDITOR AM ECHTEN DRUCKER */}

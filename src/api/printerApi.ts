@@ -31,7 +31,21 @@ export interface BambuStatusResponse extends ApiBase {
   [key: string]: any;
 }
 
+export interface PrintTask {
+  id: string;
+  title: string;
+  status: number;
+  startTime: string;
+  endTime: string;
+  totalGrams: number;
+  cover?: string;
+  filaments: Array<{ material: string; colorHex: string; grams: number; slot?: number }>;
+}
+
 export const printerApi = {
+  /** Letzte Druckaufträge mit Filamentverbrauch (Bambu Cloud) */
+  tasks: (limit = 15) => apiPost<ApiBase & { tasks?: PrintTask[] }>('/api/printer/tasks', { limit }, { timeoutMs: 20000 }),
+
   /** Aktueller Live-Zustand (Polling, wird zusätzlich zum SSE-Stream genutzt) */
   status: () => apiGet<BambuLiveState>('/api/printer/status', { timeoutMs: 8000 }),
 

@@ -804,5 +804,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.63',
+    label: '1.63 (Live-Update, Druck-Verbrauch & saubere Spulenkarte)',
+    releaseDate: '28.10.2026',
+    description: 'Die Android-App holt neue Versionen jetzt selbst, ohne neue APK und ohne Bestätigen. Der Verbrauch der letzten Drucke kommt aus der Bambu Cloud und lässt sich mit einem Tipp von der Spule abziehen. Die Spulenkarte in der App ist aufgeräumt.',
+    features: [
+      '🔄 Live-Update: Die App lädt neue Oberflächen-Versionen automatisch im Hintergrund, ein Tipp auf „Neu laden“ startet sie sofort. Deine Daten bleiben erhalten, bei Problemen fällt sie auf die eingebaute Version zurück',
+      '📦 Neue APK nur noch selten: Nur wenn sich der Android-Teil ändert (Plugins), erscheint „neue App nötig“. Diese eine APK ist die letzte manuelle Installation für normale Updates',
+      '⚖️ Druck-Verbrauch: Neuer Knopf „Verbrauch“ am Drucker zeigt die letzten Aufträge mit Gramm pro Farbe (Bambu Cloud) und zieht sie auf Wunsch von der passenden Spule ab, nichts wird doppelt abgezogen',
+      '🧹 Spulenkarte aufgeräumt: Feste Raster für −10/−25/−50/−100 und +10/+25/+50/+100 sowie drei gleich große Knöpfe NFC, Ändern und Löschen, nichts bricht mehr unordentlich um',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23.000+ Codezeilen, 3.800+ Prompt-Wörter, 3M Tokens und 63 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

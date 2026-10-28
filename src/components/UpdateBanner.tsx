@@ -1,57 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Download, X } from 'lucide-react';
-import { APK_URL, APP_VERSION, IS_NATIVE, REPO } from '../utils/env';
+import { Download, RefreshCw, X } from 'lucide-react';
+import { APK_URL, IS_NATIVE } from '../utils/env';
+import { applyLiveUpdate, subscribeLive, type LiveState } from '../utils/liveUpdate';
 
-// Hinweis in der Android-App, wenn eine neuere APK bereitsteht (Web/PWA aktualisiert sich selbst).
-// Android erlaubt es nicht, eine APK still im Hintergrund zu ersetzen: ein Tipp auf "Aktualisieren" lädt sie,
-// danach nur "Installieren" bestätigen. Die Daten der App bleiben erhalten.
-
-const parts = (v: string) => (v.match(/\d+/g) || []).map(Number);
-
-function isNewer(a: string, b: string): boolean {
-  const x = parts(a);
-  const y = parts(b);
-  for (let i = 0; i < Math.max(x.length, y.length); i++) {
-    const d = (x[i] || 0) - (y[i] || 0);
-    if (d) return d > 0;
-  }
-  return false;
-}
+// Hinweis in der Android-App:
+//  - Neue Oberfläche geladen (Live-Update): ein Tipp auf "Neu laden" startet sie sofort, sonst beim nächsten Start.
+//  - Nur wenn sich der Android-Teil ändert, ist eine neue APK nötig (Download, dann "Installieren" bestätigen).
 
 export const UpdateBanner: React.FC = () => {
-  const [latest, setLatest] = useState<string | null>(null);
+  const [live, setLive] = useState<LiveState>({ status: 'idle' });
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     if (!IS_NATIVE) return;
-    let cancelled = false;
-
-    const check = async () => {
-      try {
-        const res = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/apk-latest`, {
-          headers: { Accept: 'application/vnd.github+json' }
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        const m = String(json.name || '').match(/v(\d+(?:\.\d+)+)/);
-        if (m && isNewer(m[1], APP_VERSION) && !cancelled) setLatest(m[1]);
-      } catch {
-        // offline oder GitHub nicht erreichbar: beim nächsten Start erneut prüfen
-      }
-    };
-
-    check();
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') check();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      cancelled = true;
-      document.removeEventListener('visibilitychange', onVisible);
-    };
+    return subscribeLive(setLive);
   }, []);
 
-  if (!latest || hidden) return null;
+  if (hidden || (live.status !== 'ready' && live.status !== 'needApk')) return null;
+
+  const needApk = live.status === 'needApk';
 
   return (
     <div
@@ -59,15 +26,18 @@ export const UpdateBanner: React.FC = () => {
       className="px-3 py-2 flex items-center gap-2 text-white text-xs font-bold shadow-md"
       style={{ backgroundColor: 'var(--app-accent)' }}
     >
-      <Download className="w-4 h-4 shrink-0" />
-      <span className="flex-1 min-w-0">Neue Version v{latest} verfügbar</span>
+      {needApk ? <Download className="w-4 h-4 shrink-0" /> : <RefreshCw className="w-4 h-4 shrink-0" />}
+      <span className="flex-1 min-w-0">
+        {needApk ? `Große Neuerung v${live.version}: neue App nötig` : `Update v${live.version} ist geladen`}
+      </span>
       <button
         onClick={() => {
-          window.location.href = APK_URL;
+          if (needApk) window.location.href = APK_URL;
+          else applyLiveUpdate().catch(() => setHidden(true));
         }}
         className="px-3 py-1 rounded-lg bg-white/25 hover:bg-white/35 transition cursor-pointer"
       >
-        Aktualisieren
+        {needApk ? 'Herunterladen' : 'Neu laden'}
       </button>
       <button onClick={() => setHidden(true)} aria-label="Später" className="p-1 rounded-lg hover:bg-white/20 cursor-pointer">
         <X className="w-4 h-4" />

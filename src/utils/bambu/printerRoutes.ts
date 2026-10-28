@@ -119,6 +119,11 @@ export async function handlePrinterRoute(
       }
     }
 
+    case '/api/printer/tasks': {
+      const res = await svc.getRecentTasks(Number(b.limit) || 15);
+      return res.success ? ok(res) : fail(502, res);
+    }
+
     case '/api/printer/connect': {
       try {
         const { serialNumber, userId, accessToken, brokerHost, adminPin } = b;

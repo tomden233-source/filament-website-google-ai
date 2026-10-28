@@ -164,3 +164,62 @@ export function parseConfiguration(rawText: string): {
     serialNumber: foundSerial ? foundSerial.toUpperCase() : undefined
   };
 }
+
+export interface BambuTaskFilament {
+  material: string;
+  colorHex: string;
+  grams: number;
+  slot?: number;
+}
+
+export interface BambuTask {
+  id: string;
+  title: string;
+  status: number; // 2 = fertig, 3 = abgebrochen/fehlgeschlagen
+  startTime: string;
+  endTime: string;
+  totalGrams: number;
+  cover?: string;
+  filaments: BambuTaskFilament[];
+}
+
+/**
+ * Letzte Druckaufträge aus der Bambu Cloud (Dateiname, Zeit und Filamentverbrauch pro Farbe).
+ * Die Gramm sind die Schätzung des Slicers für den ganzen Auftrag, bei abgebrochenen Drucken also zu hoch.
+ */
+export async function getRecentTasks(token: string, limit = 15): Promise<{ success: boolean; tasks?: BambuTask[]; error?: string }> {
+  if (!token || !token.trim()) return { success: false, error: 'Kein Access Token vorhanden.' };
+  try {
+    const res = await fetch(`https://api.bambulab.com/v1/user-service/my/tasks?limit=${limit}`, {
+      headers: { Authorization: `Bearer ${token.trim()}`, 'User-Agent': 'BambuStudio/01.09.05.51' },
+      signal: AbortSignal.timeout(15000)
+    });
+    if (res.status === 401 || res.status === 403) return { success: false, error: 'Token abgelehnt. Bitte neu anmelden.' };
+    if (!res.ok) return { success: false, error: `Bambu Cloud antwortet mit HTTP ${res.status}.` };
+    const json: any = await res.json();
+    const hits: any[] = Array.isArray(json?.hits) ? json.hits : [];
+    const tasks: BambuTask[] = hits.map(t => {
+      const filaments: BambuTaskFilament[] = (Array.isArray(t.amsDetailMapping) ? t.amsDetailMapping : [])
+        .map((f: any) => ({
+          material: String(f.filamentType || f.targetFilamentType || ''),
+          colorHex: '#' + String(f.targetColor || f.sourceColor || 'CCCCCC').slice(0, 6),
+          grams: Math.round((Number(f.weight) || 0) * 10) / 10,
+          slot: Number.isFinite(Number(f.amsId)) && Number.isFinite(Number(f.slotId)) ? Number(f.amsId) * 4 + Number(f.slotId) : undefined
+        }))
+        .filter((f: BambuTaskFilament) => f.grams > 0);
+      return {
+        id: String(t.id),
+        title: String(t.designTitle || t.title || 'Druckauftrag'),
+        status: Number(t.status) || 0,
+        startTime: String(t.startTime || ''),
+        endTime: String(t.endTime || ''),
+        totalGrams: Math.round((Number(t.weight) || filaments.reduce((a, f) => a + f.grams, 0)) * 10) / 10,
+        cover: t.cover ? String(t.cover) : undefined,
+        filaments
+      };
+    });
+    return { success: true, tasks };
+  } catch (err: any) {
+    return { success: false, error: `Bambu Cloud nicht erreichbar: ${err?.message || err}` };
+  }
+}

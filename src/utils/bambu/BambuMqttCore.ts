@@ -361,6 +361,10 @@ export abstract class BambuMqttCore {
   }> {
     return await bambuCloud.getBoundDevices(token);
   }
+  /** Letzte Druckaufträge mit Filamentverbrauch aus der Bambu Cloud */
+  public async getRecentTasks(limit = 15) {
+    return await bambuCloud.getRecentTasks(this.accessToken, limit);
+  }
   /**
    * Konfigurationsdatei aus Bambu Studio (%APPDATA%\BambuStudio) parsen
    */

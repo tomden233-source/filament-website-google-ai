@@ -6,6 +6,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { IS_NATIVE } from './utils/env';
 import { applySystemBars } from './utils/systemBars';
 import { installNativeNfc } from './utils/nativeNfc';
+import { startLiveUpdate } from './utils/liveUpdate';
 
 // Android-App: NFC über das native Plugin (Web NFC gibt es in der WebView nicht)
 installNativeNfc();
@@ -37,6 +38,9 @@ if (!IS_NATIVE && typeof window !== 'undefined' && 'serviceWorker' in navigator)
 
 // Systemleisten passend zum Theme färben (Android-App noch einmal kurz nach dem Start, falls die Brücke später bereit ist)
 setTimeout(applySystemBars, 800);
+
+// Android-App: neue Oberfläche automatisch holen (kein neuer APK-Download nötig)
+startLiveUpdate();
 
 const rootEl = document.getElementById('root');
 if (rootEl) {
