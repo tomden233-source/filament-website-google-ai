@@ -408,7 +408,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 borderColor: 'var(--app-accent)',
                 color: 'var(--app-accent)'
               }}
-              title="10 spannende Fakten über FilamentHub (Codezeilen, Sprache, Architektur)"
+              title="Echte Zahlen: Druckzeit, Lager, Filament-Länge, Code"
             >
               <Sparkles className="w-3 h-3 text-amber-400" />
               <span>Fun Facts</span>
@@ -822,7 +822,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Fun Facts & Self-Hosting Modals */}
       <BambuSettingsModal isOpen={showBambuSettings} onClose={() => setShowBambuSettings(false)} />
-      <FunFactsModal isOpen={showFunFacts} onClose={() => setShowFunFacts(false)} />
+      <FunFactsModal isOpen={showFunFacts} onClose={() => setShowFunFacts(false)} spools={spools} />
     </div>
   );
 };

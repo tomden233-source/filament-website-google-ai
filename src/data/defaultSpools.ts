@@ -921,5 +921,22 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.70',
+    label: '1.70 (NFC in der App & Slot-Fenster)',
+    releaseDate: '28.10.2026',
+    description: 'NFC läuft jetzt wirklich über die App (keine Berechtigungs-Fehler, kein Android-„Neues Tag“-Bildschirm). Neues, übersichtliches Fenster „Spule → AMS-Slot“ mit Suche, Licht flackert nicht mehr, Fun Facts mit echten Zahlen.',
+    features: [
+      '📲 NFC-Fix: Die App nutzt immer ihr eigenes NFC statt des gesperrten Browser-NFC. Lesen und Beschreiben gehen wieder, Android fängt den Tag nicht mehr ab',
+      '🏷️ Tag-Format: OpenTag3D ist jetzt Standard (offen, kompakt, passt auf NTAG215/216), die Wahl wird gemerkt',
+      '🎯 Neues Fenster „Spule → AMS-Slot“: Tag halten oder Spule per Suche finden, Slots mit echten Drucker-Farben, Temperatur mit +/−, Zuweisung wird in der App gemerkt',
+      '💡 Licht flackert nicht mehr: Nach dem Schalten hält die App den neuen Zustand, bis der Drucker ihn meldet',
+      '📊 Fun Facts neu: Druckzeit und Verbrauch echt aus der Bambu Cloud, Filament-Länge, Lagerwert, Lieblingsfarbe, Codezeilen beim Bauen gezählt. Jede Zahl zeigt, woher sie kommt',
+      '🔢 Aktualisierte Zahlen-FunFacts: 28.000+ Codezeilen, ca. 12.000 Wörter, 5 Chats, 43 Commits und 70 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

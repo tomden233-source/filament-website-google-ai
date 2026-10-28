@@ -7,12 +7,30 @@ import fs from 'fs';
 
 const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
+// Echte Codezeilen für die Fun Facts, beim Bauen gezählt (TypeScript/React, Server, Android-Plugins)
+function countCodeLines(): number {
+  const root = path.dirname(new URL(import.meta.url).pathname);
+  let total = 0;
+  const walk = (dir: string) => {
+    if (!fs.existsSync(dir)) return;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (/\.(tsx?|java)$/.test(e.name) && !e.name.endsWith('.d.ts')) total += fs.readFileSync(p, 'utf8').split('\n').length;
+    }
+  };
+  ['src', 'server', 'android-native'].forEach(d => walk(path.join(root, d)));
+  if (fs.existsSync(path.join(root, 'server.ts'))) total += fs.readFileSync(path.join(root, 'server.ts'), 'utf8').split('\n').length;
+  return total;
+}
+
 export default defineConfig(() => {
   return {
     // Für GitHub Pages wird per VITE_BASE ein Unterpfad gesetzt (z. B. /filament-website-google-ai/).
     base: process.env.VITE_BASE || '/',
     define: {
-      __APP_VERSION__: JSON.stringify(pkg.version)
+      __APP_VERSION__: JSON.stringify(pkg.version),
+      __CODE_LINES__: JSON.stringify(countCodeLines())
     },
     plugins: [
       react(),

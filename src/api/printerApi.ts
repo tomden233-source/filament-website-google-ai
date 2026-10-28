@@ -38,6 +38,8 @@ export interface PrintTask {
   startTime: string;
   endTime: string;
   totalGrams: number;
+  /** Druckdauer in Sekunden */
+  costTime?: number;
   cover?: string;
   filaments: Array<{ material: string; colorHex: string; grams: number; slot?: number }>;
 }

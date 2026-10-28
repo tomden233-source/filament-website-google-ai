@@ -97,6 +97,8 @@ export abstract class BambuMqttCore {
   private lastUpdated: string | null = null;
   /** Seit der letzten Verbindung schon Daten vom Drucker bekommen? (sonst: verbunden, aber Drucker schweigt) */
   private gotData = false;
+  /** Nach einem Licht-Befehl kurz den gewünschten Zustand halten (sonst flackert die Anzeige durch alte Meldungen) */
+  private lightHold: { mode: string; until: number } | null = null;
 
   // Akkumulierter Druckstatus (Delta-Updates werden hinein gemergt)
   private printData: BambuPrinterData = {
@@ -766,7 +768,18 @@ export abstract class BambuMqttCore {
     if (delta.spd_mag !== undefined) this.printData.spd_mag = Number(delta.spd_mag);
     if (delta.ams !== undefined) this.mergeAms(delta.ams);
     if (delta.vt_tray !== undefined) this.printData.vt_tray = delta.vt_tray;
-    if (delta.lights_report !== undefined) this.printData.lights_report = delta.lights_report;
+    if (delta.lights_report !== undefined) {
+      const hold = this.lightHold;
+      const incoming = Array.isArray(delta.lights_report)
+        ? delta.lights_report.find((l: any) => l?.node === 'chamber_light')?.mode
+        : undefined;
+      if (hold && Date.now() < hold.until && incoming && incoming !== hold.mode) {
+        // alte Meldung vom Drucker (Befehl noch nicht umgesetzt): ignorieren
+      } else {
+        if (hold && incoming === hold.mode) this.lightHold = null;
+        this.printData.lights_report = delta.lights_report;
+      }
+    }
 
     this.notifyChange();
   }
@@ -1056,10 +1069,11 @@ export abstract class BambuMqttCore {
 
     this.client.publish(reqTopic, JSON.stringify(ledMsg));
 
-    // Optimistisch aktualisieren
+    // Optimistisch aktualisieren und 6 s halten, bis der Drucker den neuen Zustand meldet
     this.printData.lights_report = [{ node: 'chamber_light', mode }];
+    this.lightHold = { mode, until: Date.now() + 6000 };
     this.notifyChange();
-    this.requestPushall();
+    this.schedulePushall(1500);
 
     return {
       success: true,

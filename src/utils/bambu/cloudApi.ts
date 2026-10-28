@@ -179,6 +179,8 @@ export interface BambuTask {
   startTime: string;
   endTime: string;
   totalGrams: number;
+  /** Druckdauer in Sekunden (laut Bambu Cloud) */
+  costTime?: number;
   cover?: string;
   filaments: BambuTaskFilament[];
 }
@@ -214,6 +216,12 @@ export async function getRecentTasks(token: string, limit = 15): Promise<{ succe
         startTime: String(t.startTime || ''),
         endTime: String(t.endTime || ''),
         totalGrams: Math.round((Number(t.weight) || filaments.reduce((a, f) => a + f.grams, 0)) * 10) / 10,
+        costTime: (() => {
+          const c = Number(t.costTime);
+          if (Number.isFinite(c) && c > 0) return c;
+          const d = (new Date(t.endTime).getTime() - new Date(t.startTime).getTime()) / 1000;
+          return Number.isFinite(d) && d > 0 ? d : 0;
+        })(),
         cover: t.cover ? String(t.cover) : undefined,
         filaments
       };

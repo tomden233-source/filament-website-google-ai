@@ -375,6 +375,17 @@ export default function App() {
     syncWithCloud(false);
   }, []);
 
+  // NFC-Tag gehalten, während die App offen ist (kein Fenster scannt gerade): NFC-Fenster öffnen und Tag anzeigen
+  useEffect(() => {
+    const onIdleTag = () => {
+      setNfcSpoolId(undefined);
+      setNfcModalMode('read');
+      setIsNfcModalOpen(true);
+    };
+    window.addEventListener('filamenthub:nfc-idle-tag', onIdleTag);
+    return () => window.removeEventListener('filamenthub:nfc-idle-tag', onIdleTag);
+  }, []);
+
   // QR-Etikett gescannt (#s=ID): Spule öffnen
   useEffect(() => {
     const openFromHash = () => {

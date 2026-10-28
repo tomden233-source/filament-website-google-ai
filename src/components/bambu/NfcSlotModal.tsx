@@ -1,24 +1,33 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X, Nfc, Check, Loader2, Search, Minus, Plus, Thermometer } from 'lucide-react';
 import { getSpoolProfile } from '../../utils/spoolProfile';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { X, Nfc, Check, Loader2 } from 'lucide-react';
 import { printerApi } from '../../api/printerApi';
 import type { Spool } from '../../types/filament';
 import { isWebNfcSupported, parseNfcContent, openTag3dToJsonText, playNfcSuccessChime, triggerNfcHaptic } from '../../utils/nfcManager';
 import { OPENTAG3D_MIME } from '../../utils/openTag3d';
+import type { HwTray } from '../../utils/amsMatch';
 
-// NFC → AMS-Slot: Spule ans Handy halten, Slot wählen, Farbe/Material/Temperatur gehen per Befehl an den Drucker.
-// (Der AMS liest keine NFC-Tags, deshalb setzt die App die Slot-Daten selbst.)
+// Spule → AMS-Slot: Spule per NFC-Tag ans Handy halten ODER per Suche wählen, Slot antippen, übertragen.
+// Farbe, Material und Temperatur gehen per Befehl an den Drucker, die Zuweisung merkt sich die App.
+// (Der AMS liest keine Fremd-Tags, deshalb setzt die App die Slot-Daten selbst.)
 
 interface Props {
   spools: Spool[];
   onClose: () => void;
+  /** Slots laut Drucker (leer, wenn nicht verbunden) */
+  trays?: HwTray[];
+  /** Zuweisung in der App merken: Slot 1-4 → Spulen-ID */
+  onAssign?: (slot: number, spoolId: string) => void;
 }
 
 interface Picked {
+  spoolId?: string;
   temps?: [number, number];
   material: string;
   colorHex: string;
   label: string;
+  sub?: string;
+  viaNfc?: boolean;
 }
 
 const TEMPS: Record<string, [number, number]> = {
@@ -55,16 +64,55 @@ function decodeRecords(records: any[]): string {
   return '';
 }
 
-export const NfcSlotModal: React.FC<Props> = ({ spools, onClose }) => {
+/** Zahl mit − / + Knöpfen */
+const Stepper: React.FC<{ label: string; value: number; onChange: (v: number) => void }> = ({ label, value, onChange }) => (
+  <div className="rounded-2xl border p-2" style={{ borderColor: 'var(--app-border)', backgroundColor: 'var(--app-card)' }}>
+    <div className="text-[10px] font-bold mb-1" style={{ color: 'var(--app-text-muted)' }}>
+      {label}
+    </div>
+    <div className="flex items-center justify-between gap-1">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(0, value - 5))}
+        className="w-8 h-8 rounded-xl border flex items-center justify-center cursor-pointer active:scale-95"
+        style={{ borderColor: 'var(--app-border)' }}
+        aria-label={`${label} weniger`}
+      >
+        <Minus className="w-3.5 h-3.5" />
+      </button>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={value}
+        onChange={e => onChange(Number(e.target.value) || 0)}
+        className="w-14 text-center bg-transparent outline-none font-mono-num font-extrabold text-base"
+        style={{ color: 'var(--app-text)' }}
+      />
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(350, value + 5))}
+        className="w-8 h-8 rounded-xl border flex items-center justify-center cursor-pointer active:scale-95"
+        style={{ borderColor: 'var(--app-border)' }}
+        aria-label={`${label} mehr`}
+      >
+        <Plus className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  </div>
+);
+
+export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onAssign }) => {
   const [picked, setPicked] = useState<Picked | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const [slot, setSlot] = useState(0);
   const [minT, setMinT] = useState(190);
   const [maxT, setMaxT] = useState(230);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
   const supported = isWebNfcSupported();
+  const spoolsRef = useRef(spools);
+  spoolsRef.current = spools;
 
   const choose = useCallback((p: Picked) => {
     setPicked(p);
@@ -75,40 +123,45 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose }) => {
   }, []);
 
   const fromSpool = useCallback(
-    (s: Spool) => {
+    (s: Spool, viaNfc = false) => {
       // Gespeichertes Profil der Spule (eigene Temperaturen) hat Vorrang vor dem Standard
       const prof = getSpoolProfile(s);
       choose({
+        spoolId: s.id,
         material: s.material,
         colorHex: s.colorHex || '#888888',
         label: `${s.brand} ${s.name}`,
-        temps: [prof.minTemp, prof.maxTemp]
+        sub: `${s.material} · ${s.colorName || ''} · ${s.remainingWeight}\u00a0g`,
+        temps: [prof.minTemp, prof.maxTemp],
+        viaNfc
       });
     },
     [choose]
   );
 
+  // NFC lauscht die ganze Zeit, solange das Fenster offen ist (ein Scan, nicht bei jeder Änderung neu)
   useEffect(() => {
     if (!supported) return;
     const ctrl = new AbortController();
-    abortRef.current = ctrl;
     (async () => {
       try {
         const reader = new (window as any).NDEFReader();
         reader.onreading = (ev: any) => {
           const text = decodeRecords(ev.message?.records || []);
-          const parsed = parseNfcContent(text, ev.serialNumber, spools);
+          const parsed = parseNfcContent(text, ev.serialNumber, spoolsRef.current);
           const spool = parsed.matchedSpool;
           if (spool) {
-            fromSpool(spool);
+            fromSpool(spool, true);
           } else if (parsed.payload?.material) {
             choose({
               material: parsed.payload.material,
               colorHex: parsed.payload.colorHex || '#888888',
-              label: `${parsed.payload.brand || ''} ${parsed.payload.name || parsed.payload.material}`.trim()
+              label: `${parsed.payload.brand || ''} ${parsed.payload.name || parsed.payload.material}`.trim(),
+              sub: 'Vom Tag (nicht in deiner Liste)',
+              viaNfc: true
             });
           } else {
-            setScanError('Dieser Tag enthält keine Spulendaten. Bitte unten eine Spule wählen.');
+            setScanError('Dieser Tag ist leer oder unbekannt. Such die Spule einfach unten.');
             return;
           }
           setScanError(null);
@@ -122,7 +175,21 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose }) => {
       }
     })();
     return () => ctrl.abort();
-  }, [supported, spools, fromSpool, choose]);
+  }, [supported, fromSpool, choose]);
+
+  // Suche: Marke, Name, Material, Farbe, Lagerort
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = spools.filter(s => (s.remainingWeight ?? 1) > 0 || !q);
+    if (!q) return list.slice(0, 8);
+    const words = q.split(/\s+/);
+    return list
+      .filter(s => {
+        const hay = `${s.brand} ${s.name} ${s.material} ${s.colorName} ${s.location || ''}`.toLowerCase();
+        return words.every(w => hay.includes(w));
+      })
+      .slice(0, 12);
+  }, [spools, query]);
 
   const send = async () => {
     if (!picked) return;
@@ -137,7 +204,9 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose }) => {
         maxTemp: maxT
       });
       if (res.ok && res.data?.success !== false) {
+        if (picked.spoolId) onAssign?.(slot + 1, picked.spoolId);
         setResult({ ok: true, text: res.data?.message || `Slot ${slot + 1} ist gesetzt.` });
+        triggerNfcHaptic();
       } else {
         setResult({ ok: false, text: res.data?.error || 'Drucker hat den Befehl abgelehnt (Entwicklermodus nötig?).' });
       }
@@ -147,117 +216,223 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose }) => {
     setSending(false);
   };
 
+  const card = { backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)' };
+
   return (
-    <div onClick={onClose} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 animate-fadeIn"
+    >
       <div
         onClick={e => e.stopPropagation()}
-        className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border p-4 space-y-3"
-        style={{ backgroundColor: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+        className="w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-2xl"
+        style={{ backgroundColor: 'var(--app-card)', color: 'var(--app-text)' }}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="font-extrabold text-sm flex items-center gap-2">
-            <Nfc className="w-4 h-4" style={{ color: 'var(--app-accent)' }} />
-            NFC → AMS-Slot
-          </h3>
-          <button onClick={onClose} aria-label="Schließen" className="p-1.5 rounded-lg border cursor-pointer" style={{ borderColor: 'var(--app-border)' }}>
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {supported ? (
-          <div className="rounded-xl border p-3 text-xs flex items-center gap-2" style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)' }}>
-            <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: 'var(--app-accent)' }} />
-            <span>Spule mit NFC-Tag ans Handy halten …</span>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">
-            NFC ist hier nicht verfügbar. Wähle die Spule unten aus der Liste.
-          </div>
-        )}
-        {scanError && <div className="text-[11px] text-rose-400">{scanError}</div>}
-
-        <select
-          value=""
-          onChange={e => {
-            const s = spools.find(x => x.id === e.target.value);
-            if (s) fromSpool(s);
-          }}
-          className="w-full px-2 py-2 rounded-lg text-xs border outline-none"
-          style={{ backgroundColor: 'var(--app-input-bg)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+        {/* Kopf in Akzentfarbe */}
+        <div
+          className="sticky top-0 z-10 px-4 pt-4 pb-3 text-white"
+          style={{ background: 'var(--app-accent-gradient, var(--app-accent))' }}
         >
-          <option value="">Oder Spule aus der Liste wählen …</option>
-          {spools.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.brand} {s.name} ({s.material})
-            </option>
-          ))}
-        </select>
-
-        {picked && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 rounded-xl border p-3" style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)' }}>
-              <span className="w-6 h-6 rounded-full border border-black/20 shrink-0" style={{ backgroundColor: picked.colorHex }} />
-              <div className="min-w-0">
-                <div className="text-xs font-extrabold break-words">{picked.label}</div>
-                <div className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>{picked.material}</div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                <Nfc className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base leading-tight">Spule → AMS-Slot</h3>
+                <p className="text-[11px] text-white/85">Tag ans Handy halten oder Spule suchen</p>
               </div>
             </div>
+            <button onClick={onClose} aria-label="Schließen" className="p-2 rounded-xl bg-white/15 hover:bg-white/25 cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Schritte */}
+          <div className="flex items-center gap-1.5 mt-3 text-[10px] font-bold">
+            {['Spule', 'Slot', 'Senden'].map((t, i) => {
+              const done = i === 0 ? Boolean(picked) : i === 1 ? Boolean(picked) : Boolean(result?.ok);
+              return (
+                <React.Fragment key={t}>
+                  <span className={`px-2 py-0.5 rounded-full ${done ? 'bg-white text-black/80' : 'bg-white/20'}`}>
+                    {i + 1}. {t}
+                  </span>
+                  {i < 2 && <span className="w-3 h-px bg-white/50" />}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
 
-            <div>
-              <div className="text-[11px] font-bold mb-1">AMS-Slot</div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[0, 1, 2, 3].map(i => (
+        <div className="p-4 space-y-4">
+          {/* 1. SPULE */}
+          {picked ? (
+            <div
+              className="flex items-center gap-3 rounded-2xl border-2 p-3"
+              style={{ borderColor: picked.colorHex, background: `linear-gradient(135deg, ${picked.colorHex}30, transparent 70%)` }}
+            >
+              <span className="w-11 h-11 rounded-full border-4 border-white/70 shadow-md shrink-0" style={{ backgroundColor: picked.colorHex }} />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-extrabold break-words leading-tight">{picked.label}</div>
+                <div className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
+                  {picked.viaNfc ? '📲 per NFC · ' : ''}
+                  {picked.sub || picked.material}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setPicked(null);
+                  setResult(null);
+                }}
+                className="px-2.5 py-1.5 rounded-xl border text-[11px] font-bold cursor-pointer shrink-0"
+                style={card}
+              >
+                Ändern
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {supported ? (
+                <div className="rounded-2xl border p-3 flex items-center gap-3" style={card}>
+                  <div className="relative w-10 h-10 shrink-0">
+                    <span className="absolute inset-0 rounded-full animate-ping opacity-30" style={{ backgroundColor: 'var(--app-accent)' }} />
+                    <span
+                      className="relative w-10 h-10 rounded-full flex items-center justify-center text-white"
+                      style={{ backgroundColor: 'var(--app-accent)' }}
+                    >
+                      <Nfc className="w-5 h-5" />
+                    </span>
+                  </div>
+                  <div className="text-xs">
+                    <div className="font-extrabold">Spule ans Handy halten</div>
+                    <div style={{ color: 'var(--app-text-muted)' }}>NFC-Tag auf die Rückseite, oben beim Kamera-Bereich</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">
+                  NFC ist hier nicht verfügbar. Such die Spule unten.
+                </div>
+              )}
+              {scanError && <div className="text-[11px] font-bold text-rose-400">{scanError}</div>}
+
+              {/* Suche */}
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--app-text-muted)' }} />
+                <input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Spule suchen: Marke, Farbe, Material …"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-2xl border text-sm outline-none focus:ring-2"
+                  style={{ backgroundColor: 'var(--app-input-bg)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto pr-0.5">
+                {results.length === 0 && (
+                  <div className="text-xs text-center py-4" style={{ color: 'var(--app-text-muted)' }}>
+                    Keine Spule gefunden.
+                  </div>
+                )}
+                {results.map(s => (
                   <button
-                    key={i}
-                    onClick={() => setSlot(i)}
-                    className="py-2 rounded-lg border text-xs font-bold cursor-pointer transition"
-                    style={{
-                      backgroundColor: slot === i ? 'var(--app-accent)' : 'var(--app-card-sub)',
-                      borderColor: slot === i ? 'var(--app-accent)' : 'var(--app-border)',
-                      color: slot === i ? '#fff' : 'var(--app-text)'
-                    }}
+                    key={s.id}
+                    onClick={() => fromSpool(s)}
+                    className="flex items-center gap-2.5 p-2 rounded-2xl border text-left cursor-pointer active:scale-[0.99] transition hover:opacity-90"
+                    style={card}
                   >
-                    {i + 1}
+                    <span className="w-8 h-8 rounded-full border-2 border-white/60 shadow-sm shrink-0" style={{ backgroundColor: s.colorHex }} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-extrabold truncate">
+                        {s.brand} {s.name}
+                      </span>
+                      <span className="block text-[10px] truncate" style={{ color: 'var(--app-text-muted)' }}>
+                        {s.colorName} · {s.remainingWeight} g{s.location ? ` · ${s.location}` : ''}
+                      </span>
+                    </span>
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
+                      style={{ backgroundColor: 'var(--app-accent-sub)', color: 'var(--app-accent)' }}
+                    >
+                      {s.material}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
+          )}
 
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                ['Düse min °C', minT, setMinT],
-                ['Düse max °C', maxT, setMaxT]
-              ].map(([label, value, setter]: any) => (
-                <label key={label} className="text-[11px] font-bold space-y-1 block">
-                  <span>{label}</span>
-                  <input
-                    type="number"
-                    value={value}
-                    onChange={e => setter(Number(e.target.value) || 0)}
-                    className="w-full px-2 py-1.5 rounded-lg text-xs font-mono-num border outline-none"
-                    style={{ backgroundColor: 'var(--app-input-bg)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
-                  />
-                </label>
-              ))}
-            </div>
+          {/* 2. SLOT + 3. SENDEN */}
+          {picked && (
+            <>
+              <div>
+                <div className="text-xs font-extrabold mb-2">In welchen Slot?</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {[0, 1, 2, 3].map(i => {
+                    const hw = trays.find(t => t.slot === i + 1);
+                    const active = slot === i;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setSlot(i)}
+                        className="rounded-2xl border-2 p-2 flex flex-col items-center gap-1 cursor-pointer transition active:scale-95"
+                        style={{
+                          borderColor: active ? 'var(--app-accent)' : 'var(--app-border)',
+                          backgroundColor: active ? 'var(--app-accent-sub)' : 'var(--app-card-sub)'
+                        }}
+                      >
+                        <span className="text-sm font-extrabold" style={{ color: active ? 'var(--app-accent)' : 'var(--app-text)' }}>
+                          {i + 1}
+                        </span>
+                        <span
+                          className={`w-6 h-6 rounded-full border-2 ${hw && !hw.empty ? 'border-white/60' : 'border-dashed'}`}
+                          style={{
+                            backgroundColor: hw?.colorHex || 'transparent',
+                            borderColor: hw && !hw.empty ? undefined : 'var(--app-border)'
+                          }}
+                        />
+                        <span className="text-[9px] font-bold truncate max-w-full" style={{ color: 'var(--app-text-muted)' }}>
+                          {hw ? (hw.empty ? 'leer' : hw.type) : '–'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-            <button
-              onClick={send}
-              disabled={sending}
-              className="w-full py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-              style={{ backgroundColor: 'var(--app-accent)' }}
+              <div>
+                <div className="text-xs font-extrabold mb-2 flex items-center gap-1.5">
+                  <Thermometer className="w-3.5 h-3.5" style={{ color: 'var(--app-accent)' }} />
+                  Düsentemperatur
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Stepper label="Min °C" value={minT} onChange={setMinT} />
+                  <Stepper label="Max °C" value={maxT} onChange={setMaxT} />
+                </div>
+              </div>
+
+              <button
+                onClick={send}
+                disabled={sending}
+                className="w-full py-3.5 rounded-2xl text-sm font-extrabold text-white flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 shadow-lg active:scale-[0.99]"
+                style={{ background: 'var(--app-accent-gradient, var(--app-accent))' }}
+              >
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                In Slot {slot + 1} übertragen
+              </button>
+            </>
+          )}
+
+          {result && (
+            <div
+              className={`rounded-2xl border p-3 text-xs font-bold ${
+                result.ok ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500' : 'border-rose-500/40 bg-rose-500/10 text-rose-400'
+              }`}
             >
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              In Slot {slot + 1} übertragen
-            </button>
-          </div>
-        )}
-
-        {result && (
-          <div className={`rounded-xl border p-3 text-xs ${result.ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500' : 'border-rose-500/30 bg-rose-500/10 text-rose-400'}`}>
-            {result.text}
-          </div>
-        )}
+              {result.ok ? '✓ ' : ''}
+              {result.text}
+              {result.ok && picked?.spoolId ? ' Die Zuweisung ist auch in der App gespeichert.' : ''}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

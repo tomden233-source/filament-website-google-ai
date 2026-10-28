@@ -27,6 +27,8 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
 
     private PluginCall pendingWrite = null;
     private boolean scanning = false;
+    // Solange die App vorne ist, alle Tags selbst lesen (sonst zeigt Android seinen „Neues Tag“-Bildschirm)
+    private boolean autoRead = false;
 
     private NfcAdapter adapter() {
         return NfcAdapter.getDefaultAdapter(getContext());
@@ -56,6 +58,13 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
     }
 
     @PluginMethod
+    public void setAutoRead(PluginCall call) {
+        autoRead = Boolean.TRUE.equals(call.getBoolean("enabled", true));
+        updateReaderMode();
+        call.resolve();
+    }
+
+    @PluginMethod
     public void write(PluginCall call) {
         if (pendingWrite != null) {
             pendingWrite.reject("Es läuft schon ein Schreibvorgang.");
@@ -79,7 +88,7 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
         final Activity activity = getActivity();
         final NfcAdapter nfc = adapter();
         if (activity == null || nfc == null) return;
-        final boolean needed = scanning || pendingWrite != null;
+        final boolean needed = scanning || autoRead || pendingWrite != null;
         activity.runOnUiThread(() -> {
             try {
                 if (needed) {
@@ -104,7 +113,7 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
         final PluginCall write = pendingWrite;
         if (write != null) {
             doWrite(tag, write);
-        } else if (scanning) {
+        } else if (scanning || autoRead) {
             doRead(tag);
         }
     }
@@ -257,5 +266,12 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
     @Override
     protected void handleOnPause() {
         super.handleOnPause();
+    }
+
+    // Android schaltet den Reader-Modus beim Pausieren ab: beim Zurückkommen wieder einschalten
+    @Override
+    protected void handleOnResume() {
+        super.handleOnResume();
+        updateReaderMode();
     }
 }

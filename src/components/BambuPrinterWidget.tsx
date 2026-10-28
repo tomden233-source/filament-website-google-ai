@@ -38,6 +38,7 @@ import { useGcodeUpload } from './bambu/useGcodeUpload';
 import { PrintUsageModal } from './bambu/PrintUsageModal';
 import { NfcSlotModal } from './bambu/NfcSlotModal';
 import { useAutoDeduct } from './bambu/useAutoDeduct';
+import { readTrays } from '../utils/amsMatch';
 
 export interface BambuPrinterWidgetProps {
   spools: Spool[];
@@ -851,7 +852,19 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {tempModalTarget && <TemperatureModal setTempModalTarget={setTempModalTarget} tempModalTarget={tempModalTarget} setTempModalValue={setTempModalValue} tempModalValue={tempModalValue} handleSetTemperature={handleSetTemperature} actionLoading={actionLoading} />}
 
       {/* MODAL 2: G-CODE DATEI AN DRUCKER SENDEN */}
-      {showNfcSlotModal && <NfcSlotModal spools={spools} onClose={() => setShowNfcSlotModal(false)} />}
+      {showNfcSlotModal && (
+        <NfcSlotModal
+          spools={spools}
+          trays={liveState.connected ? readTrays(liveState.data.ams) : []}
+          onAssign={(slotNo, spoolId) => {
+            const next = { ...amsSlots, [slotNo]: spoolId };
+            setAmsSlots(next);
+            safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(next));
+            window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: { sync: true } }));
+          }}
+          onClose={() => setShowNfcSlotModal(false)}
+        />
+      )}
       {showUsageModal && <PrintUsageModal spools={spools} onDeductWeight={onDeductWeight} onClose={() => setShowUsageModal(false)} />}
       {showGcodeModal && <GcodeUploadModal setShowGcodeModal={setShowGcodeModal} fileInputRef={fileInputRef} handleGcodeFileSelect={handleGcodeFileSelect} selectedGcodeFile={selectedGcodeFile} gcodeFileInfo={gcodeFileInfo} setSelectedGcodeFile={setSelectedGcodeFile} setGcodeFileInfo={setGcodeFileInfo} handleUploadGcode={handleUploadGcode} isUploadingGcode={isUploadingGcode} spools={spools} amsSlots={amsSlots} gcodeGrams={gcodeGrams} />}
 

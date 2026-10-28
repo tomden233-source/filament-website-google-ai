@@ -75,7 +75,20 @@ export const NfcModal: React.FC<NfcModalProps> = ({
 
   const [isWriting, setIsWriting] = useState<boolean>(false);
   // Schreibformat: eigenes FilamentHub-JSON oder offener OpenTag3D-Standard (NTAG215 oder größer)
-  const [writeFormat, setWriteFormat] = useState<NfcWriteFormat>('filamenthub');
+  // Standard: OpenTag3D (offener Standard, passt auf NTAG215/216). Die Wahl wird gemerkt.
+  const [writeFormat, setWriteFormatState] = useState<NfcWriteFormat>(() => {
+    try {
+      return localStorage.getItem('filamenthub_nfc_format') === 'filamenthub' ? 'filamenthub' : 'opentag3d';
+    } catch {
+      return 'opentag3d';
+    }
+  });
+  const setWriteFormat = (f: NfcWriteFormat) => {
+    setWriteFormatState(f);
+    try {
+      localStorage.setItem('filamenthub_nfc_format', f);
+    } catch {}
+  };
   const [writeSuccessMessage, setWriteSuccessMessage] = useState<string>('');
   const [writeErrorMessage, setWriteErrorMessage] = useState<string>('');
 
@@ -327,6 +340,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
 
     try {
       const res = await writeSpoolToNfcTag(spoolToSave, undefined, writeFormat);
+      if (!res.success) throw new Error(res.message);
       if (detectedTagUid) {
         mapTagToSpool(detectedTagUid, spoolToSave.id);
       }

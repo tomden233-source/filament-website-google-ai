@@ -6,9 +6,9 @@ export interface NfcFormatPickerProps {
   setWriteFormat: (format: NfcWriteFormat) => void;
 }
 
-const OPTIONS: { id: NfcWriteFormat; title: string; hint: string }[] = [
-  { id: 'filamenthub', title: 'FilamentHub', hint: 'Eigenes Format, nur diese App' },
-  { id: 'opentag3d', title: 'OpenTag3D', hint: 'Offener Standard, auch andere Programme lesen es' }
+const OPTIONS: { id: NfcWriteFormat; title: string; hint: string; badge?: string }[] = [
+  { id: 'opentag3d', title: 'OpenTag3D', hint: 'Offener Standard, kompakt, auch andere Programme lesen es', badge: 'Empfohlen' },
+  { id: 'filamenthub', title: 'FilamentHub', hint: 'Eigenes Format mit Restgewicht, nur diese App' }
 ];
 
 /** Auswahl des Tag-Formats beim Schreiben */
@@ -24,19 +24,28 @@ export const NfcFormatPicker: React.FC<NfcFormatPickerProps> = ({ writeFormat, s
               key={opt.id}
               type="button"
               onClick={() => setWriteFormat(opt.id)}
-              className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
-                active ? 'bg-orange-500/15 border-orange-500/60' : 'bg-slate-900 border-slate-800 hover:border-slate-600'
-              }`}
+              className="p-2.5 rounded-xl border-2 text-left transition cursor-pointer"
+              style={{
+                backgroundColor: active ? 'var(--app-accent-sub)' : 'var(--app-card-sub)',
+                borderColor: active ? 'var(--app-accent)' : 'var(--app-border)'
+              }}
             >
-              <span className={`block text-[11px] font-extrabold ${active ? 'text-orange-400' : 'text-white'}`}>{opt.title}</span>
-              <span className="block text-[10px] text-slate-400">{opt.hint}</span>
+              <span className="flex items-center gap-1.5 text-[11px] font-extrabold" style={{ color: active ? 'var(--app-accent)' : 'var(--app-text)' }}>
+                {opt.title}
+                {opt.badge && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white" style={{ backgroundColor: 'var(--app-accent)' }}>
+                    {opt.badge}
+                  </span>
+                )}
+              </span>
+              <span className="block text-[10px]" style={{ color: 'var(--app-text-muted)' }}>{opt.hint}</span>
             </button>
           );
         })}
       </div>
       {writeFormat === 'opentag3d' && (
-        <p className="text-[10px] text-slate-400">
-          OpenTag3D braucht mindestens einen NTAG215-Tag. Temperaturen und Dichte sind typische Werte des Materials.
+        <p className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
+          OpenTag3D braucht mindestens einen NTAG215-Tag. Das Restgewicht führt die App, der Tag verweist auf die Spule.
         </p>
       )}
     </div>
