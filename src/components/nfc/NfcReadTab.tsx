@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tag, X, PenTool, Check, Minus, Plus, Trash2, RotateCcw, Pencil, Radio } from 'lucide-react';
 import type { NfcModalProps as ParentProps } from '../NfcModal';
+import { LabelPrintButton } from '../LabelPrintButton';
 
 export interface NfcReadTabProps {
   unwrittenTagDetected: any;
@@ -106,11 +107,14 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
                       <Check className="w-3 h-3" />
                       <span>Tag erfolgreich gelesen & zugeordnet</span>
                     </span>
-                    {detectedTagUid && (
-                      <span className="font-mono-num text-[10px] text-slate-400">
-                        UID: {detectedTagUid}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {detectedTagUid && (
+                        <span className="font-mono-num text-[10px] text-slate-400">
+                          UID: {detectedTagUid}
+                        </span>
+                      )}
+                      {activeLoadedSpool && <LabelPrintButton spool={activeLoadedSpool} compact />}
+                    </div>
                   </div>
 
                   {activeLoadedSpool && (

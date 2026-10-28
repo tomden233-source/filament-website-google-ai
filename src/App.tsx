@@ -1,5 +1,7 @@
 import { UpdateBanner } from './components/UpdateBanner';
 import { isAppShell } from './utils/env';
+import { peekIdleTag } from './utils/nativeNfc';
+import { fixSpoolWeights } from './utils/spoolSanity';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { storageApi, cloudSync } from './api';
 
@@ -97,7 +99,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.70';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.71';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
@@ -375,6 +377,17 @@ export default function App() {
     syncWithCloud(false);
   }, []);
 
+  // Unmögliche Restgewichte (mehr als die Spule fasst, Brutto statt Netto) automatisch geraderücken
+  useEffect(() => {
+    const { spools: fixed, fixes } = fixSpoolWeights(spools);
+    if (!fixes.length) return;
+    setSpools(fixed);
+    void persistState(fixed, printHistory);
+    fixes.forEach(f => addSystemLog('spule', `Gewicht korrigiert: ${f.label} ${f.from} g → ${f.to} g`, f.reason, 'info'));
+    showToast(`${fixes.length} Spulen-Gewicht${fixes.length === 1 ? '' : 'e'} korrigiert: ${fixes.map(f => `${f.label.replace(/^\S+ /, '')} ${f.to} g`).join(', ')}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spools]);
+
   // NFC-Tag gehalten, während die App offen ist (kein Fenster scannt gerade): NFC-Fenster öffnen und Tag anzeigen
   useEffect(() => {
     const onIdleTag = () => {
@@ -383,6 +396,8 @@ export default function App() {
       setIsNfcModalOpen(true);
     };
     window.addEventListener('filamenthub:nfc-idle-tag', onIdleTag);
+    // Tag hat die App gerade erst gestartet (kam vor dem Aufbau der Oberfläche an)
+    if (peekIdleTag(4000)) onIdleTag();
     return () => window.removeEventListener('filamenthub:nfc-idle-tag', onIdleTag);
   }, []);
 

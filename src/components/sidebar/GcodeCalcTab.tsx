@@ -1,3 +1,4 @@
+import { SpoolSelect } from '../SpoolPicker';
 import React from 'react';
 import { FileCode2, RefreshCw, UploadCloud, Check, Calculator } from 'lucide-react';
 import type { SidebarProps as ParentProps } from '../Sidebar';
@@ -148,22 +149,7 @@ export const GcodeCalcTab: React.FC<GcodeCalcTabProps> = ({
                     <label className="text-[10px] block" style={{ color: 'var(--app-text-muted)' }}>
                       Direkt von Spule abziehen:
                     </label>
-                    <select
-                      value={calcSpoolId}
-                      onChange={e => setCalcSpoolId(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border text-xs outline-none cursor-pointer"
-                      style={{
-                        backgroundColor: 'var(--app-input-bg)',
-                        borderColor: 'var(--app-border)',
-                        color: 'var(--app-text)'
-                      }}
-                    >
-                      {spools.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.brand} {s.name} ({s.remainingWeight}g Rest)
-                        </option>
-                      ))}
-                    </select>
+                    <SpoolSelect spools={spools} value={calcSpoolId} onChange={setCalcSpoolId} title="Von welcher Spule abziehen?" className="w-full" />
 
                     <button
                       onClick={() => {
@@ -200,26 +186,17 @@ export const GcodeCalcTab: React.FC<GcodeCalcTabProps> = ({
                 <div className="space-y-2 text-xs">
                   <div>
                     <label className="text-[11px] block mb-1" style={{ color: 'var(--app-text-muted)' }}>Spule:</label>
-                    <select
+                    <SpoolSelect
+                      spools={spools}
                       value={calcSpoolId}
-                      onChange={e => {
-                        setCalcSpoolId(e.target.value);
-                        const s = spools.find(sp => sp.id === e.target.value);
-                        if (s) setCalcPricePerKg(s.pricePerKg);
+                      onChange={id => {
+                        setCalcSpoolId(id);
+                        const sp = spools.find(x => x.id === id);
+                        if (sp) setCalcPricePerKg(sp.pricePerKg);
                       }}
-                      className="w-full px-2.5 py-1.5 rounded-lg border text-xs outline-none cursor-pointer"
-                      style={{
-                        backgroundColor: 'var(--app-input-bg)',
-                        borderColor: 'var(--app-border)',
-                        color: 'var(--app-text)'
-                      }}
-                    >
-                      {spools.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.brand} {s.name} – {s.pricePerKg.toFixed(2)} €/kg
-                        </option>
-                      ))}
-                    </select>
+                      title="Spule für die Kostenrechnung"
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">

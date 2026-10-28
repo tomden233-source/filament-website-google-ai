@@ -1,3 +1,4 @@
+import { LabelPrintButton } from '../LabelPrintButton';
 import React from 'react';
 import { Zap, Camera, Tag, Plus, Minus, Pencil, Trash2 } from 'lucide-react';
 import { BambuPrinterWidget } from '../BambuPrinterWidget';
@@ -314,7 +315,7 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
                           ))}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                        <div className="grid grid-cols-4 gap-1.5 pt-0.5">
                           <button
                             onClick={() => handleOpenSpoolNfc(spool.id)}
                             className={`py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer flex items-center justify-center gap-1 ${
@@ -327,6 +328,7 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
                             <Tag className="w-3.5 h-3.5" />
                             <span>NFC</span>
                           </button>
+                          <LabelPrintButton spool={spool} className="w-full py-1.5" />
                           <button
                             onClick={() => {
                               setSpoolToEdit(spool);

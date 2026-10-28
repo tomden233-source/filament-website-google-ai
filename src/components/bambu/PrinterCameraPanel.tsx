@@ -1,5 +1,6 @@
-import React from 'react';
-import { Camera, RefreshCw, Lightbulb, Power, Plug } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Camera, RefreshCw, Lightbulb, Power, Plug, AlertTriangle } from 'lucide-react';
+import { diagnoseHaCamera } from '../../utils/haClient';
 
 export interface PrinterCameraPanelProps {
   setCameraSnapshotKey: any;
@@ -30,6 +31,30 @@ export const PrinterCameraPanel: React.FC<PrinterCameraPanelProps> = ({
   printerLocalIp,
   haSwitchState
 }) => {
+  // Kein Bild? Dann klar sagen, woran es liegt (Token, Kamera-Name, Erreichbarkeit)
+  const [diag, setDiag] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const check = useCallback(async () => {
+    setChecking(true);
+    if (cameraSource === 'ha') {
+      const r = await diagnoseHaCamera();
+      setDiag(r.ok ? null : r.text);
+    } else {
+      setDiag('Die Bambu-Cloud gibt kein Live-Bild heraus. Die Kamera geht über Home Assistant (Einstellungen → Verbindungen) oder per LAN im Heimnetz.');
+    }
+    setChecking(false);
+  }, [cameraSource]);
+
+  useEffect(() => {
+    if (haCameraBlobUrl) {
+      setDiag(null);
+      return;
+    }
+    const t = setTimeout(() => void check(), 5000);
+    return () => clearTimeout(t);
+  }, [haCameraBlobUrl, check]);
+
   return (
 <div
           className="p-4 border-b space-y-3 transition-all animate-fadeIn"
@@ -121,6 +146,24 @@ export const PrinterCameraPanel: React.FC<PrinterCameraPanelProps> = ({
                   alt="Bambu Lab X2D Live Kamera"
                   className="w-full h-full object-cover"
                 />
+
+                {!haCameraBlobUrl && diag && (
+                  <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-2 p-5 text-center">
+                    <AlertTriangle className="w-6 h-6 text-amber-400" />
+                    <p className="text-xs font-bold text-amber-300 max-w-sm leading-relaxed">{diag}</p>
+                    <button
+                      onClick={() => {
+                        setCameraSnapshotKey(Date.now());
+                        void check();
+                      }}
+                      disabled={checking}
+                      className="px-3 py-1.5 rounded-lg border border-white/20 text-[11px] font-bold text-white flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${checking ? 'animate-spin' : ''}`} />
+                      <span>Erneut prüfen</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Overlay Hinweis oben rechts (ohne RTSP) */}
                 <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15 text-[10px] text-slate-300 font-mono flex items-center gap-2 pointer-events-none">

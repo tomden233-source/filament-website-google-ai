@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bluetooth, BluetoothSearching, Download, Loader2, Printer as PrinterIcon, RefreshCw, Unplug } from 'lucide-react';
 import type { Spool } from '../../types/filament';
-import { spoolLink } from '../../utils/spoolLink';
 import { type ScanDevice } from '../../utils/supvan/links';
 import { drawBitmap, renderSpoolLabel, renderTestLabel, type Bitmap } from '../../utils/supvan/render';
 import {
   connectPrinter,
   disconnectPrinter,
   forgetPrinter,
-  labelLengthMm,
+  labelOptionsFor,
   printBitmaps,
   printerSupport,
   scanPrinters,
@@ -37,26 +36,24 @@ export const LabelsTab: React.FC<Props> = ({ spools, preselectId }) => {
     if (preselectId) setSelected([preselectId]);
   }, [preselectId]);
 
-  const lengthMm = labelLengthMm();
-  const options = (sp: Spool) => ({
-    lengthMm,
-    qrText: s.qrAsLink ? spoolLink(sp.id) : sp.id,
-    showLocation: s.showLocation
-  });
+  const options = (sp: Spool) => labelOptionsFor(sp);
+  const lengthMm = labelOptionsFor(spools[0] || ({ id: '' } as Spool)).lengthMm;
 
   const first = spools.find(sp => sp.id === selected[0]) || spools[0];
   const preview = useMemo<Bitmap | null>(() => {
     if (!first) return null;
     try {
-      return renderSpoolLabel(first, { lengthMm, qrText: s.qrAsLink ? spoolLink(first.id) : first.id, showLocation: s.showLocation });
+      return renderSpoolLabel(first, labelOptionsFor(first));
     } catch {
       return null;
     }
-  }, [first, lengthMm, s.qrAsLink, s.showLocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [first, s.lengthMm, s.qrAsLink, s.showLocation, s.autoShorten, st.info]);
 
+  // Vorschau zeigt auch die Druckstärke (hell = niedrig, dunkel = hoch)
   useEffect(() => {
-    if (preview && canvasRef.current) drawBitmap(canvasRef.current, preview);
-  }, [preview]);
+    if (preview && canvasRef.current) drawBitmap(canvasRef.current, preview, s.density);
+  }, [preview, s.density]);
 
   const toggle = (id: string) => setSelected(cur => (cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]));
   const busy = st.phase === 'connecting' || st.phase === 'printing';
@@ -103,8 +100,10 @@ export const LabelsTab: React.FC<Props> = ({ spools, preselectId }) => {
   };
 
   const savePng = async () => {
-    if (!canvasRef.current || !first) return;
-    const canvas = canvasRef.current;
+    if (!preview || !first) return;
+    // Bild immer in vollem Schwarz speichern (nicht in der Vorschau-Helligkeit)
+    const canvas = document.createElement('canvas');
+    drawBitmap(canvas, preview);
     const blob: Blob | null = await new Promise(r => canvas.toBlob(r, 'image/png'));
     if (!blob) return;
     const file = new File([blob], `etikett-${first.name.replace(/[^\w-]+/g, '_')}.png`, { type: 'image/png' });
@@ -282,8 +281,21 @@ export const LabelsTab: React.FC<Props> = ({ spools, preselectId }) => {
           <canvas ref={canvasRef} className="block" style={{ imageRendering: 'pixelated', height: 96, minWidth: 'min-content' }} />
         </div>
         <p className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
-          Vorschau ({lengthMm} mm lang). Der QR-Code öffnet die Spule in der App.
+          Vorschau ({preview ? (preview.width / 8).toFixed(1).replace('.', ',') : lengthMm} mm lang, Druckstärke {s.density}). Der QR-Code öffnet die Spule in der App.
         </p>
+        <div className="space-y-1">
+          <label className="text-[11px] font-bold" style={{ color: 'var(--app-text-muted)' }}>
+            Druckstärke: {s.density} (1 hell – 15 dunkel)
+          </label>
+          <input
+            type="range"
+            min={1}
+            max={15}
+            value={s.density}
+            onChange={e => updateLabelSettings({ density: parseInt(e.target.value, 10) })}
+            className="w-full"
+          />
+        </div>
 
         <div className="flex flex-wrap gap-2">
           <button
@@ -316,19 +328,12 @@ export const LabelsTab: React.FC<Props> = ({ spools, preselectId }) => {
       <Card>
         <Toggle on={s.qrAsLink} onChange={v => updateLabelSettings({ qrAsLink: v })} label="QR enthält einen Link" hint="Aus: nur die Spulen-ID (kleinerer, besser lesbarer QR)." />
         <Toggle on={s.showLocation} onChange={v => updateLabelSettings({ showLocation: v })} label="Lagerort aufs Etikett" />
-        <div className="space-y-1">
-          <label className="text-[11px] font-bold" style={{ color: 'var(--app-text-muted)' }}>
-            Druckstärke: {s.density} (1 hell – 15 dunkel)
-          </label>
-          <input
-            type="range"
-            min={1}
-            max={15}
-            value={s.density}
-            onChange={e => updateLabelSettings({ density: parseInt(e.target.value, 10) })}
-            className="w-full"
-          />
-        </div>
+        <Toggle
+          on={s.autoShorten}
+          onChange={v => updateLabelSettings({ autoShorten: v })}
+          label="Etikett so kurz wie möglich"
+          hint="Spart Band. Gilt nur, wenn die Rolle keine feste Etikettenlänge meldet."
+        />
 
         <button
           onClick={() => setShowAdv(v => !v)}
@@ -371,7 +376,7 @@ export const LabelsTab: React.FC<Props> = ({ spools, preselectId }) => {
             </div>
             <button
               disabled={st.phase !== 'ready'}
-              onClick={() => void doPrint([renderTestLabel(lengthMm)])}
+              onClick={() => void doPrint([renderTestLabel(labelOptionsFor(spools[0] || ({ id: '' } as Spool)).lengthMm)])}
               className="px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               style={buttonStyle}
             >

@@ -1,11 +1,11 @@
-import React from 'react';
-import { Box, RefreshCw, Edit3, Droplets, Sun, Square } from 'lucide-react';
+import React, { useState } from 'react';
+import { Box, RefreshCw, Droplets, Sun, Square, Nfc, AlertTriangle } from 'lucide-react';
 import { safeStorage } from '../../utils/safeStorage';
 import { addSystemLog } from '../../utils/logService';
 import type { PrinterExpandedPanelProps as ParentProps } from './PrinterExpandedPanel';
-import { printerApi } from '../../api';
-import { getSpoolProfile } from '../../utils/spoolProfile';
 import { readTrays, activeSlotFromPrinter, syncSlots, mismatch } from '../../utils/amsMatch';
+import { SpoolPicker } from '../SpoolPicker';
+import { SlotTagSheet } from './SlotTagSheet';
 
 export interface AmsSectionProps {
   compact?: boolean;
@@ -40,12 +40,7 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
   amsSlots,
   spools,
   liveState,
-  handleSetActiveSlot,
-  setEditingAmsSlot,
-  setAmsEditColor,
-  setAmsEditMaterial,
   handleSetAmsSlot,
-  onApplyDryingCredit,
   amsDryTemp,
   isDryingActive,
   getHumidityDisplay,
@@ -57,6 +52,8 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
   dryLoading
 }) => {
   const connected = Boolean(liveState.connected);
+  const [pickSlot, setPickSlot] = useState<number | null>(null);
+  const [tagSlot, setTagSlot] = useState<number | null>(null);
   const trays = connected ? readTrays(liveState.data.ams) : [];
   const hasHw = trays.length > 0;
   const printerActive = connected ? activeSlotFromPrinter(liveState.data.ams) : null;
@@ -98,232 +95,98 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                   <span>Mit Drucker synchronisieren</span>
                 </button>
               </div>
-              <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                {printerActive ? 'Druckt aus' : 'Aktiver Slot'}: <strong>Slot {shownActive}</strong>
-              </span>
             </div>
 
-            {/* 4 AMS Slots mit physischer Telemetrie unter jedem Slot */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {/* 4 AMS-Slots: nur Slot, Farbe, Hersteller und Material. Tippen = Spule wählen, Tag-Symbol = Tag lesen. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {[1, 2, 3, 4].map(slotIdx => {
-                const effectiveSpoolId = amsSlots[slotIdx] || '';
-                const spool = spools.find(s => s.id === effectiveSpoolId);
-                const isActive = shownActive === slotIdx;
-
-                // Daten laut Drucker (nur wenn verbunden). Die Farbe kommt dann immer vom Drucker, nicht aus der Zuweisung.
+                const spool = spools.find(s => s.id === (amsSlots[slotIdx] || ''));
                 const hw = trays.find(t => t.slot === slotIdx);
-                const rawHwColor = hw?.colorHex ? hw.colorHex.slice(1) : '';
-                const hwType = hw && !hw.empty ? hw.type : '';
-                const isSlotEmpty = hw ? hw.empty : !spool;
+                const isActive = shownActive === slotIdx;
+                const hwFilled = Boolean(hw && !hw.empty);
                 const wrongSpool = mismatch(spool, hw);
 
-                const slotColorHex = hw ? (hw.empty ? null : hw.colorHex || '#888888') : spool?.colorHex || null;
-                const slotTitle = hw
-                  ? hw.empty
-                    ? 'Leer (laut Drucker)'
-                    : `${hw.brand || hwType}`
-                  : spool
-                  ? `${spool.brand} ${spool.name}`
-                  : 'Keine Spule zugewiesen';
-                const slotSub = hw
-                  ? hw.empty
-                    ? 'Keine Spule im Slot'
-                    : `${hwType}${slotColorHex ? ' · ' + slotColorHex.toUpperCase() : ''}${hw.remain != null && hw.remain >= 0 ? ` · ${hw.remain}%` : ''}`
-                  : connected
-                  ? 'Warte auf Daten vom Drucker …'
-                  : 'Drucker offline · zeigt deine Zuweisung';
+                // Farbe, Hersteller, Material: laut Drucker, wenn dort Filament steckt; sonst die zugewiesene Spule
+                const color = hwFilled ? hw!.colorHex || '#888888' : spool?.colorHex || null;
+                const brand = spool ? spool.brand : hwFilled ? hw!.brand || '–' : '';
+                const material = hwFilled ? hw!.type : spool ? spool.material : '';
+                const missingInAms = Boolean(hw?.empty && spool); // Spule zugewiesen, aber Slot ist laut Drucker leer
+                const emptyAll = !color && !brand && !material;
 
                 return (
                   <div
                     key={slotIdx}
-                    onClick={() => handleSetActiveSlot(slotIdx)}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 relative overflow-hidden ${
-                      isActive ? 'ring-2 ring-[#00AE42]/80' : 'hover:scale-[1.01]'
-                    } ${isSlotEmpty ? 'border-dashed opacity-85' : ''}`}
+                    onClick={() => setPickSlot(slotIdx)}
+                    title={wrongSpool ? `Zugewiesene Spule passt nicht zum Slot (${spool?.material}). Tippe auf „Mit Drucker synchronisieren“.` : 'Spule für diesen Slot wählen'}
+                    className={`relative rounded-xl border px-2 py-1.5 flex items-center gap-2 cursor-pointer transition active:scale-[0.98] ${
+                      isActive ? 'ring-2 ring-[#00AE42]/80' : ''
+                    } ${missingInAms || emptyAll ? 'border-dashed' : ''}`}
                     style={{
-                      backgroundColor: slotColorHex
-                        ? undefined
-                        : isActive ? 'var(--app-accent-sub)' : 'var(--app-card-sub)',
-                      background: slotColorHex
-                        ? `linear-gradient(145deg, ${slotColorHex}38 0%, ${slotColorHex}18 50%, var(--app-card-sub) 100%)`
-                        : undefined,
-                      borderColor: slotColorHex
-                        ? `${slotColorHex}90`
-                        : isActive ? '#00AE42' : 'var(--app-border)',
-                      boxShadow: slotColorHex
-                        ? `0 6px 20px -3px ${slotColorHex}35`
-                        : undefined
+                      backgroundColor: 'var(--app-card-sub)',
+                      borderColor: color && !emptyAll ? `${color}90` : 'var(--app-border)',
+                      opacity: missingInAms ? 0.75 : 1
                     }}
                   >
-                    {/* Header Slot */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-extrabold" style={{ color: 'var(--app-text)' }}>
-                          Slot {slotIdx}
-                        </span>
-                        {isSlotEmpty ? (
-                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30">
-                            Leer
-                          </span>
-                        ) : isActive ? (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#00AE42]/20 text-[#00AE42] border border-[#00AE42]/30">
-                            Aktiv
-                          </span>
-                        ) : null}
+                    <span
+                      className="w-5 h-5 rounded-full border border-black/30 shadow-sm shrink-0"
+                      style={color ? { backgroundColor: color } : { border: '1px dashed var(--app-border)' }}
+                    />
+                    <div className="min-w-0 flex-1 leading-tight">
+                      <div className="text-[11px] font-extrabold flex items-center gap-1" style={{ color: 'var(--app-text)' }}>
+                        Slot {slotIdx}
+                        {wrongSpool && <AlertTriangle className="w-3 h-3 text-amber-400" />}
                       </div>
-
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          setEditingAmsSlot(slotIdx - 1);
-                          if (rawHwColor) setAmsEditColor(rawHwColor);
-                          if (hwType && hwType !== 'Leer') setAmsEditMaterial(hwType);
-                        }}
-                        title="Farbe & Material dieses Slots am Drucker einstellen"
-                        className="px-2 py-0.5 rounded-lg border border-white/10 hover:border-[#00AE42] text-[10px] font-bold flex items-center gap-1 text-slate-300 hover:text-white transition cursor-pointer bg-black/20"
-                      >
-                        <Edit3 className="w-3 h-3 text-[#00AE42]" />
-                        <span>Drucker anpassen</span>
-                      </button>
+                      <div className="text-[10px] truncate" style={{ color: 'var(--app-text-muted)' }}>
+                        {emptyAll ? 'leer' : `${brand}${brand && material ? ' · ' : ''}${material}`}
+                        {missingInAms ? ' · leer im AMS' : ''}
+                      </div>
                     </div>
-
-                    {/* Lokale FilamentHub Spulenzuweisung */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] block" style={{ color: 'var(--app-text-muted)' }}>
-                        FilamentHub Zuweisung:
-                      </label>
-                      <select
-                        value={effectiveSpoolId || ''}
-                        onChange={e => {
-                          e.stopPropagation();
-                          handleSetAmsSlot(slotIdx, e.target.value);
-                        }}
-                        className="w-full px-2 py-1 rounded-lg border text-[11px] outline-none cursor-pointer"
-                        style={{
-                          backgroundColor: 'var(--app-input-bg)',
-                          borderColor: 'var(--app-border)',
-                          color: 'var(--app-text)'
-                        }}
-                      >
-                        <option value="">(Keine Spule verknüpft)</option>
-                        {spools.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.brand} {s.name} ({s.remainingWeight}g)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Profil-Vorschlag: beste Temperaturen der Spule an den Slot schicken */}
-                    {spool && liveState.connected && (() => {
-                      const prof = getSpoolProfile(spool);
-                      return (
-                        <button
-                          type="button"
-                          onClick={async e => {
-                            e.stopPropagation();
-                            try {
-                              const res = await printerApi.amsFilament({
-                                slotIdx: slotIdx - 1,
-                                colorHex: prof.colorHex.replace('#', ''),
-                                material: prof.material,
-                                minTemp: prof.minTemp,
-                                maxTemp: prof.maxTemp
-                              });
-                              setActionToast({
-                                text: res.ok && res.data?.success !== false
-                                  ? `Slot ${slotIdx}: ${spool.name} (${prof.minTemp}-${prof.maxTemp} °C) an den Drucker gesendet.`
-                                  : (res.data?.error || 'Drucker hat den Befehl abgelehnt (Entwicklermodus nötig?).'),
-                                ok: res.ok && res.data?.success !== false
-                              });
-                            } catch {
-                              setActionToast({ text: 'Verbindungsfehler zum Drucker.', ok: false });
-                            }
-                          }}
-                          className="w-full px-2 py-1 rounded-lg border border-[#00AE42]/40 bg-[#00AE42]/10 hover:bg-[#00AE42]/20 text-[10px] font-bold text-[#00AE42] cursor-pointer text-left"
-                          title="Farbe, Material und Temperaturbereich dieser Spule an den Slot senden"
-                        >
-                          📡 Profil senden: {prof.material} {prof.minTemp}-{prof.maxTemp} °C · Bett {prof.bedTemp} °C{prof.custom ? ' (eigenes Profil)' : ''}
-                        </button>
-                      );
-                    })()}
-
-                    {/* Trockenstand & anteilige Trocknungs-Anrechnung (z.B. 50% für halbe Zeit) */}
-                    {spool && (
-                      <div className="p-2 rounded-xl bg-orange-500/10 border border-orange-500/25 space-y-1.5">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="font-bold text-orange-400 flex items-center gap-1">
-                            <span>☀️ Trockenstand:</span>
-                          </span>
-                          <span className="font-mono-num font-bold text-slate-200">
-                            Soll: {spool.dryHours || 5}h
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const halfHours = Number(((spool.dryHours || 5) / 2).toFixed(1));
-                              onApplyDryingCredit?.(spool.id, halfHours, amsDryTemp);
-                            }}
-                            className="flex-1 py-1 px-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-bold text-[10px] border border-orange-500/40 transition cursor-pointer text-center active:scale-95 shadow-xs"
-                            title={`${(spool.dryHours || 5) / 2}h (50% der Trocknungszeit) anrechnen`}
-                          >
-                            +50% ({((spool.dryHours || 5) / 2)}h)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const fullHours = spool.dryHours || 5;
-                              onApplyDryingCredit?.(spool.id, fullHours, amsDryTemp);
-                            }}
-                            className="flex-1 py-1 px-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-[10px] border border-emerald-500/40 transition cursor-pointer text-center active:scale-95 shadow-xs"
-                            title={`${spool.dryHours || 5}h (100% Voll getrocknet) anrechnen`}
-                          >
-                            +100% ({spool.dryHours || 5}h)
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* WAS DER DRUCKER IN DIESEM SLOT MELDET */}
-                    <div className="p-2 rounded-xl border border-white/10 bg-black/20 space-y-1">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="font-bold text-slate-400">{hw ? 'Laut Drucker:' : 'Drucker:'}</span>
-                        <span className="font-mono text-[9.5px] text-slate-500">
-                          {hw && !hw.empty && hw.minTemp ? `${hw.minTemp}-${hw.maxTemp}°` : ''}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {slotColorHex ? (
-                          <span
-                            className="w-4 h-4 rounded-full border border-black/50 shadow-sm shrink-0"
-                            style={{ backgroundColor: slotColorHex }}
-                          />
-                        ) : (
-                          <span className="w-4 h-4 rounded-full border border-dashed border-slate-600 shrink-0" />
-                        )}
-
-                        <div className="min-w-0">
-                          <span className="font-extrabold text-[11px] block truncate" style={{ color: 'var(--app-text)' }}>
-                            {slotTitle}
-                          </span>
-                          <span className="font-mono text-[9.5px] block text-slate-400 truncate">{slotSub}</span>
-                        </div>
-                      </div>
-                      {wrongSpool && (
-                        <p className="text-[10px] font-bold text-amber-400">
-                          ⚠ Zugewiesene Spule passt nicht ({spool?.material}, {spool?.colorHex}). Tippe auf „Mit Drucker synchronisieren“.
-                        </p>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setTagSlot(slotIdx);
+                      }}
+                      aria-label={`NFC-Tag für Slot ${slotIdx} lesen`}
+                      title="Tag lesen und diesem Slot zuweisen"
+                      className="w-7 h-7 rounded-full border flex items-center justify-center shrink-0 cursor-pointer active:scale-90"
+                      style={{ borderColor: 'var(--app-accent)', color: 'var(--app-accent)', backgroundColor: 'var(--app-accent-sub)' }}
+                    >
+                      <Nfc className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 );
               })}
             </div>
+
+            {pickSlot !== null && (
+              <SpoolPicker
+                spools={spools}
+                title={`Spule für Slot ${pickSlot}`}
+                selectedId={amsSlots[pickSlot] || ''}
+                allowClear
+                hint={(() => {
+                  const t = trays.find(x => x.slot === pickSlot);
+                  return t && !t.empty ? { material: t.type, colorHex: t.colorHex || undefined } : undefined;
+                })()}
+                onClose={() => setPickSlot(null)}
+                onPick={s => {
+                  const slot = pickSlot;
+                  setPickSlot(null);
+                  handleSetAmsSlot(slot, s ? s.id : '');
+                }}
+              />
+            )}
+            {tagSlot !== null && (
+              <SlotTagSheet
+                slot={tagSlot}
+                spools={spools}
+                tray={trays.find(t => t.slot === tagSlot)}
+                connected={connected}
+                onAssign={(slot, spoolId) => handleSetAmsSlot(slot, spoolId)}
+                onClose={() => setTagSlot(null)}
+              />
+            )}
 
             {/* AMS TROCKNUNG (FILAMENT DRYING) STEUERUNG */}
             <div

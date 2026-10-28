@@ -91,9 +91,12 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
         // Prüfen, ob für das AMS eine Trocknungszeit vorliegt
         const amsData = liveState.data.ams?.ams?.[0];
         const drySetting = amsData?.dry_setting;
+        // Trocknung nur anrechnen, wenn der AMS wirklich gerade trocknet (früher wurden bei jeder Zuweisung 4 h gutgeschrieben)
         const detectedDryHours = (drySetting && drySetting.dry_duration > 0)
           ? drySetting.dry_duration
-          : amsDryHours;
+          : localDrying.isDrying
+          ? amsDryHours
+          : 0;
 
         if (detectedDryHours && detectedDryHours > 0) {
           onApplyDryingCredit?.(spoolId, detectedDryHours, amsDryTemp);

@@ -1,6 +1,7 @@
 package com.filamenthub.app;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -15,6 +16,7 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.json.JSONArray;
@@ -27,8 +29,58 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
 
     private PluginCall pendingWrite = null;
     private boolean scanning = false;
-    // Solange die App vorne ist, alle Tags selbst lesen (sonst zeigt Android seinen „Neues Tag“-Bildschirm)
-    private boolean autoRead = false;
+    // Solange die App vorne ist, alle Tags selbst lesen (sonst zeigt Android seinen „Neues Tag“-Bildschirm).
+    // Von Anfang an an: so greift es auch, bevor die Web-App das erste Mal etwas schickt.
+    private boolean autoRead = true;
+
+    @Override
+    public void load() {
+        super.load();
+        updateReaderMode();
+        Activity activity = getActivity();
+        if (activity != null) handleTagIntent(activity.getIntent());
+    }
+
+    // Tag hat die App gestartet oder zurückgeholt (Android-Absichtsfilter im Manifest): wie einen normalen Scan behandeln
+    @Override
+    protected void handleOnNewIntent(Intent intent) {
+        super.handleOnNewIntent(intent);
+        handleTagIntent(intent);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void handleTagIntent(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        if (!NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)
+                && !NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+                && !NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)) {
+            return;
+        }
+        // Nur einmal verarbeiten
+        intent.setAction(Intent.ACTION_MAIN);
+        final Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+        final PluginCall write = pendingWrite;
+        if (write != null && tag != null) {
+            new Thread(() -> doWrite(tag, write)).start();
+            return;
+        }
+        JSObject event = new JSObject();
+        event.put("serialNumber", tag != null ? serialOf(tag) : "");
+        JSArray records = new JSArray();
+        android.os.Parcelable[] raw = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+        if (raw != null) {
+            for (android.os.Parcelable m : raw) {
+                for (NdefRecord record : ((NdefMessage) m).getRecords()) {
+                    JSObject r = toJs(record);
+                    if (r != null) records.put(r);
+                }
+            }
+        }
+        event.put("records", records);
+        // Bleibt gespeichert, bis die Web-App zuhört (App startet erst durch den Tag)
+        notifyListeners("tag", event, true);
+    }
 
     private NfcAdapter adapter() {
         return NfcAdapter.getDefaultAdapter(getContext());
@@ -123,27 +175,44 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
     private void doRead(Tag tag) {
         JSObject event = new JSObject();
         event.put("serialNumber", serialOf(tag));
-        JSArray records = new JSArray();
-        Ndef ndef = Ndef.get(tag);
-        try {
-            if (ndef != null) {
-                ndef.connect();
-                NdefMessage message = ndef.getNdefMessage();
-                ndef.close();
-                if (message != null) {
-                    for (NdefRecord record : message.getRecords()) {
-                        JSObject r = toJs(record);
-                        if (r != null) records.put(r);
+        Exception last = null;
+        // Zwei Versuche: ein kurzes Wackeln des Tags soll nicht gleich ein Fehler sein
+        for (int attempt = 0; attempt < 2; attempt++) {
+            JSArray records = new JSArray();
+            Ndef ndef = Ndef.get(tag);
+            try {
+                if (ndef != null) {
+                    ndef.connect();
+                    try {
+                        NdefMessage message = ndef.getNdefMessage();
+                        if (message != null) {
+                            for (NdefRecord record : message.getRecords()) {
+                                JSObject r = toJs(record);
+                                if (r != null) records.put(r);
+                            }
+                        }
+                    } finally {
+                        try {
+                            ndef.close();
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
+                event.put("records", records);
+                notifyListeners("tag", event);
+                return;
+            } catch (Exception e) {
+                last = e;
+                try {
+                    Thread.sleep(120);
+                } catch (InterruptedException ie) {
+                    break;
+                }
             }
-            event.put("records", records);
-            notifyListeners("tag", event);
-        } catch (Exception e) {
-            JSObject err = new JSObject();
-            err.put("message", String.valueOf(e.getMessage()));
-            notifyListeners("tagError", err);
         }
+        JSObject err = new JSObject();
+        err.put("message", String.valueOf(last != null ? last.getMessage() : "Lesefehler"));
+        notifyListeners("tagError", err);
     }
 
     private JSObject toJs(NdefRecord record) {
@@ -215,52 +284,75 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
         }
     }
 
-    private void doWrite(Tag tag, PluginCall call) {
-        try {
-            NdefMessage message = buildMessage(call);
-            Ndef ndef = Ndef.get(tag);
-            if (ndef != null) {
-                ndef.connect();
-                try {
-                    if (!ndef.isWritable()) {
-                        finishWrite(call, "Der Tag ist schreibgeschützt.", null);
-                        return;
-                    }
-                    int size = message.toByteArray().length;
-                    if (ndef.getMaxSize() < size) {
-                        finishWrite(call, "Der Tag ist zu klein (" + ndef.getMaxSize() + " Byte, benötigt " + size + " Byte).", null);
-                        return;
-                    }
-                    ndef.writeNdefMessage(message);
-                } finally {
-                    try {
-                        ndef.close();
-                    } catch (Exception ignored) {
-                    }
+    /** Ein Schreibversuch. null = geschafft, Text = endgültiger Fehler. Wirft IOException, wenn der Tag verloren ging. */
+    private String writeOnce(Tag tag, NdefMessage message) throws Exception {
+        Ndef ndef = Ndef.get(tag);
+        if (ndef != null) {
+            ndef.connect();
+            try {
+                if (!ndef.isWritable()) return "Der Tag ist schreibgeschützt.";
+                int size = message.toByteArray().length;
+                if (ndef.getMaxSize() < size) {
+                    return "Der Tag ist zu klein (" + ndef.getMaxSize() + " Byte, benötigt " + size + " Byte).";
                 }
-                finishWrite(call, null, serialOf(tag));
-                return;
-            }
-            NdefFormatable formatable = NdefFormatable.get(tag);
-            if (formatable != null) {
-                formatable.connect();
+                ndef.writeNdefMessage(message);
+            } finally {
                 try {
-                    formatable.format(message);
-                } finally {
-                    try {
-                        formatable.close();
-                    } catch (Exception ignored) {
-                    }
+                    ndef.close();
+                } catch (Exception ignored) {
                 }
-                finishWrite(call, null, serialOf(tag));
-                return;
             }
-            finishWrite(call, "Dieser Tag unterstützt kein NDEF und kann nicht beschrieben werden.", null);
-        } catch (FormatException e) {
-            finishWrite(call, "Ungültiges Datenformat: " + e.getMessage(), null);
-        } catch (Exception e) {
-            finishWrite(call, "Schreiben fehlgeschlagen: " + e.getMessage(), null);
+            return null;
         }
+        NdefFormatable formatable = NdefFormatable.get(tag);
+        if (formatable != null) {
+            formatable.connect();
+            try {
+                formatable.format(message);
+            } finally {
+                try {
+                    formatable.close();
+                } catch (Exception ignored) {
+                }
+            }
+            return null;
+        }
+        return "Dieser Tag unterstützt kein NDEF und kann nicht beschrieben werden.";
+    }
+
+    private void doWrite(Tag tag, PluginCall call) {
+        NdefMessage message;
+        try {
+            message = buildMessage(call);
+        } catch (Exception e) {
+            finishWrite(call, "Ungültiges Datenformat: " + e.getMessage(), null);
+            return;
+        }
+        // Drei Versuche direkt hintereinander: ein leichtes Wackeln des Tags macht nichts
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                String error = writeOnce(tag, message);
+                finishWrite(call, error, error == null ? serialOf(tag) : null);
+                return;
+            } catch (FormatException e) {
+                finishWrite(call, "Ungültiges Datenformat: " + e.getMessage(), null);
+                return;
+            } catch (IOException e) {
+                // Tag verloren / Verbindung weg: nochmal versuchen
+                try {
+                    Thread.sleep(150);
+                } catch (InterruptedException ie) {
+                    break;
+                }
+            } catch (Exception e) {
+                finishWrite(call, "Schreiben fehlgeschlagen: " + e.getMessage(), null);
+                return;
+            }
+        }
+        // Nicht aufgeben: Der Schreibvorgang bleibt offen und startet beim nächsten Antippen von selbst neu
+        JSObject hint = new JSObject();
+        hint.put("message", "Tag verrutscht. Einfach nochmal ans Handy halten.");
+        notifyListeners("writeRetry", hint);
     }
 
     @Override

@@ -1,3 +1,4 @@
+import { LabelPrintButton } from './LabelPrintButton';
 import React, { useState, useEffect } from 'react';
 import {
   ExternalLink,
@@ -276,6 +277,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
             >
               <ShoppingCart className="w-3.5 h-3.5" />
             </a>
+            <LabelPrintButton spool={spool} compact />
             {onWriteNfc && (
               <button
                 onClick={() => onWriteNfc(spool.id)}
@@ -466,6 +468,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
             >
               <ShoppingCart className="w-3.5 h-3.5" />
             </a>
+            <LabelPrintButton spool={spool} compact />
             {onWriteNfc && (
               <button
                 onClick={() => onWriteNfc(spool.id)}
@@ -627,6 +630,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
             >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
+            <LabelPrintButton spool={spool} compact />
             {onWriteNfc && (
               <button
                 onClick={() => onWriteNfc(spool.id)}

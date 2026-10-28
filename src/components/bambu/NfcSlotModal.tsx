@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { X, Nfc, Check, Loader2, Search, Minus, Plus, Thermometer } from 'lucide-react';
 import { getSpoolProfile } from '../../utils/spoolProfile';
-import { printerApi } from '../../api/printerApi';
 import type { Spool } from '../../types/filament';
-import { isWebNfcSupported, parseNfcContent, openTag3dToJsonText, playNfcSuccessChime, triggerNfcHaptic } from '../../utils/nfcManager';
-import { OPENTAG3D_MIME } from '../../utils/openTag3d';
+import { triggerNfcHaptic } from '../../utils/nfcManager';
+import { useNfcTags } from '../../utils/nfcRead';
+import { sendToSlot } from '../../utils/slotAssign';
 import type { HwTray } from '../../utils/amsMatch';
 
 // Spule → AMS-Slot: Spule per NFC-Tag ans Handy halten ODER per Suche wählen, Slot antippen, übertragen.
@@ -45,24 +45,6 @@ const tempsFor = (material: string): [number, number] => {
   const key = Object.keys(TEMPS).find(k => material.toUpperCase().startsWith(k));
   return key ? TEMPS[key] : [190, 250];
 };
-
-function decodeRecords(records: any[]): string {
-  for (const r of records) {
-    try {
-      if (r.recordType === 'mime' && r.mediaType === OPENTAG3D_MIME) {
-        const dv: DataView = r.data;
-        return openTag3dToJsonText(new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength));
-      }
-      if (r.recordType === 'text' || r.recordType === 'mime') {
-        const dv: DataView = r.data;
-        return new TextDecoder(r.encoding || 'utf-8').decode(dv);
-      }
-    } catch {
-      // nächsten Record versuchen
-    }
-  }
-  return '';
-}
 
 /** Zahl mit − / + Knöpfen */
 const Stepper: React.FC<{ label: string; value: number; onChange: (v: number) => void }> = ({ label, value, onChange }) => (
@@ -109,10 +91,7 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
   const [minT, setMinT] = useState(190);
   const [maxT, setMaxT] = useState(230);
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
-  const supported = isWebNfcSupported();
-  const spoolsRef = useRef(spools);
-  spoolsRef.current = spools;
+  const [result, setResult] = useState<{ ok: boolean; text: string; confirmed?: boolean } | null>(null);
 
   const choose = useCallback((p: Picked) => {
     setPicked(p);
@@ -140,42 +119,24 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
   );
 
   // NFC lauscht die ganze Zeit, solange das Fenster offen ist (ein Scan, nicht bei jeder Änderung neu)
-  useEffect(() => {
-    if (!supported) return;
-    const ctrl = new AbortController();
-    (async () => {
-      try {
-        const reader = new (window as any).NDEFReader();
-        reader.onreading = (ev: any) => {
-          const text = decodeRecords(ev.message?.records || []);
-          const parsed = parseNfcContent(text, ev.serialNumber, spoolsRef.current);
-          const spool = parsed.matchedSpool;
-          if (spool) {
-            fromSpool(spool, true);
-          } else if (parsed.payload?.material) {
-            choose({
-              material: parsed.payload.material,
-              colorHex: parsed.payload.colorHex || '#888888',
-              label: `${parsed.payload.brand || ''} ${parsed.payload.name || parsed.payload.material}`.trim(),
-              sub: 'Vom Tag (nicht in deiner Liste)',
-              viaNfc: true
-            });
-          } else {
-            setScanError('Dieser Tag ist leer oder unbekannt. Such die Spule einfach unten.');
-            return;
-          }
-          setScanError(null);
-          triggerNfcHaptic();
-          playNfcSuccessChime();
-        };
-        reader.onreadingerror = () => setScanError('Tag konnte nicht gelesen werden. Bitte näher halten.');
-        await reader.scan({ signal: ctrl.signal });
-      } catch (err: any) {
-        if (err?.name !== 'AbortError') setScanError(err?.message || 'NFC konnte nicht gestartet werden.');
-      }
-    })();
-    return () => ctrl.abort();
-  }, [supported, fromSpool, choose]);
+  const { supported, error: nfcError } = useNfcTags(spools, parsed => {
+    const spool = parsed.matchedSpool;
+    if (spool) {
+      fromSpool(spool, true);
+      setScanError(null);
+    } else if (parsed.payload?.material) {
+      choose({
+        material: parsed.payload.material,
+        colorHex: parsed.payload.colorHex || '#888888',
+        label: `${parsed.payload.brand || ''} ${parsed.payload.name || parsed.payload.material}`.trim(),
+        sub: 'Vom Tag (nicht in deiner Liste)',
+        viaNfc: true
+      });
+      setScanError(null);
+    } else {
+      setScanError('Dieser Tag ist leer oder unbekannt. Such die Spule einfach unten.');
+    }
+  });
 
   // Suche: Marke, Name, Material, Farbe, Lagerort
   const results = useMemo(() => {
@@ -195,24 +156,11 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
     if (!picked) return;
     setSending(true);
     setResult(null);
-    try {
-      const res = await printerApi.amsFilament({
-        slotIdx: slot,
-        colorHex: picked.colorHex,
-        material: picked.material,
-        minTemp: minT,
-        maxTemp: maxT
-      });
-      if (res.ok && res.data?.success !== false) {
-        if (picked.spoolId) onAssign?.(slot + 1, picked.spoolId);
-        setResult({ ok: true, text: res.data?.message || `Slot ${slot + 1} ist gesetzt.` });
-        triggerNfcHaptic();
-      } else {
-        setResult({ ok: false, text: res.data?.error || 'Drucker hat den Befehl abgelehnt (Entwicklermodus nötig?).' });
-      }
-    } catch {
-      setResult({ ok: false, text: 'Verbindungsfehler zum Drucker.' });
-    }
+    // Die App merkt sich die Zuweisung immer, egal was der Drucker daraus macht
+    if (picked.spoolId) onAssign?.(slot + 1, picked.spoolId);
+    const r = await sendToSlot(slot + 1, { colorHex: picked.colorHex, material: picked.material, minTemp: minT, maxTemp: maxT });
+    setResult({ ok: r.confirmed, confirmed: r.confirmed, text: r.text });
+    if (r.confirmed) triggerNfcHaptic();
     setSending(false);
   };
 
@@ -312,7 +260,7 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
                   NFC ist hier nicht verfügbar. Such die Spule unten.
                 </div>
               )}
-              {scanError && <div className="text-[11px] font-bold text-rose-400">{scanError}</div>}
+              {(scanError || nfcError) && <div className="text-[11px] font-bold text-rose-400">{scanError || nfcError}</div>}
 
               {/* Suche */}
               <div className="relative">
@@ -424,12 +372,12 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
           {result && (
             <div
               className={`rounded-2xl border p-3 text-xs font-bold ${
-                result.ok ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500' : 'border-rose-500/40 bg-rose-500/10 text-rose-400'
+                result.confirmed ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500' : 'border-amber-500/40 bg-amber-500/10 text-amber-500'
               }`}
             >
-              {result.ok ? '✓ ' : ''}
-              {result.text}
-              {result.ok && picked?.spoolId ? ' Die Zuweisung ist auch in der App gespeichert.' : ''}
+              {result.confirmed
+                ? `✓ ${result.text}`
+                : `${picked?.spoolId ? `In der App gemerkt: Slot ${slot + 1}. ` : ''}${result.text}`}
             </div>
           )}
         </div>

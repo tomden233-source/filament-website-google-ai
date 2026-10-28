@@ -77,6 +77,30 @@ jobs:
           printf '<?xml version="1.0" encoding="utf-8"?>\n<paths>\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n    <files-path name="my_files" path="." />\n</paths>\n' > android/app/src/main/res/xml/file_paths.xml
           grep -n "fileprovider" "$MANIFEST" || echo "Hinweis: FileProvider fehlt im Manifest"
           grep -n "NFC\|INSTALL_PACKAGES" "$MANIFEST" || echo "Hinweis: NFC-Eintrag fehlt"
+          # NFC-Tags der App öffnen die App direkt (statt Androids „Neuer Tag erkannt“-Fenster), auch wenn sie nicht vorne ist
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">\n    <tech-list><tech>android.nfc.tech.Ndef</tech></tech-list>\n    <tech-list><tech>android.nfc.tech.NdefFormatable</tech></tech-list>\n    <tech-list><tech>android.nfc.tech.NfcA</tech><tech>android.nfc.tech.MifareUltralight</tech></tech-list>\n</resources>\n' > android/app/src/main/res/xml/nfc_tech_filter.xml
+          python3 - <<'PYEOF'
+          import re
+          path = "android/app/src/main/AndroidManifest.xml"
+          xml = open(path, encoding="utf-8").read()
+          filters = (
+              '        <intent-filter><action android:name="android.nfc.action.NDEF_DISCOVERED" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="application/opentag3d" /></intent-filter>\n'
+              '        <intent-filter><action android:name="android.nfc.action.NDEF_DISCOVERED" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="text/plain" /></intent-filter>\n'
+              '        <intent-filter><action android:name="android.nfc.action.TECH_DISCOVERED" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>\n'
+              '        <meta-data android:name="android.nfc.action.TECH_DISCOVERED" android:resource="@xml/nfc_tech_filter" />\n'
+          )
+          if "NDEF_DISCOVERED" in xml:
+              print("NFC-Filter schon vorhanden")
+          else:
+              i = xml.find("</activity>")
+              if i < 0:
+                  print("Hinweis: Activity im Manifest nicht gefunden, NFC-Filter fehlen")
+              else:
+                  xml = xml[:i] + filters + "    " + xml[i:]
+                  open(path, "w", encoding="utf-8").write(xml)
+                  print("NFC-Filter eingetragen")
+          PYEOF
+          grep -n "NDEF_DISCOVERED\|TECH_DISCOVERED" "$MANIFEST" || echo "Hinweis: NFC-Filter fehlen"
           grep -n "paho" android/app/build.gradle || echo "Hinweis: Paho fehlt"
           # Inhalt nicht unter die Systemleisten zeichnen (Menü oben links bleibt sichtbar), Leistenfarben sind einstellbar
           for st in AppTheme AppTheme.NoActionBar AppTheme.NoActionBarLaunch; do

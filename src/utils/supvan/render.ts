@@ -13,10 +13,18 @@ export interface Bitmap {
 }
 
 export interface LabelOptions {
+  /** Etikettenlänge (bei fester Rolle exakt, sonst Obergrenze) */
   lengthMm: number;
   qrText: string;
   showLocation: boolean;
+  /** Endlosrolle: Etikett nur so lang wie der Inhalt (spart Band), höchstens lengthMm */
+  autoFit?: boolean;
 }
+
+/** Freier Rand, damit Ränder des Druckkopfs/Bandes nie durch den QR-Code oder den Text laufen */
+export const LABEL_MARGIN_DOTS = 10; // 1,25 mm
+export const LABEL_MIN_MM = 20;
+export const AUTO_MAX_MM = 40;
 
 function makeCanvas(w: number, h: number) {
   const canvas = document.createElement('canvas');
@@ -56,9 +64,7 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number, star
 }
 
 export function renderSpoolLabel(spool: Spool, o: LabelOptions): Bitmap {
-  const w = Math.max(10, Math.round(o.lengthMm * DOTS_PER_MM));
   const h = HEAD_DOTS;
-  const { ctx } = makeCanvas(w, h);
 
   // QR links: so groß wie möglich, ganzzahlige Modulgröße
   const qr = QRCode.create(o.qrText, { errorCorrectionLevel: 'L' });
@@ -67,27 +73,49 @@ export function renderSpoolLabel(spool: Spool, o: LabelOptions): Bitmap {
   const avail = h - 4;
   const scale = Math.max(1, Math.floor(avail / (n + quiet * 2)));
   const side = (n + quiet * 2) * scale;
-  const qx = 2;
+  const qx = 4;
   const qy = Math.floor((h - side) / 2);
+  const tx = qx + side + 6;
+
+  const lines: { text: string; px: number; weight: number }[] = [
+    { text: spool.name || 'Spule', px: 28, weight: 800 },
+    { text: `${spool.material} · ${spool.colorName || ''}`.replace(/ · $/, ''), px: 22, weight: 600 },
+    { text: `${Math.round(spool.initialWeight)} g ${spool.brand || ''}`.trim(), px: 20, weight: 500 }
+  ];
+  if (o.showLocation && spool.location) lines.push({ text: `Lager: ${spool.location}`, px: 20, weight: 600 });
+  const shown = lines.slice(0, 4);
+  // Alle Zeilen müssen in die Höhe des Druckkopfs passen (sonst wird die letzte Zeile abgeschnitten)
+  const totalH = shown.reduce((a, l) => a + l.px * 1.15, 0);
+  if (totalH > h - 6) {
+    const k = (h - 6) / totalH;
+    shown.forEach(l => (l.px = Math.max(12, Math.floor(l.px * k))));
+  }
+
+  // Länge: fest oder so kurz wie möglich (nie länger als 40 mm, längere Namen werden kleiner geschrieben)
+  const maxMm = o.autoFit ? Math.min(o.lengthMm, AUTO_MAX_MM) : o.lengthMm;
+  let w = Math.max(10, Math.round(maxMm * DOTS_PER_MM));
+  if (o.autoFit) {
+    const m = makeCanvas(8, 8).ctx;
+    const textW = Math.max(...shown.map(l => {
+      m.font = `${l.weight} ${l.px}px ${FONT}`;
+      return m.measureText(l.text).width;
+    }));
+    const need = Math.ceil(tx + textW + LABEL_MARGIN_DOTS);
+    w = Math.max(LABEL_MIN_MM * DOTS_PER_MM, Math.min(w, need));
+  }
+  const { ctx } = makeCanvas(w, h);
+
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       if (qr.modules.data[r * n + c]) ctx.fillRect(qx + (quiet + c) * scale, qy + (quiet + r) * scale, scale, scale);
     }
   }
 
-  // Text rechts
-  const tx = qx + side + 6;
-  const maxW = w - tx - 4;
+  // Text rechts (mit freiem Rand am Ende)
+  const maxW = w - tx - LABEL_MARGIN_DOTS;
   if (maxW > 20) {
     ctx.textBaseline = 'top';
     ctx.textAlign = 'left';
-    const lines: { text: string; px: number; weight: number }[] = [
-      { text: spool.name || 'Spule', px: 28, weight: 800 },
-      { text: `${spool.material} · ${spool.colorName || ''}`.replace(/ · $/, ''), px: 22, weight: 600 },
-      { text: `${Math.round(spool.initialWeight)} g ${spool.brand || ''}`.trim(), px: 20, weight: 500 }
-    ];
-    if (o.showLocation && spool.location) lines.push({ text: `Lager: ${spool.location}`, px: 20, weight: 600 });
-    const shown = lines.slice(0, 4);
     const heights = shown.map(l => l.px * 1.15);
     const total = heights.reduce((a, b) => a + b, 0);
     let y = Math.max(2, (h - total) / 2);
@@ -147,14 +175,19 @@ export function toRaster(bmp: Bitmap, o: Orientation) {
   return { raster, perLineByte, cols };
 }
 
-/** Bild auf eine Canvas zeichnen (Vorschau, PNG-Export) */
-export function drawBitmap(canvas: HTMLCanvasElement, bmp: Bitmap) {
+/**
+ * Bild auf eine Canvas zeichnen (Vorschau, PNG-Export).
+ * Mit density (1–15) wird die Druckstärke gezeigt: niedrig = hellgrau, hoch = tiefschwarz.
+ */
+export function drawBitmap(canvas: HTMLCanvasElement, bmp: Bitmap, density?: number) {
   canvas.width = bmp.width;
   canvas.height = bmp.height;
   const ctx = canvas.getContext('2d')!;
   const img = ctx.createImageData(bmp.width, bmp.height);
+  const ink = density ? 0.3 + 0.7 * ((Math.max(1, Math.min(15, density)) - 1) / 14) : 1;
+  const dark = Math.round(255 * (1 - ink));
   for (let i = 0; i < bmp.pixels.length; i++) {
-    const v = bmp.pixels[i] ? 0 : 255;
+    const v = bmp.pixels[i] ? dark : 255;
     img.data[i * 4] = v;
     img.data[i * 4 + 1] = v;
     img.data[i * 4 + 2] = v;

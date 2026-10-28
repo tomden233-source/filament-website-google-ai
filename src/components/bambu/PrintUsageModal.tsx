@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X, RefreshCw, Check, Scale } from 'lucide-react';
+import { X, RefreshCw, Check, Printer, History } from 'lucide-react';
+import { SpoolSelect } from '../SpoolPicker';
 import { printerApi, type PrintTask } from '../../api/printerApi';
 import type { Spool } from '../../types/filament';
 import { AUTO_KEY, AUTO_SINCE_KEY, bestSpool, isAutoDeductOn, markDone, readDone } from '../../utils/printUsage';
@@ -81,8 +82,11 @@ export const PrintUsageModal: React.FC<Props> = ({ spools, onDeductWeight, onClo
       >
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-extrabold text-sm flex items-center gap-2">
-            <Scale className="w-4 h-4" style={{ color: 'var(--app-accent)' }} />
-            Druck-Verbrauch
+            <span className="relative w-5 h-5 flex items-center justify-center" style={{ color: 'var(--app-accent)' }}>
+              <Printer className="w-4 h-4" />
+              <History className="w-3 h-3 absolute -right-1 -bottom-1 rounded-full" style={{ backgroundColor: 'var(--app-card)' }} />
+            </span>
+            Letzter Druck · Verbrauch
           </h3>
           <div className="flex items-center gap-1">
             <button onClick={load} aria-label="Neu laden" className="p-1.5 rounded-lg border cursor-pointer" style={{ borderColor: 'var(--app-border)' }}>
@@ -140,19 +144,15 @@ export const PrintUsageModal: React.FC<Props> = ({ spools, onDeductWeight, onClo
                 <div key={i} className="flex items-center gap-2">
                   <span className="w-4 h-4 rounded-full border border-black/20 shrink-0" style={{ backgroundColor: f.colorHex }} />
                   <span className="text-[11px] font-mono-num font-bold w-14 shrink-0">{f.grams} g</span>
-                  <select
+                  <SpoolSelect
+                    spools={spools}
                     disabled={isDone}
                     value={pick(`${task.id}:${i}`, f.material, f.colorHex)}
-                    onChange={e => setChoice(c => ({ ...c, [`${task.id}:${i}`]: e.target.value }))}
-                    className="flex-1 min-w-0 px-2 py-1 rounded-lg text-[11px] border outline-none"
-                    style={{ backgroundColor: 'var(--app-input-bg)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
-                  >
-                    {spools.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.brand} {s.name} ({s.remainingWeight} g)
-                      </option>
-                    ))}
-                  </select>
+                    onChange={id => setChoice(c => ({ ...c, [`${task.id}:${i}`]: id }))}
+                    title={`Spule für ${f.grams} g ${f.material}`}
+                    hint={{ material: f.material, colorHex: f.colorHex }}
+                    className="flex-1"
+                  />
                 </div>
               ))}
 

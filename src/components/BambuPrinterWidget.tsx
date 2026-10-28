@@ -11,7 +11,8 @@ import {
   Camera,
   Lightbulb,
   FileCode,
-  Scale,
+  Printer,
+  History,
   Nfc,
   Power,
   Plug,
@@ -524,6 +525,10 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     }
   }
 
+  // Anmelden statt „Neu verbinden“: noch kein Login oder die Cloud lehnt den gespeicherten Login ab
+  const needsLogin =
+    IS_NATIVE && (!liveState.hasToken || /abgelaufen|ung[üu]ltig|abgelehnt|neu anmelden/i.test(String(liveState.error || '')));
+
   const isPrinting = isPrinterConnected && liveState.data.gcode_state === 'RUNNING';
   const isPaused = isPrinterConnected && liveState.data.gcode_state === 'PAUSE';
 
@@ -682,24 +687,29 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
             <span className="hidden sm:inline text-[11px] whitespace-nowrap">{isLightOn ? 'Licht An' : 'Licht'}</span>
           </button>
 
-          {/* 3. G-Code Upload */}
-          <button
-            onClick={() => setShowGcodeModal(true)}
-            title="G-Code oder .3MF Datei an X2D senden"
-            className="px-2.5 py-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
-          >
-            <FileCode className="w-3.5 h-3.5 shrink-0 text-sky-400" />
-            <span className="hidden md:inline text-[11px] whitespace-nowrap">G-Code</span>
-          </button>
+          {/* 3. G-Code Upload (nur online, nicht in der Android-App) */}
+          {!IS_NATIVE && (
+            <button
+              onClick={() => setShowGcodeModal(true)}
+              title="G-Code oder .3MF Datei an X2D senden"
+              className="px-2.5 py-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+            >
+              <FileCode className="w-3.5 h-3.5 shrink-0 text-sky-400" />
+              <span className="hidden md:inline text-[11px] whitespace-nowrap">G-Code</span>
+            </button>
+          )}
 
           {/* 3b. Verbrauch der letzten Drucke (Bambu Cloud) */}
           <button
             onClick={() => setShowUsageModal(true)}
-            title="Verbrauch der letzten Drucke ansehen und von der Spule abziehen"
+            title="Letzter Druck: Verbrauch ansehen und von der Spule abziehen"
             className="px-2.5 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
           >
-            <Scale className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden md:inline text-[11px] whitespace-nowrap">Verbrauch</span>
+            <span className="relative w-4 h-4 shrink-0 flex items-center justify-center">
+              <Printer className="w-3.5 h-3.5" />
+              <History className="w-2.5 h-2.5 absolute -right-1 -bottom-1 rounded-full" style={{ backgroundColor: 'var(--app-card-sub)' }} />
+            </span>
+            <span className="hidden md:inline text-[11px] whitespace-nowrap">Letzter Druck</span>
           </button>
 
           {/* 3c. NFC-Tag → AMS-Slot */}
@@ -749,28 +759,31 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#00AE42]' : ''}`} />
           </button>
 
-          {/* 6. Home Assistant Sync Button */}
-          <button
-            onClick={handleFetchSwitchStatus}
-            title="Home Assistant Status aktualisieren"
-            className="p-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition cursor-pointer"
-          >
-            <Home className="w-3.5 h-3.5" />
-          </button>
+          {/* 6./7. Home-Assistant-Status und Einstellungen: nur online. In der App stehen die Einstellungen im Menü. */}
+          {!IS_NATIVE && (
+            <>
+              <button
+                onClick={handleFetchSwitchStatus}
+                title="Home Assistant Status aktualisieren"
+                className="p-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition cursor-pointer"
+              >
+                <Home className="w-3.5 h-3.5" />
+              </button>
 
-          {/* 7. Einstellungen Button */}
-          <button
-            onClick={() => setIsSettingsModalOpen(true)}
-            title="Drucker & MQTTS Einstellungen"
-            className="p-1.5 rounded-xl border transition cursor-pointer hover:opacity-80"
-            style={{
-              backgroundColor: 'var(--app-card-sub)',
-              borderColor: 'var(--app-border)',
-              color: 'var(--app-text)'
-            }}
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </button>
+              <button
+                onClick={() => setIsSettingsModalOpen(true)}
+                title="Drucker & MQTTS Einstellungen"
+                className="p-1.5 rounded-xl border transition cursor-pointer hover:opacity-80"
+                style={{
+                  backgroundColor: 'var(--app-card-sub)',
+                  borderColor: 'var(--app-border)',
+                  color: 'var(--app-text)'
+                }}
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
 
           {/* 8. Ausklappen / Einklappen Pfeil */}
           <button
@@ -805,19 +818,19 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
             {!liveState.connecting && !reconnecting && (
               <p className="break-words leading-snug" style={{ color: 'var(--app-text-muted)' }}>
                 {!liveState.hasToken
-                  ? 'Tippe auf das Zahnrad und melde dich mit deinem Bambu-Konto an. Danach verbindet die App selbst.'
+                  ? 'Tippe auf „Anmelden“ und melde dich mit deinem Bambu-Konto an. Danach verbindet die App selbst.'
                   : liveState.error || 'Die App verbindet sich automatisch neu.'}
                 {liveState.hasToken && liveState.retryInSec != null && ` Nächster Versuch in ${liveState.retryInSec} s.`}
               </p>
             )}
           </div>
           <button
-            onClick={!liveState.hasToken && IS_NATIVE ? () => setIsSettingsModalOpen(true) : handleReconnect}
+            onClick={needsLogin ? () => setIsSettingsModalOpen(true) : handleReconnect}
             disabled={reconnecting || liveState.connecting}
             className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1"
             style={{ backgroundColor: 'var(--app-accent)' }}
           >
-            {!liveState.hasToken && IS_NATIVE ? (
+            {needsLogin ? (
               <>
                 <Settings className="w-3.5 h-3.5" />
                 <span>Anmelden</span>
@@ -856,12 +869,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
         <NfcSlotModal
           spools={spools}
           trays={liveState.connected ? readTrays(liveState.data.ams) : []}
-          onAssign={(slotNo, spoolId) => {
-            const next = { ...amsSlots, [slotNo]: spoolId };
-            setAmsSlots(next);
-            safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(next));
-            window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: { sync: true } }));
-          }}
+          onAssign={(slotNo, spoolId) => handleSetAmsSlot(slotNo, spoolId)}
           onClose={() => setShowNfcSlotModal(false)}
         />
       )}

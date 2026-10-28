@@ -1,3 +1,4 @@
+import { SpoolSelect } from './SpoolPicker';
 import React, { useState, useEffect, useRef } from 'react';
 import { printerApi } from '../api';
 import {
@@ -361,22 +362,13 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
               <label className="text-[10px] block" style={{ color: 'var(--app-text-muted)' }}>
                 Abziehen von Spule (AMS Slot 1):
               </label>
-              <select
+              <SpoolSelect
+                spools={spools || []}
                 value={activeJob.targetSpoolId}
-                onChange={e => setActiveJob(prev => prev ? { ...prev, targetSpoolId: e.target.value } : null)}
-                className="w-full px-2 py-1 rounded-lg border text-xs outline-none cursor-pointer"
-                style={{
-                  backgroundColor: 'var(--app-input-bg)',
-                  borderColor: 'var(--app-border)',
-                  color: 'var(--app-text)'
-                }}
-              >
-                {spools?.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.brand} {s.name} ({s.remainingWeight}g Rest)
-                  </option>
-                ))}
-              </select>
+                onChange={id => setActiveJob(prev => prev ? { ...prev, targetSpoolId: id } : null)}
+                title="Von welcher Spule abziehen?"
+                className="w-full"
+              />
             </div>
 
             <button

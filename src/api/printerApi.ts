@@ -31,6 +31,15 @@ export interface BambuStatusResponse extends ApiBase {
   [key: string]: any;
 }
 
+export interface AmsFilamentResponse extends ApiBase {
+  /** Drucker hat den Slot wirklich gesetzt */
+  confirmed?: boolean;
+  /** Bambu hat den Fremd-Befehl abgelehnt (MQTT command verification failed) */
+  blocked?: boolean;
+  /** Slot ist laut Drucker leer */
+  emptySlot?: boolean;
+}
+
 export interface PrintTask {
   id: string;
   title: string;
@@ -69,13 +78,14 @@ export const printerApi = {
   uploadGcode: (payload: { fileName: string; fileContent: string; startPrint: boolean }) =>
     apiPost<ApiBase>('/api/printer/upload-gcode', payload),
 
+  /** Slot-Daten (Farbe, Material, Temperatur) an den Drucker senden. Wartet, bis der Drucker es bestätigt oder ablehnt. */
   amsFilament: (payload: {
     slotIdx: number;
     colorHex: string;
     material: string;
     minTemp: number;
     maxTemp: number;
-  }) => apiPost<ApiBase>('/api/printer/ams-filament', payload),
+  }) => apiPost<AmsFilamentResponse>('/api/printer/ams-filament', payload, { timeoutMs: 25000 }),
 
   amsDrying: (payload: { amsId: number; mode: number; duration: number; temp: number }) =>
     apiPost<ApiBase>('/api/printer/ams-drying', payload),

@@ -50,6 +50,9 @@ type Reader = { onTag: (e: NativeTagEvent) => void; onError: () => void };
 const readers = new Set<Reader>();
 let listening = false;
 let lastIdle: { event: NativeTagEvent; at: number } | null = null;
+// Wie die App Tags ohne offenes Fenster abfängt: 'auto' = neue APK (Android liest immer selbst),
+// 'scan' = alte APK (ein Dauer-Scan, der nie beendet wird), null = noch unbekannt
+let idleMode: 'auto' | 'scan' | null = null;
 
 function plugin(): NativePlugin | null {
   return getNativePlugin('FilamentNfc');
@@ -71,6 +74,26 @@ function ensureListener(p: NativePlugin) {
     last?.onTag(event);
   });
   p.on('tagError', () => Array.from(readers).pop()?.onError());
+}
+
+/** Dafür sorgen, dass Android nie sein eigenes „Neuer Tag“-Fenster zeigt, solange die App vorne ist */
+async function holdIdle(p: NativePlugin) {
+  if (idleMode !== 'scan') {
+    try {
+      await p.call('setAutoRead', { enabled: true });
+      idleMode = 'auto';
+      return;
+    } catch {
+      idleMode = 'scan'; // ältere APK ohne setAutoRead
+    }
+  }
+  p.call('startScan').catch(() => {});
+}
+
+/** Tag, der gerade (vor dem Öffnen eines Fensters) gehalten wurde */
+export function peekIdleTag(maxAgeMs = 5000): NativeTagEvent | null {
+  if (lastIdle && Date.now() - lastIdle.at < maxAgeMs) return lastIdle.event;
+  return null;
 }
 
 async function checkAvailable(p: NativePlugin) {
@@ -108,7 +131,8 @@ class NativeNDEFReader {
       'abort',
       () => {
         readers.delete(me);
-        if (readers.size === 0) p.call('stopScan').catch(() => {});
+        // Im Dauer-Scan-Modus (alte APK) nie beenden, sonst zeigt Android sofort sein eigenes Fenster
+        if (readers.size === 0 && idleMode !== 'scan') p.call('stopScan').catch(() => {});
       },
       { once: true }
     );
@@ -150,10 +174,17 @@ export function installNativeNfc() {
   } catch {
     (window as any).NDEFReader = NativeNDEFReader;
   }
-  // Tags auch ohne offenes Fenster abfangen, solange die App vorne ist (nur mit neuer APK, ältere ignorieren das)
+  // Tags auch ohne offenes Fenster abfangen, solange die App vorne ist. Neue APK: setAutoRead. Alte APK: Dauer-Scan.
   const p = plugin();
   if (p) {
     ensureListener(p);
-    p.call('setAutoRead', { enabled: true }).catch(() => {});
+    void holdIdle(p);
+    // Android schaltet das Lesen beim Wegwechseln ab: beim Zurückkommen und zwischendurch neu absichern
+    const reassert = () => {
+      if (document.visibilityState === 'visible') void holdIdle(p);
+    };
+    document.addEventListener('visibilitychange', reassert);
+    window.addEventListener('focus', reassert);
+    window.setInterval(reassert, 15000);
   }
 }

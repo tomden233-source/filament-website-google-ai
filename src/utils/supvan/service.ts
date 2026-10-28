@@ -5,7 +5,9 @@ import { safeStorage } from '../safeStorage';
 import { NativeLink, WebLink, nativeBle, requestWebDevice, webBleSupported, type Link, type ScanDevice } from './links';
 import { Printer, PrinterError, type PrinterInfo } from './printer';
 import { compressBuffers, splitIntoBuffers } from './protocol';
-import { toRaster, type Bitmap } from './render';
+import { renderSpoolLabel, toRaster, type Bitmap, type LabelOptions } from './render';
+import { spoolLink } from '../spoolLink';
+import type { Spool } from '../../types/filament';
 
 const KEY_DEVICE = 'filamenthub_label_printer';
 const KEY_SETTINGS = 'filamenthub_label_settings';
@@ -18,6 +20,8 @@ export interface LabelSettings {
   lengthMm: number; // Etikettenlänge, wenn der Drucker keine meldet
   qrAsLink: boolean;
   showLocation: boolean;
+  /** Endlosrolle: Etikett nur so lang wie nötig */
+  autoShorten: boolean;
 }
 
 const DEFAULTS: LabelSettings = {
@@ -27,7 +31,8 @@ const DEFAULTS: LabelSettings = {
   offsetDots: 0,
   lengthMm: 30,
   qrAsLink: true,
-  showLocation: true
+  showLocation: true,
+  autoShorten: true
 };
 
 export type PrinterPhase = 'off' | 'connecting' | 'ready' | 'printing';
@@ -199,6 +204,40 @@ export function forgetPrinter() {
 export function labelLengthMm(): number {
   const m = state.info?.material;
   return m && m.lengthMm > 0 ? m.lengthMm : state.settings.lengthMm;
+}
+
+/** Meldet die Rolle eine feste Etikettenlänge (vorgestanzte Etiketten)? */
+export function labelLengthFixed(): boolean {
+  const m = state.info?.material;
+  return Boolean(m && m.lengthMm > 0);
+}
+
+export function labelOptionsFor(spool: Spool): LabelOptions {
+  const s = state.settings;
+  return {
+    lengthMm: labelLengthMm(),
+    autoFit: s.autoShorten && !labelLengthFixed(),
+    qrText: s.qrAsLink ? spoolLink(spool.id) : spool.id,
+    showLocation: s.showLocation
+  };
+}
+
+/**
+ * Ein Etikett für diese Spule drucken – von überall in der App. Verbindet sich bei Bedarf selbst
+ * mit dem zuletzt gekoppelten Drucker. Wirft einen verständlichen Fehler.
+ */
+export async function printSpoolLabel(spool: Spool): Promise<string> {
+  const support = printerSupport();
+  if (support === 'none') throw new PrinterError('Dieses Gerät kann nicht per Bluetooth drucken. Nutze die Android-App oder Chrome.');
+  if (state.phase === 'connecting' || state.phase === 'printing') throw new PrinterError('Der Drucker ist gerade beschäftigt.');
+  if (state.phase !== 'ready') {
+    if (support === 'native' && !state.saved) {
+      throw new PrinterError('Noch kein Etiketten-Drucker gekoppelt. Einmal unter Werkstatt → Etiketten verbinden.');
+    }
+    await connectPrinter();
+  }
+  await printBitmaps([renderSpoolLabel(spool, labelOptionsFor(spool))]);
+  return 'Etikett gedruckt.';
 }
 
 /** Ein oder mehrere Etiketten nacheinander drucken */

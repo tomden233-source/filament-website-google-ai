@@ -99,6 +99,10 @@ export abstract class BambuMqttCore {
   private gotData = false;
   /** Nach einem Licht-Befehl kurz den gewünschten Zustand halten (sonst flackert die Anzeige durch alte Meldungen) */
   private lightHold: { mode: string; until: number } | null = null;
+  /** Letzte Antwort des Druckers auf „ams_filament_setting" (zur Prüfung, ob der Slot wirklich gesetzt wurde) */
+  private amsCmdResult: { result: string; reason: string; at: number } | null = null;
+  /** Der Drucker meldet „MQTT command verification failed" (Bambu lässt Fremd-Befehle über die Cloud nicht zu) */
+  private hmsBlocked = false;
 
   // Akkumulierter Druckstatus (Delta-Updates werden hinein gemergt)
   private printData: BambuPrinterData = {
@@ -682,6 +686,19 @@ export abstract class BambuMqttCore {
   private mergeDelta(delta: any) {
     this.lastUpdated = new Date().toISOString();
 
+    // Antwort auf einen AMS-Befehl merken (result: success | fail, reason: Text)
+    if (delta.command === 'ams_filament_setting') {
+      this.amsCmdResult = {
+        result: String(delta.result ?? '').toLowerCase(),
+        reason: String(delta.reason ?? ''),
+        at: Date.now()
+      };
+    }
+    // HMS 0500-0500-0001-0007 = „MQTT command verification failed": Bambu lehnt unsignierte Fremd-Befehle ab
+    if (Array.isArray(delta.hms)) {
+      this.hmsBlocked = delta.hms.some((h: any) => Number(h?.attr) === 0x05000500 && Number(h?.code) === 0x00010007);
+    }
+
     if (delta.gcode_state !== undefined) this.printData.gcode_state = String(delta.gcode_state);
     if (delta.subtask_name !== undefined) this.printData.subtask_name = String(delta.subtask_name);
     if (delta.gcode_file !== undefined) this.printData.gcode_file = String(delta.gcode_file);
@@ -1152,30 +1169,84 @@ export abstract class BambuMqttCore {
       }
     };
 
-    // Optimistisch den AMS-Slot in den Daten aktualisieren
-    if (this.printData.ams?.ams?.[0]?.tray) {
-      const trays = this.printData.ams.ams[0].tray;
-      if (trays[slotIdx]) {
-        trays[slotIdx].tray_color = color;
-        trays[slotIdx].tray_type = material;
-        trays[slotIdx].tray_info_idx = infoIdx;
-        trays[slotIdx].nozzle_temp_min = String(minTemp);
-        trays[slotIdx].nozzle_temp_max = String(maxTemp);
-        trays[slotIdx].state = 11;
-      }
-      this.notifyChange();
-    }
-
+    // Keine Schein-Aktualisierung: die Anzeige ändert sich erst, wenn der Drucker den Slot wirklich meldet.
+    this.amsCmdResult = null;
     this.client.publish(reqTopic, JSON.stringify(payload));
     this.schedulePushall(800);
+    this.schedulePushall(2500);
 
+    const outcome = await this.waitForAmsSlot(slotIdx, color.slice(0, 6), material, 5000);
+    const colorHex = `#${color.slice(0, 6)}`;
+    const n = slotIdx + 1;
+    if (outcome === 'confirmed') {
+      return {
+        success: true,
+        confirmed: true,
+        blocked: false,
+        message: `Slot ${n}: ${material} ${colorHex} ist am Drucker gesetzt.`,
+        slotIdx,
+        colorHex,
+        material
+      };
+    }
+    const emptySlot = this.isAmsSlotEmpty(slotIdx);
+    const error =
+      outcome === 'blocked'
+        ? 'Bambu lehnt den Befehl ab (MQTT-Befehl nicht verifiziert). Über die Cloud sind nur Lesen und Licht erlaubt. Slot-Daten schreiben geht nur im LAN-Entwicklermodus oder am Drucker selbst.'
+        : emptySlot
+        ? `Der Drucker hat Slot ${n} nicht übernommen. Der Slot ist leer: erst Filament einlegen, dann übertragen.`
+        : `Der Drucker hat Slot ${n} nicht übernommen. Bambu lässt Fremd-Befehle über die Cloud oft nicht zu.`;
     return {
-      success: true,
-      message: `AMS Slot ${slotIdx + 1} auf ${material} (#${color.slice(0, 6)}) am Drucker aktualisiert!`,
+      success: false,
+      confirmed: false,
+      blocked: outcome === 'blocked',
+      emptySlot,
+      error,
+      message: error,
       slotIdx,
-      colorHex: `#${color.slice(0, 6)}`,
+      colorHex,
       material
     };
+  }
+
+  private amsTray(slotIdx: number): any | null {
+    const trays = this.printData.ams?.ams?.[0]?.tray;
+    if (!Array.isArray(trays)) return null;
+    return trays.find((t: any) => String(t?.id) === String(slotIdx)) ?? trays[slotIdx] ?? null;
+  }
+
+  private isAmsSlotEmpty(slotIdx: number): boolean {
+    const t = this.amsTray(slotIdx);
+    return !t || !String(t.tray_type || '').trim();
+  }
+
+  /** Wartet, bis der Drucker den Slot mit den gesendeten Werten meldet (oder ablehnt). */
+  private async waitForAmsSlot(
+    slotIdx: number,
+    color6: string,
+    material: string,
+    timeoutMs: number
+  ): Promise<'confirmed' | 'blocked' | 'unconfirmed'> {
+    const startedAt = Date.now();
+    const wantColor = color6.toUpperCase();
+    const wantType = material.toUpperCase();
+    while (Date.now() - startedAt < timeoutMs) {
+      const t = this.amsTray(slotIdx);
+      if (
+        t &&
+        String(t.tray_type || '').toUpperCase() === wantType &&
+        String(t.tray_color || '').toUpperCase().startsWith(wantColor)
+      ) {
+        return 'confirmed';
+      }
+      const r = this.amsCmdResult;
+      if (r) {
+        if (r.result === 'fail' || /verif/i.test(r.reason)) return 'blocked';
+        if (r.result === 'success') return 'confirmed';
+      }
+      await new Promise(res => setTimeout(res, 300));
+    }
+    return this.hmsBlocked ? 'blocked' : 'unconfirmed';
   }
 
   /**

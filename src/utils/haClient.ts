@@ -281,6 +281,44 @@ export async function fetchHaCameraBlobUrl(): Promise<string | null> {
 }
 
 /**
+ * Sagt in einfachen Worten, warum die Kamera über Home Assistant (nicht) geht.
+ */
+export async function diagnoseHaCamera(): Promise<{ ok: boolean; text: string }> {
+  const { url, token, cameraEntity } = getHaCredentials();
+  if (!token) {
+    return { ok: false, text: 'Kein Home-Assistant-Token in der App. Menü → Einstellungen → Verbindungen → Home Assistant: Token einfügen.' };
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    const res = await fetch(`${url}/api/camera_proxy/${cameraEntity}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (res.ok && res.headers.get('content-type')?.includes('image')) return { ok: true, text: 'Kamera liefert ein Bild.' };
+    if (res.status === 401 || res.status === 403) {
+      return {
+        ok: false,
+        text: 'Home Assistant lehnt den Token ab (ungültig oder widerrufen). In HA unter Profil → Sicherheit → Langlebige Zugangs-Token ein neues erstellen und in der App einfügen.'
+      };
+    }
+    if (res.status === 404) {
+      return { ok: false, text: `Die Kamera „${cameraEntity}“ gibt es in Home Assistant nicht. Name unter Einstellungen → Verbindungen → Home Assistant prüfen.` };
+    }
+    return {
+      ok: false,
+      text: `Home Assistant antwortet (${res.status}), aber die Kamera liefert kein Bild. Ist der Drucker an und die Kamera in der Bambu-Integration aktiv?`
+    };
+  } catch {
+    return {
+      ok: false,
+      text: 'Home Assistant ist von hier nicht erreichbar (Nabu Casa offline, URL falsch oder Browser blockiert die Anfrage). URL unter Einstellungen → Verbindungen → Home Assistant prüfen.'
+    };
+  }
+}
+
+/**
  * Testet die Home Assistant Verbindung (direkt oder via Proxy)
  */
 export async function testHaConnection(customUrl?: string, customToken?: string): Promise<{ success: boolean; message: string; isUnauthorized?: boolean; cameras?: any[]; switches?: any[] }> {
