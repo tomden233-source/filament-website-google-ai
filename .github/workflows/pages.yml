@@ -23,11 +23,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci || npm install
+      - run: npm ci
       - name: Build (Unterpfad = Repository-Name)
         run: npm run build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_STATIC: 'true'
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

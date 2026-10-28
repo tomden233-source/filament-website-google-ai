@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { homeAssistantApi, printerApi } from '../api';
 import QRCode from 'qrcode';
 import { FunFactsModal } from './FunFactsModal';
 import { SelfHostModal } from './SelfHostModal';
@@ -311,14 +312,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setNabuTokenInput(creds.token);
     }
 
-    fetch('/api/homeassistant/config')
+    homeAssistantApi
+      .getConfig()
       .then(res => {
-        if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
-          return res.json();
-        }
-        return null;
-      })
-      .then(data => {
+        const data = res.ok && res.isJson ? res.data : null;
         if (data?.haUrl && !data.haUrl.includes('xxxxxxxxxxxx')) {
           setNabuUrlInput(data.haUrl);
           saveHaCredentials({ url: data.haUrl });
@@ -415,8 +412,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handlePullGcodeFromPrinter = async () => {
     setPrinterFetchLoading(true);
     try {
-      const res = await fetch('/api/bambu/status');
-      const data = await res.json();
+      const res = await printerApi.bambuStatus();
+      const data = res.data;
       if (data && data.success) {
         const fileName = data.printName || data.subtask_name || 'FilamentHub_X2D.gcode';
         const weightGrams = data.printGrams || 42;
@@ -442,8 +439,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const fetchHaTelemetry = async () => {
     setHaLoading(true);
     try {
-      const res = await fetch('/api/homeassistant/bambu-telemetry');
-      const data = await res.json();
+      const res = await homeAssistantApi.telemetry();
+      const data = res.data;
       if (data && data.success) {
         setHaTelemetry(data);
         const devData = data.bambuX2d || data.bambuX1c;
@@ -467,12 +464,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSetHaNozzle = async (tempVal: number) => {
     try {
-      const res = await fetch('/api/homeassistant/set-temperature', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: 'nozzle', temperature: tempVal })
-      });
-      const data = await res.json();
+      const res = await homeAssistantApi.setTemperature('nozzle', tempVal);
+      const data = res.data;
       if (res.ok && data.success) {
         setHaActionToast(`Düse auf ${tempVal}°C gesetzt!`);
         addSystemLog('temp', `Home Assistant: Düsentemperatur auf ${tempVal}°C gesetzt`, 'X1C / X2D', 'info');
@@ -487,12 +480,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSetHaBed = async (tempVal: number) => {
     try {
-      const res = await fetch('/api/homeassistant/set-temperature', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: 'bed', temperature: tempVal })
-      });
-      const data = await res.json();
+      const res = await homeAssistantApi.setTemperature('bed', tempVal);
+      const data = res.data;
       if (res.ok && data.success) {
         setHaActionToast(`Druckbett auf ${tempVal}°C gesetzt!`);
         addSystemLog('temp', `Home Assistant: Druckbett auf ${tempVal}°C gesetzt`, 'X1C / X2D', 'info');
@@ -807,7 +796,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="button"
               onClick={() => setShowSelfHost(true)}
               className="px-2 py-1 rounded-lg text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer hover:opacity-90 active:scale-95 shadow-xs border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
-              title="FilamentHub 24/7 autark auf deinem Raspberry Pi oder Docker hosten (ohne AI Studio Credits!)"
+              title="FilamentHub 24/7 autark auf deinem Raspberry Pi oder Docker hosten"
             >
               <Server className="w-3 h-3 text-emerald-400" />
               <span>Pi Host</span>
@@ -1093,7 +1082,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span>Farbschemata & 5 Helligkeitsstufen</span>
                     </span>
                     <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
-                      Wähle aus 5 Helligkeiten (Weiß, Soft White, Neutral, Deep, Midnight OLED). Menü und alle Bereiche passen sich automatisch an.
+                      Wähle aus 5 Helligkeiten (Weiß, Soft, Grau, Dämmerung, Nacht). Standard ist Soft. Menü und alle Bereiche passen sich automatisch an.
                     </p>
                   </div>
 

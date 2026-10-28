@@ -1,13 +1,13 @@
 {
   "id": "./",
-  "name": "FilamentHub Studio",
+  "name": "FilamentHub",
   "short_name": "FilamentHub",
   "description": "3D-Druck Filament-Manager mit Tara-Waage, Trocknungsbalken, G-Code-Abzug, Kostenrechner, Bambu Studio Parametern & Live-Drucker.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0b111e",
+  "background_color": "#d6dce5",
   "theme_color": "#f97316",
   "icons": [
     {

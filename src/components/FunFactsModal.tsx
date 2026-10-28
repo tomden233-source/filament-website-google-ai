@@ -27,20 +27,20 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
     {
       icon: Code2,
       title: 'Quellcode-Zeilen',
-      value: '24.600+ Zeilen',
-      desc: '24.600 handgeschriebene Codezeilen in TypeScript, React 19, Tailwind CSS v4 und Node.js / Express.'
+      value: '24.900+ Zeilen',
+      desc: '24.900 handgeschriebene Codezeilen in TypeScript, React 19, Tailwind CSS v4 und Node.js / Express.'
     },
     {
       icon: MessageSquare,
       title: 'Wörter in deinen Prompts',
-      value: '2.900+ Wörter',
-      desc: 'Exakt 2.900+ Wörter in deinen Benutzer-Prompts über alle tiefgreifenden Entwicklungs-Iterationen hinweg.'
+      value: '3.050+ Wörter',
+      desc: 'Exakt 3.050+ Wörter in deinen Benutzer-Prompts über alle tiefgreifenden Entwicklungs-Iterationen hinweg.'
     },
     {
       icon: Cpu,
       title: 'Verarbeitete KI-Tokens',
-      value: '2.450.000+ Tokens',
-      desc: 'Über 2,45 Millionen LLM-Tokens für präzise Algorithmen, MQTTS-Payloads, HAOS-Add-ons und UI-Logik aufgewendet.'
+      value: '2.540.000+ Tokens',
+      desc: 'Über 2,54 Millionen LLM-Tokens für präzise Algorithmen, MQTTS-Payloads, HAOS-Add-ons und UI-Logik aufgewendet.'
     },
     {
       icon: Clock,
@@ -51,8 +51,8 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
     {
       icon: Layers,
       title: 'Revisions-Entwicklungsstufen',
-      value: '54 Versionen (v1.00 – v1.54)',
-      desc: '53 aufeinander aufbauende Versionsprofile mit Snapshot-Wiederherstellung im Menü.'
+      value: '57 Versionen (v1.00 – v1.57)',
+      desc: '56 aufeinander aufbauende Versionsprofile mit Snapshot-Wiederherstellung im Menü.'
     },
     {
       icon: Zap,
@@ -135,7 +135,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose })
                     color: 'var(--app-accent)'
                   }}
                 >
-                  v1.54
+                  v1.57
                 </span>
               </div>
               <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>

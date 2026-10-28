@@ -44,14 +44,7 @@ app.use(express.json({ limit: '25mb' }));
 
 // Gemini AI Client optional initialisieren (funktioniert auch offline ohne API Key)
 const ai = process.env.GEMINI_API_KEY
-  ? new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build'
-        }
-      }
-    })
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
 // Persistentes Speicherverzeichnis auf dem Server / Raspberry Pi
@@ -1418,7 +1411,7 @@ function loadGitConfig(): { repoUrl: string; token: string; branch: string } {
       const data = JSON.parse(fs.readFileSync(gitDataConfigPath, 'utf8'));
       if (data && (data.token || data.repoUrl)) {
         return {
-          repoUrl: data.repoUrl || 'https://github.com/tomden233-source/filament-website-google-ai.git',
+          repoUrl: data.repoUrl || 'https://github.com/tomden234/filament-website-google-ai.git',
           token: data.token || '',
           branch: data.branch || 'main'
         };
@@ -1428,7 +1421,7 @@ function loadGitConfig(): { repoUrl: string; token: string; branch: string } {
       const data = JSON.parse(fs.readFileSync(gitConfigPath, 'utf8'));
       if (data && (data.token || data.repoUrl)) {
         return {
-          repoUrl: data.repoUrl || 'https://github.com/tomden233-source/filament-website-google-ai.git',
+          repoUrl: data.repoUrl || 'https://github.com/tomden234/filament-website-google-ai.git',
           token: data.token || '',
           branch: data.branch || 'main'
         };
@@ -1436,7 +1429,7 @@ function loadGitConfig(): { repoUrl: string; token: string; branch: string } {
     }
   } catch {}
   return {
-    repoUrl: process.env.GIT_REPO_URL || 'https://github.com/tomden233-source/filament-website-google-ai.git',
+    repoUrl: process.env.GIT_REPO_URL || 'https://github.com/tomden234/filament-website-google-ai.git',
     token: process.env.GIT_TOKEN || process.env.GITHUB_TOKEN || '',
     branch: process.env.GIT_BRANCH || 'main'
   };
@@ -1501,7 +1494,7 @@ app.post('/api/git/test-token', async (req, res) => {
     const apiResp = await fetch('https://api.github.com/user', {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'User-Agent': 'FilamentHub-Studio',
+        'User-Agent': 'FilamentHub',
         'Accept': 'application/vnd.github.v3+json'
       },
       signal: controller.signal
@@ -1758,7 +1751,7 @@ async function startServer() {
   });
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`FilamentHub Studio Server läuft auf http://localhost:${PORT}`);
+    console.log(`FilamentHub Server läuft auf http://localhost:${PORT}`);
   });
 }
 

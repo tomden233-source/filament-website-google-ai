@@ -1,4 +1,4 @@
-name: "FilamentHub Studio"
+name: "FilamentHub"
 description: "Autarker 3D-Druck Filament-Manager & Bambu Lab X2D Telemetrie für Home Assistant OS"
 version: "1.53.0"
 slug: "filamenthub"

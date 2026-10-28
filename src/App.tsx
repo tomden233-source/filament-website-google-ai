@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { storageApi, cloudSync } from './api';
 import {
   Wand2,
   Layers,
@@ -29,7 +30,9 @@ import {
 } from './types/filament';
 import {
   ThemeBrightness,
-  ThemeAccent
+  ThemeAccent,
+  BRIGHTNESS_OPTIONS,
+  DEFAULT_BRIGHTNESS
 } from './types/theme';
 import {
   DEFAULT_21_SPOOLS,
@@ -64,6 +67,7 @@ const STORAGE_KEY_VIEW = 'filamenthub_view_mode';
 const STORAGE_KEY_CLOUD_URL = 'filamenthub_cloud_db_url';
 const STORAGE_KEY_THEME_BRIGHT = 'filamenthub_theme_brightness';
 const STORAGE_KEY_THEME_ACCENT = 'filamenthub_theme_accent';
+const STORAGE_KEY_THEME_MIGRATED = 'filamenthub_theme_migrated';
 
 const LEGACY_SPOOL_KEYS = [
   'filamenthub_spools_v123',
@@ -83,14 +87,16 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 5 Helligkeitsstufen & Akzente (Standard: Dunkelblau slate, kein versehentliches Weiß)
+  // 5 Helligkeitsstufen & Akzente (Standard: Soft). Alte Werte aus früheren Versionen werden einmalig auf Soft gesetzt.
   const [themeBrightness, setThemeBrightness] = useState<ThemeBrightness>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_THEME_BRIGHT) as ThemeBrightness;
-    if (saved === 'polar') {
-      safeStorage.setItem(STORAGE_KEY_THEME_BRIGHT, 'slate');
-      return 'slate';
+    const migrated = safeStorage.getItem(STORAGE_KEY_THEME_MIGRATED) === 'soft-default';
+    if (!migrated) {
+      safeStorage.setItem(STORAGE_KEY_THEME_MIGRATED, 'soft-default');
+      safeStorage.setItem(STORAGE_KEY_THEME_BRIGHT, DEFAULT_BRIGHTNESS);
+      return DEFAULT_BRIGHTNESS;
     }
-    return saved || 'slate';
+    return BRIGHTNESS_OPTIONS.some((b) => b.id === saved) ? saved : DEFAULT_BRIGHTNESS;
   });
   const [themeAccent, setThemeAccent] = useState<ThemeAccent>(() => {
     return (safeStorage.getItem(STORAGE_KEY_THEME_ACCENT) as ThemeAccent) || 'orange';
@@ -129,10 +135,10 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    // Veraltete Stände automatisch auf die neue v1.54 anheben
-    if (!saved || saved !== 'v1.54') {
-      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.54');
-      return 'v1.54';
+    // Veraltete Stände automatisch auf die neue v1.57 anheben
+    if (!saved || saved !== 'v1.57') {
+      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.57');
+      return 'v1.57';
     }
     return saved;
   });
@@ -290,9 +296,9 @@ export default function App() {
   const [editUsedInputValue, setEditUsedInputValue] = useState<string>('0');
 
   useEffect(() => {
-    fetch('/api/storage/stats')
-      .then(res => res.json())
-      .then(data => {
+    storageApi
+      .getStats()
+      .then(({ data }) => {
         if (data.success && data.stats && data.stats.manualUsedGrams !== undefined) {
           setManualUsedGrams(data.stats.manualUsedGrams);
         }
@@ -445,16 +451,12 @@ export default function App() {
       setIsSyncing(true);
       setSyncStatus({ label: 'Speichere...', ok: false });
       try {
-        const res = await fetch(cloudDbUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            updatedAt: Date.now(),
-            spools: newSpools,
-            printHistory: newHistory
-          })
+        const saved = await cloudSync.save(cloudDbUrl, {
+          updatedAt: Date.now(),
+          spools: newSpools,
+          printHistory: newHistory
         });
-        if (res.ok) {
+        if (saved) {
           setSyncStatus({ label: 'Cloud synchron', ok: true });
         } else {
           setSyncStatus({ label: 'Lokal gespeichert', ok: false });
@@ -474,12 +476,12 @@ export default function App() {
       if (isSyncing) return;
       setIsSyncing(true);
       try {
-        const res = await fetch(cloudDbUrl, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
+        const cloud = await cloudSync.load(cloudDbUrl);
+        if (cloud.ok) {
+          const data = cloud.data;
           if (data && Array.isArray(data.spools) && data.spools.length > 0) {
-            setSpools(data.spools);
-            if (Array.isArray(data.printHistory)) setPrintHistory(data.printHistory);
+            setSpools(data.spools as Spool[]);
+            if (Array.isArray(data.printHistory)) setPrintHistory(data.printHistory as HistoryEntry[]);
             safeStorage.setItem(STORAGE_KEY_SPOOLS, JSON.stringify(data.spools));
             setSyncStatus({ label: 'Cloud synchron', ok: true });
             if (notify) showToast('Erfolgreich mit Cloud synchronisiert!');
@@ -970,11 +972,7 @@ export default function App() {
     setManualUsedGrams(val);
     safeStorage.setItem('filamenthub_manual_used_grams', String(val));
     try {
-      await fetch('/api/storage/stats', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manualUsedGrams: val })
-      });
+      await storageApi.saveManualUsedGrams(val);
     } catch {}
     showToast(`Verdrucktes Filament auf ${val} g gesetzt.`);
     setIsEditUsedModalOpen(false);

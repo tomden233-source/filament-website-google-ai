@@ -38,10 +38,13 @@ import {
   Server
 } from 'lucide-react';
 import { Spool, ViewMode } from '../types/filament';
+import type { BambuLiveState } from '../types/bambu';
+import { printerApi } from '../api';
 import { BambuSettingsModal } from './BambuSettingsModal';
 import { safeStorage } from '../utils/safeStorage';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 import { addSystemLog } from '../utils/logService';
+import { IS_STATIC } from '../utils/env';
 import {
   getHaCredentials,
   fetchHaSwitchStatus,
@@ -59,43 +62,7 @@ interface BambuPrinterWidgetProps {
   viewMode?: ViewMode;
 }
 
-export interface BambuLiveState {
-  connected: boolean;
-  connecting: boolean;
-  error: string | null;
-  serialNumber: string;
-  userId: string;
-  brokerHost: string;
-  hasAdminPin: boolean;
-  lastUpdated: string | null;
-  data: {
-    gcode_state: string;
-    subtask_name: string;
-    gcode_file: string;
-    mc_percent: number;
-    mc_remaining_time: number;
-    layer_num: number;
-    total_layer_num: number;
-    bed_temper: number;
-    bed_target_temper: number;
-    chamber_temper: number;
-    nozzle_temper: number; // Düse 1 (Links)
-    nozzle_target_temper: number;
-    nozzle2_temper?: number | null; // Düse 2 (Rechts)
-    nozzle2_target_temper?: number;
-    fan_gear: number;
-    spd_mag: number;
-    ams?: any;
-    lights_report?: Array<{ mode: string; node: string }>;
-    vt_tray?: any;
-  };
-  formatted: {
-    remainingTimeStr: string;
-    etaClockStr: string;
-    statusText: string;
-    statusColor: string;
-  };
-}
+export type { BambuLiveState };
 
 const DEFAULT_LIVE_STATE: BambuLiveState = {
   connected: false,
@@ -494,13 +461,10 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const handleRefreshLiveState = async () => {
     setIsRefreshing(true);
     try {
-      await fetch('/api/printer/refresh', { method: 'POST' });
-      const res = await fetch('/api/printer/status');
-      if (res.ok) {
-        const data: BambuLiveState = await res.json();
-        if (data && data.data) {
-          setLiveState(data);
-        }
+      await printerApi.refresh();
+      const res = await printerApi.status();
+      if (res.ok && res.data?.data) {
+        setLiveState(res.data);
       }
     } catch {}
     finally {
@@ -543,15 +507,15 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
     const fetchStatus = async () => {
       try {
-        const res = await fetch('/api/printer/status');
-        if (res.ok) {
-          const data: BambuLiveState = await res.json();
-          if (data && data.data) {
-            setLiveState(data);
-          }
+        const res = await printerApi.status();
+        if (res.ok && res.data?.data) {
+          setLiveState(res.data);
         }
       } catch {}
     };
+
+    // Auf GitHub Pages gibt es keinen Server: kein Polling, kein Stream
+    if (IS_STATIC) return;
 
     fetchStatus();
     connectSSE();
@@ -588,12 +552,8 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const handleSendCommand = async (command: 'pause' | 'resume' | 'stop', pin?: string) => {
     setActionLoading(command);
     try {
-      const res = await fetch('/api/printer/command', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command, pin })
-      });
-      const data = await res.json();
+      const res = await printerApi.command(command, pin);
+      const data = res.data;
 
       if (res.ok && data.success) {
         setActionToast({ text: data.message || `Befehl "${command}" ausgeführt!`, ok: true });
@@ -617,12 +577,8 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     if (!gcode.trim()) return;
     setActionLoading('gcode');
     try {
-      const res = await fetch('/api/printer/gcode-line', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gcode })
-      });
-      const data = await res.json();
+      const res = await printerApi.gcodeLine(gcode);
+      const data = res.data;
       if (res.ok && data.success) {
         setActionToast({ text: data.message || `G-Code "${gcode.trim()}" gesendet!`, ok: true });
         addSystemLog('drucker', `G-Code Befehl gesendet: ${gcode.trim()}`, 'MQTTS Command', 'info');
@@ -653,12 +609,8 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     });
 
     try {
-      const res = await fetch('/api/printer/temperature', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target, temp })
-      });
-      const data = await res.json();
+      const res = await printerApi.temperature(target, temp);
+      const data = res.data;
       if (res.ok && data.success) {
         setActionToast({ text: data.message, ok: true });
         setTempModalTarget(null);
@@ -688,12 +640,8 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     const nextMode = isLightOn ? 'off' : 'on';
     setActionLoading('light');
     try {
-      const res = await fetch('/api/printer/light', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: nextMode })
-      });
-      const data = await res.json();
+      const res = await printerApi.light(nextMode);
+      const data = res.data;
       if (res.ok && data.success) {
         setActionToast({ text: data.message, ok: true });
         setCameraSnapshotKey(Date.now());
@@ -758,28 +706,27 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       const reader = new FileReader();
       reader.onload = async event => {
         const content = event.target?.result as string;
-        const res = await fetch('/api/printer/upload-gcode', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        try {
+          const res = await printerApi.uploadGcode({
             fileName: selectedGcodeFile.name,
             fileContent: content,
             startPrint
-          })
-        });
-
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setActionToast({
-            text: data.message || `Datei "${selectedGcodeFile.name}" erfolgreich übertragen!`,
-            ok: true
           });
-          setSelectedGcodeFile(null);
-          setGcodeFileInfo(null);
-          setShowGcodeModal(false);
-          handleRefreshLiveState();
-        } else {
-          setActionToast({ text: data.error || 'Fehler beim Übertragen der G-Code Datei.', ok: false });
+          const data = res.data;
+          if (res.ok && data.success) {
+            setActionToast({
+              text: data.message || `Datei "${selectedGcodeFile.name}" erfolgreich übertragen!`,
+              ok: true
+            });
+            setSelectedGcodeFile(null);
+            setGcodeFileInfo(null);
+            setShowGcodeModal(false);
+            handleRefreshLiveState();
+          } else {
+            setActionToast({ text: data.error || 'Fehler beim Übertragen der G-Code Datei.', ok: false });
+          }
+        } catch {
+          setActionToast({ text: 'Verbindungsfehler beim Übertragen der Datei.', ok: false });
         }
         setIsUploadingGcode(false);
       };
@@ -795,18 +742,14 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     if (editingAmsSlot === null) return;
     setActionLoading(`ams_${editingAmsSlot}`);
     try {
-      const res = await fetch('/api/printer/ams-filament', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slotIdx: editingAmsSlot,
-          colorHex: amsEditColor,
-          material: amsEditMaterial,
-          minTemp: amsEditMinTemp,
-          maxTemp: amsEditMaxTemp
-        })
+      const res = await printerApi.amsFilament({
+        slotIdx: editingAmsSlot,
+        colorHex: amsEditColor,
+        material: amsEditMaterial,
+        minTemp: amsEditMinTemp,
+        maxTemp: amsEditMaxTemp
       });
-      const data = await res.json();
+      const data = res.data;
       if (res.ok && data.success) {
         setActionToast({ text: data.message, ok: true });
         setEditingAmsSlot(null);
@@ -867,17 +810,13 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: nextDrying }));
 
     try {
-      const res = await fetch('/api/printer/ams-drying', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amsId: 0,
-          mode: start ? 1 : 0,
-          duration: amsDryHours,
-          temp: amsDryTemp
-        })
+      const res = await printerApi.amsDrying({
+        amsId: 0,
+        mode: start ? 1 : 0,
+        duration: amsDryHours,
+        temp: amsDryTemp
       });
-      const data = await res.json();
+      const data = res.data;
       if (res.ok && data.success) {
         setActionToast({ text: data.message, ok: true });
         handleRefreshLiveState();
@@ -2678,10 +2617,10 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         onConnected={() => {
-          fetch('/api/printer/status')
-            .then(r => r.json())
-            .then(data => {
-              if (data && data.data) setLiveState(data);
+          printerApi
+            .status()
+            .then(res => {
+              if (res.data?.data) setLiveState(res.data);
             })
             .catch(() => {});
         }}

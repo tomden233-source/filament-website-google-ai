@@ -6,7 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
-.aistudio/
 
 # Zugangsdaten & lokale Konfiguration (nie committen)
 .git-credentials.json
@@ -15,3 +14,5 @@ data/git-credentials.json
 .ha-config.json
 data/.ha-config.json
 app/applet/.bambu-config.json
+uploads/
+data/

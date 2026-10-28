@@ -1,6 +1,6 @@
-# FilamentHub Studio - Raspberry Pi & Docker Self-Hosting Guide
+# FilamentHub - Raspberry Pi & Docker Self-Hosting Guide
 
-Dieser Guide erklärt, wie du FilamentHub Studio dauerhaft, 24/7 und **völlig kostenlos ohne AI Studio Credits** auf deinem eigenen Raspberry Pi, Synology NAS, Home Assistant Server oder Linux/Windows PC betreibst.
+Dieser Guide erklärt, wie du FilamentHub dauerhaft, 24/7 und **völlig kostenlos** auf deinem eigenen Raspberry Pi, Synology NAS, Home Assistant Server oder Linux/Windows PC betreibst.
 
 ---
 

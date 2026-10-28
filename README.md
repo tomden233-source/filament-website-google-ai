@@ -11,6 +11,14 @@ npm run dev              # Entwicklung (Server + Vite) auf http://localhost:3000
 npm run build && npm start   # Produktion (NODE_ENV=production)
 ```
 
+## GitHub Pages
+
+Die Seite https://tomden234.github.io/filament-website-google-ai/ wird bei jedem Push auf `main` per GitHub Action gebaut (`.github/workflows/pages.yml`, Vite, Ordner `dist`). Einmalig unter *Settings → Pages* die Quelle auf *GitHub Actions* stellen.
+
+- Auf Pages läuft nur das Frontend (`VITE_STATIC=true`, Basispfad = Repo-Name). Spulen und Einstellungen liegen im Browser.
+- Drucker, Git-Push, Home Assistant und Foto-Erkennung brauchen den Server (`server.ts`) auf dem Raspberry Pi oder in Docker.
+- Lokal testen: `VITE_BASE=/filament-website-google-ai/ VITE_STATIC=true npm run build && npm run preview`
+
 Docker: `docker compose up -d` (siehe `docker-compose.yml`). Installation auf dem Raspberry Pi: [INSTALL_RASPBERRY_PI.md](INSTALL_RASPBERRY_PI.md).
 
 ## Umgebungsvariablen
@@ -18,7 +26,7 @@ Docker: `docker compose up -d` (siehe `docker-compose.yml`). Installation auf de
 | Variable | Zweck |
 |---|---|
 | `PORT` | Port des Servers (Standard 3000) |
-| `GEMINI_API_KEY` | Optional: KI-Bilderkennung |
+| `GEMINI_API_KEY` | Optional: KI-Bilderkennung (Google Gemini) |
 | `BAMBU_HOST`, `BAMBU_SERIAL` | Drucker (IP im LAN, Seriennummer) |
 | `BAMBU_ACCESS_CODE` | LAN-Zugangscode (für den RTSP-Kamera-Link) |
 | `BAMBU_USER_ID`, `BAMBU_ACCESS_TOKEN`, `BAMBU_ADMIN_PIN` | Bambu-Cloud-Zugang und PIN für Steuerbefehle |

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { printerApi } from '../api';
 import {
   X,
   Wifi,
@@ -127,12 +128,8 @@ export const BambuConnectModal: React.FC<BambuConnectModalProps> = ({
     setTestResult(null);
 
     try {
-      const res = await fetch('/api/printer/auto-connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: accessToken.trim() })
-      });
-      const data = await res.json();
+      const res = await printerApi.autoConnect(accessToken.trim());
+      const data = res.data;
 
       if (data.success && data.device) {
         const dev = data.device;
@@ -185,19 +182,15 @@ export const BambuConnectModal: React.FC<BambuConnectModalProps> = ({
     setTestResult(null);
 
     try {
-      const res = await fetch('/api/bambu/test-connection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ip: effectiveIp,
-          connectionType,
-          serialNumber: serialNumber.trim(),
-          accessCode: accessCode.trim(),
-          accessToken: accessToken.trim(),
-          port
-        })
+      const res = await printerApi.bambuTestConnection({
+        ip: effectiveIp,
+        connectionType,
+        serialNumber: serialNumber.trim(),
+        accessCode: accessCode.trim(),
+        accessToken: accessToken.trim(),
+        port
       });
-      const data = await res.json();
+      const data = res.data;
       if (res.ok && data.success) {
         if (data.device) {
           setSerialNumber(data.device.dev_id);
@@ -250,16 +243,14 @@ export const BambuConnectModal: React.FC<BambuConnectModalProps> = ({
       safeStorage.setItem('bambu_broker_host', 'us.mqtt.bambulab.com');
       if (userId.trim()) safeStorage.setItem('bambu_user_id', userId.trim());
 
-      fetch('/api/printer/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      printerApi
+        .connect({
           serialNumber: finalSerial,
           userId: userId.trim() || undefined,
           accessToken: accessToken.trim(),
           brokerHost: 'us.mqtt.bambulab.com'
         })
-      }).catch(err => console.warn('Bambu connect im Hintergrund:', err));
+        .catch(err => console.warn('Bambu connect im Hintergrund:', err));
     }
 
     const printer: BambuConnectedPrinter = {

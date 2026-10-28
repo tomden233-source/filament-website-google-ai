@@ -1,4 +1,5 @@
 import { safeStorage } from './safeStorage';
+import { homeAssistantApi } from '../api/homeAssistantApi';
 
 // Einheitliche Keys für Browser & Server
 const KEY_NABU_URL = 'ha_nabu_url';
@@ -91,16 +92,12 @@ export function saveHaCredentials(creds: Partial<HaCredentials>) {
 
   // Optional an Express Server melden, falls vorhanden (fängt 404 sicher ab)
   try {
-    fetch('/api/homeassistant/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        haUrl: creds.url,
-        haToken: creds.token,
-        cameraEntity: creds.cameraEntity,
-        switchEntity: creds.switchEntity
-      })
-    }).catch(() => {});
+    homeAssistantApi.saveConfig({
+      haUrl: creds.url as string,
+      haToken: creds.token as string,
+      cameraEntity: creds.cameraEntity,
+      switchEntity: creds.switchEntity
+    });
   } catch {}
 }
 
@@ -158,14 +155,10 @@ export async function callHaService(domain: string, service: string, serviceData
     }
 
     if (proxyEndpoint) {
-      const proxyRes = await fetch(proxyEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData)
-      });
+      const proxyRes = await homeAssistantApi.proxyService(proxyEndpoint, bodyData);
 
-      if (proxyRes.ok && proxyRes.headers.get('content-type')?.includes('application/json')) {
-        const proxyData = await proxyRes.json();
+      if (proxyRes.ok && proxyRes.isJson) {
+        const proxyData = proxyRes.data;
         if (proxyData.success) {
           return { success: true, message: proxyData.message || 'Befehl ausgeführt!' };
         }
@@ -244,9 +237,9 @@ export async function fetchHaSwitchStatus(): Promise<{ configured: boolean; stat
 
   // 2. Proxy Fallback
   try {
-    const proxyRes = await fetch(`/api/homeassistant/switch-status?entity=${encodeURIComponent(switchEntity)}`);
-    if (proxyRes.ok && proxyRes.headers.get('content-type')?.includes('application/json')) {
-      const data = await proxyRes.json();
+    const proxyRes = await homeAssistantApi.switchStatus(switchEntity);
+    if (proxyRes.ok && proxyRes.isJson) {
+      const data = proxyRes.data;
       if (data && data.configured) {
         return {
           configured: true,
@@ -347,14 +340,10 @@ export async function testHaConnection(customUrl?: string, customToken?: string)
 
   // 2. Proxy Fallback (/api/homeassistant/test)
   try {
-    const proxyRes = await fetch('/api/homeassistant/test', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ haUrl: url, haToken: token })
-    });
+    const proxyRes = await homeAssistantApi.test(url, token);
 
-    if (proxyRes.headers.get('content-type')?.includes('application/json')) {
-      const data = await proxyRes.json();
+    if (proxyRes.isJson) {
+      const data = proxyRes.data;
       return {
         success: Boolean(data.success),
         isUnauthorized: data.status === 401 || (typeof data.error === 'string' && data.error.includes('401')),

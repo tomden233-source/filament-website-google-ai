@@ -16,6 +16,7 @@ export interface BrightnessOption {
   textHex: string;
 }
 
+// 5 Stufen, gleichmäßig von hell nach dunkel verteilt (Helligkeit des Hintergrunds ca. 100 / 87 / 65 / 35 / 6 %)
 export const BRIGHTNESS_OPTIONS: BrightnessOption[] = [
   {
     id: 'polar',
@@ -23,46 +24,49 @@ export const BRIGHTNESS_OPTIONS: BrightnessOption[] = [
     subtitle: 'Reines Weiß',
     level: '100% Hell',
     bgHex: '#ffffff',
-    cardHex: '#f8fafc',
+    cardHex: '#f1f5f9',
     textHex: '#0f172a'
   },
   {
     id: 'warm',
-    name: '2. Soft White',
-    subtitle: 'Sanftes Hellgrau / Warmweiß',
-    level: '75% Hell',
-    bgHex: '#f1f5f9',
-    cardHex: '#ffffff',
+    name: '2. Soft',
+    subtitle: 'Sanftes Hellgrau (Standard)',
+    level: '87% Hell',
+    bgHex: '#d6dce5',
+    cardHex: '#eceff4',
     textHex: '#0f172a'
   },
   {
     id: 'titanium',
-    name: '3. Neutral',
-    subtitle: 'Schönes Mittelgrau',
-    level: '50% Neutral',
-    bgHex: '#374151',
-    cardHex: '#475569',
-    textHex: '#f8fafc'
+    name: '3. Grau',
+    subtitle: 'Mittleres Grau',
+    level: '65% Mittel',
+    bgHex: '#98a2b3',
+    cardHex: '#aab3c2',
+    textHex: '#0b1220'
   },
   {
     id: 'slate',
-    name: '4. Deep',
-    subtitle: 'Tiefes Nachtblau',
-    level: '25% Blau',
-    bgHex: '#060b19',
-    cardHex: '#0d1730',
-    textHex: '#e2e8f0'
+    name: '4. Dämmerung',
+    subtitle: 'Dunkles Schiefergrau',
+    level: '35% Dunkel',
+    bgHex: '#475467',
+    cardHex: '#566377',
+    textHex: '#f8fafc'
   },
   {
     id: 'midnight',
-    name: '5. Midnight',
-    subtitle: '100% Reines Tiefschwarz (OLED)',
-    level: '0% Schwarz',
-    bgHex: '#000000',
-    cardHex: '#0a0a0a',
-    textHex: '#ffffff'
+    name: '5. Nacht',
+    subtitle: 'Tiefes Nachtblau',
+    level: '6% Fast schwarz',
+    bgHex: '#0b111e',
+    cardHex: '#141c2c',
+    textHex: '#f1f5f9'
   }
 ];
+
+/** Standard-Theme: Soft */
+export const DEFAULT_BRIGHTNESS: ThemeBrightness = 'warm';
 
 export interface AccentOption {
   id: ThemeAccent;
