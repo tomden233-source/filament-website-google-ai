@@ -18,6 +18,7 @@ import {
   parseFilamentText
 } from './utils/shopLinks';
 import { safeStorage } from './utils/safeStorage';
+import { spoolIdFromHash } from './utils/spoolLink';
 import { Navbar, DeviceMode } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 
@@ -233,6 +234,7 @@ export default function App() {
   const [activeLocationFilter, setActiveLocationFilter] = useState<string>('ALL');
   const [isWorkshopOpen, setIsWorkshopOpen] = useState<boolean>(false);
   const [workshopTab, setWorkshopTab] = useState<WorkshopTab>('notices');
+  const [labelSpoolId, setLabelSpoolId] = useState<string | null>(null);
 
   // Schnell-Scanner
   const [quickLinkText, setQuickLinkText] = useState<string>('');
@@ -372,6 +374,23 @@ export default function App() {
     }
     syncWithCloud(false);
   }, []);
+
+  // QR-Etikett gescannt (#s=ID): Spule öffnen
+  useEffect(() => {
+    const openFromHash = () => {
+      const id = spoolIdFromHash(window.location.hash);
+      if (!id) return;
+      const found = spools.find(sp => sp.id === id);
+      if (found) {
+        setSpoolToEdit(found);
+        setIsSpoolModalOpen(true);
+        window.history.replaceState({}, '', window.location.pathname + window.location.search);
+      }
+    };
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    return () => window.removeEventListener('hashchange', openFromHash);
+  }, [spools]);
 
   // Tastenkombinationen (ESC, Strg+Z, Strg+Y)
   useEffect(() => {
@@ -1029,6 +1048,12 @@ export default function App() {
         prefillData={spoolPrefill}
         appSettings={appSettings}
         locationOptions={locationStats.map(l => l.name)}
+        onPrintLabel={spool => {
+          setIsSpoolModalOpen(false);
+          setLabelSpoolId(spool.id);
+          setWorkshopTab('labels');
+          setIsWorkshopOpen(true);
+        }}
       />
 
       {/* Werkstatt: Meldungen und Helfer */}
@@ -1037,6 +1062,8 @@ export default function App() {
         onClose={() => setIsWorkshopOpen(false)}
         tab={workshopTab}
         onTabChange={setWorkshopTab}
+        spools={spools}
+        labelSpoolId={labelSpoolId}
       />
 
       {/* Smartphone Kamera-Modal */}

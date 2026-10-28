@@ -1,11 +1,14 @@
 import React from 'react';
-import { Bell, Wrench, X } from 'lucide-react';
+import { Bell, QrCode, Wrench, X } from 'lucide-react';
+import type { Spool } from '../../types/filament';
 import { NoticesTab } from './NoticesTab';
+import { LabelsTab } from './LabelsTab';
 
-export type WorkshopTab = 'notices';
+export type WorkshopTab = 'notices' | 'labels';
 
 const TABS: { id: WorkshopTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'notices', label: 'Meldungen', icon: Bell }
+  { id: 'notices', label: 'Meldungen', icon: Bell },
+  { id: 'labels', label: 'Etiketten', icon: QrCode }
 ];
 
 export interface WorkshopModalProps {
@@ -13,10 +16,12 @@ export interface WorkshopModalProps {
   onClose: () => void;
   tab: WorkshopTab;
   onTabChange: (tab: WorkshopTab) => void;
+  spools: Spool[];
+  labelSpoolId?: string | null;
 }
 
 /** Werkstatt: ein Fenster für alle Zusatz-Funktionen (Meldungen, später Projekte, Statistik, Etiketten, Backup). */
-export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, tab, onTabChange }) => {
+export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, tab, onTabChange, spools, labelSpoolId }) => {
   if (!isOpen) return null;
 
   return (
@@ -76,7 +81,8 @@ export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, t
           })}
         </div>
 
-        <div className="p-4 overflow-y-auto">{tab === 'notices' && <NoticesTab />}</div>
+        <div className="p-4 overflow-y-auto">{tab === 'notices' && <NoticesTab />}
+          {tab === 'labels' && <LabelsTab spools={spools} preselectId={labelSpoolId} />}</div>
       </div>
     </div>
   );

@@ -884,5 +884,24 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.68',
+    label: '1.68 (Etiketten-Drucker E10)',
+    releaseDate: '28.10.2026',
+    description: 'Der Supvan-E10-Etikettendrucker ist per Bluetooth direkt in die App eingebunden: QR-Etikett pro Spule drucken, QR scannen öffnet die Spule.',
+    features: [
+      '🖨️ Supvan E10 direkt per Bluetooth: Drucker suchen, einmal verbinden, danach merkt sich die App ihn',
+      '🏷️ QR-Etikett pro Spule mit Name, Material, Farbe, Gewicht und Lagerort, einzeln oder mehrere auf einmal',
+      '📱 QR scannen öffnet die Spule direkt in der App (Link mit #s=ID)',
+      '🔘 Knopf „QR-Etikett drucken“ direkt in der Spulen-Ansicht',
+      '🖼️ Als Bild teilen, falls kein Drucker da ist (Teilen-Menü oder Download)',
+      '⚙️ Druckstärke, Drehen, Spiegeln, Verschieben und Testetikett einstellbar',
+      '🔌 Neues Android-Plugin FilamentBle (neue APK nötig), im Browser läuft derselbe Druck über Chrome Web Bluetooth',
+      '🔢 Aktualisierte Zahlen-FunFacts: 26.600+ Codezeilen, 4.300+ Prompt-Wörter, 3M Tokens und 68 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

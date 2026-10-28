@@ -69,6 +69,9 @@ jobs:
           sed -i '/^dependencies {/a\    implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5"' android/app/build.gradle
           MANIFEST=android/app/src/main/AndroidManifest.xml
           sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\    <uses-permission android:name="android.permission.NFC" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-feature android:name="android.hardware.nfc" android:required="false" />' "$MANIFEST"
+          # Bluetooth für den Etiketten-Drucker (Android 12+: Scan/Connect, älter: Standort für die Suche)
+          sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />' "$MANIFEST"
+          grep -n "BLUETOOTH_SCAN" "$MANIFEST" || echo "Hinweis: Bluetooth-Eintrag fehlt"
           # Dateifreigabe für den Installer (Cache-Ordner mit der geladenen APK)
           mkdir -p android/app/src/main/res/xml
           printf '<?xml version="1.0" encoding="utf-8"?>\n<paths>\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n    <files-path name="my_files" path="." />\n</paths>\n' > android/app/src/main/res/xml/file_paths.xml

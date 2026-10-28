@@ -14,6 +14,7 @@ interface SpoolModalProps {
   prefillData?: Partial<Spool> | null;
   appSettings?: AppSettings;
   locationOptions?: string[];
+  onPrintLabel?: (spool: Spool) => void;
 }
 
 const COMMON_COLORS = [
@@ -39,7 +40,8 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
   spoolToEdit,
   prefillData,
   appSettings,
-  locationOptions = []
+  locationOptions = [],
+  onPrintLabel
 }) => {
   const [modalTab, setModalTab] = useState<'quick' | 'detail'>('quick');
 
@@ -625,6 +627,16 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                   ))}
                 </div>
               </div>
+
+              {spoolToEdit && onPrintLabel && (
+                <button
+                  type="button"
+                  onClick={() => onPrintLabel(spoolToEdit)}
+                  className="w-full px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+                >
+                  QR-Etikett drucken
+                </button>
+              )}
 
               {/* Lagerort / Notiz */}
               <div>
