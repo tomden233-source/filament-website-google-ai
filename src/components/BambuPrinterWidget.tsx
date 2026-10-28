@@ -12,6 +12,7 @@ import {
   Lightbulb,
   FileCode,
   Scale,
+  Nfc,
   Power,
   Plug,
   Home
@@ -35,6 +36,7 @@ import { useAmsControl } from './bambu/useAmsControl';
 import { useHaSwitch } from './bambu/useHaSwitch';
 import { useGcodeUpload } from './bambu/useGcodeUpload';
 import { PrintUsageModal } from './bambu/PrintUsageModal';
+import { NfcSlotModal } from './bambu/NfcSlotModal';
 
 export interface BambuPrinterWidgetProps {
   spools: Spool[];
@@ -491,6 +493,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
   // 7. G-Code Datei übertragen / starten
   const [showUsageModal, setShowUsageModal] = useState(false);
+  const [showNfcSlotModal, setShowNfcSlotModal] = useState(false);
   const { setShowGcodeModal, showGcodeModal, fileInputRef, handleGcodeFileSelect, selectedGcodeFile, gcodeFileInfo, setSelectedGcodeFile, setGcodeFileInfo, handleUploadGcode, isUploadingGcode } = useGcodeUpload({ setActionToast, handleRefreshLiveState });
 
   // 8. AMS Spuleneinstellungen direkt am Drucker ändern
@@ -725,6 +728,16 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
             <span className="hidden md:inline text-[11px] whitespace-nowrap">Verbrauch</span>
           </button>
 
+          {/* 3c. NFC-Tag → AMS-Slot */}
+          <button
+            onClick={() => setShowNfcSlotModal(true)}
+            title="Spule per NFC lesen und in einen AMS-Slot eintragen"
+            className="px-2.5 py-1.5 rounded-xl border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 text-violet-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+          >
+            <Nfc className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden md:inline text-[11px] whitespace-nowrap">NFC→Slot</span>
+          </button>
+
           {/* 4. Kamera-Klappe Toggle */}
           <button
             onClick={() => {
@@ -810,6 +823,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {tempModalTarget && <TemperatureModal setTempModalTarget={setTempModalTarget} tempModalTarget={tempModalTarget} setTempModalValue={setTempModalValue} tempModalValue={tempModalValue} handleSetTemperature={handleSetTemperature} actionLoading={actionLoading} />}
 
       {/* MODAL 2: G-CODE DATEI AN DRUCKER SENDEN */}
+      {showNfcSlotModal && <NfcSlotModal spools={spools} onClose={() => setShowNfcSlotModal(false)} />}
       {showUsageModal && <PrintUsageModal spools={spools} onDeductWeight={onDeductWeight} onClose={() => setShowUsageModal(false)} />}
       {showGcodeModal && <GcodeUploadModal setShowGcodeModal={setShowGcodeModal} fileInputRef={fileInputRef} handleGcodeFileSelect={handleGcodeFileSelect} selectedGcodeFile={selectedGcodeFile} gcodeFileInfo={gcodeFileInfo} setSelectedGcodeFile={setSelectedGcodeFile} setGcodeFileInfo={setGcodeFileInfo} handleUploadGcode={handleUploadGcode} isUploadingGcode={isUploadingGcode} />}
 

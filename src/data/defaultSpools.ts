@@ -820,5 +820,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.64',
+    label: '1.64 (NFC-Tag direkt in AMS-Slot)',
+    releaseDate: '28.10.2026',
+    description: 'Spule mit NFC-Tag ans Handy halten, Slot wählen, ein Tipp: Farbe, Material und Temperatur gehen an den Drucker. Ohne NFC geht es auch über die Spulenliste.',
+    features: [
+      '📲 NFC → Slot: Neuer Knopf „NFC→Slot“ am Drucker liest FilamentHub- und OpenTag3D-Tags und trägt die Spule in AMS-Slot 1 bis 4 ein',
+      '🌡️ Temperaturen automatisch: Düsen-Min und -Max kommen passend zum Material, lassen sich vor dem Senden ändern',
+      '📋 Ohne NFC nutzbar: Spule alternativ aus der Liste wählen, auch am PC oder ohne Tag',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23.300+ Codezeilen, 3.900+ Prompt-Wörter, 3M Tokens und 64 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
