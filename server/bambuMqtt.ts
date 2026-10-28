@@ -136,6 +136,21 @@ class BambuMqttService {
   };
 
   private keepaliveInterval: NodeJS.Timeout | null = null;
+  private pendingPushallTimers = new Set<NodeJS.Timeout>();
+
+  /** Verzögertes pushall, das beim Trennen der Verbindung sicher abgebrochen wird. */
+  private schedulePushall(delayMs: number) {
+    const timer = setTimeout(() => {
+      this.pendingPushallTimers.delete(timer);
+      this.requestPushall();
+    }, delayMs);
+    this.pendingPushallTimers.add(timer);
+  }
+
+  private clearPendingTimers() {
+    for (const timer of this.pendingPushallTimers) clearTimeout(timer);
+    this.pendingPushallTimers.clear();
+  }
   private readonly configFilePath: string = path.resolve(process.cwd(), '.bambu-config.json');
 
   constructor() {
@@ -536,7 +551,10 @@ class BambuMqttService {
     if (this.client) {
       try {
         this.client.end(true);
-      } catch {}
+      } catch (e) {
+        console.warn('[Bambu MQTTS] Alte Verbindung ließ sich nicht sauber schließen:', e instanceof Error ? e.message : e);
+      }
+      this.clearPendingTimers();
       this.client = null;
     }
 
@@ -574,7 +592,9 @@ class BambuMqttService {
         const client = mqtt.connect(brokerUrl, {
           username,
           password: this.accessToken,
-          rejectUnauthorized: false,
+          // Standard unverändert (aus), weil Bambu-Drucker im LAN selbstsignierte Zertifikate nutzen.
+          // Mit BAMBU_TLS_VERIFY=true wird das Zertifikat geprüft (sinnvoll für die Bambu Cloud).
+          rejectUnauthorized: process.env.BAMBU_TLS_VERIFY === 'true',
           port: 8883,
           clean: true,
           connectTimeout: 8000,
@@ -634,7 +654,9 @@ class BambuMqttService {
                   `device/${this.serialNumber}/request`,
                   JSON.stringify({ pushing: { sequence_id: String(Date.now()), command: 'pushall' } })
                 );
-              } catch {}
+              } catch (e) {
+                console.warn('[Bambu MQTTS] Keepalive-Pushall fehlgeschlagen:', e instanceof Error ? e.message : e);
+              }
             }
           }, 3000);
 
@@ -666,6 +688,7 @@ class BambuMqttService {
 
         client.on('close', () => {
           this.connected = false;
+          this.clearPendingTimers();
           if (this.keepaliveInterval) {
             clearInterval(this.keepaliveInterval);
             this.keepaliveInterval = null;
@@ -1143,7 +1166,7 @@ class BambuMqttService {
     }
 
     this.client.publish(reqTopic, JSON.stringify(payload));
-    setTimeout(() => this.requestPushall(), 800);
+    this.schedulePushall(800);
 
     return {
       success: true,
@@ -1191,7 +1214,7 @@ class BambuMqttService {
       this.broadcastSse();
     }
 
-    setTimeout(() => this.requestPushall(), 1000);
+    this.schedulePushall(1000);
 
     return {
       success: true,
@@ -1226,7 +1249,7 @@ class BambuMqttService {
     this.printData.gcode_file = cleanFileName;
     this.broadcastSse();
 
-    setTimeout(() => this.requestPushall(), 1500);
+    this.schedulePushall(1500);
 
     return {
       success: true,
