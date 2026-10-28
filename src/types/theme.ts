@@ -41,9 +41,9 @@ export const BRIGHTNESS_OPTIONS: BrightnessOption[] = [
     name: '3. Grau',
     subtitle: 'Mittleres Grau',
     level: '65% Mittel',
-    bgHex: '#98a2b3',
-    cardHex: '#aab3c2',
-    textHex: '#0b1220'
+    bgHex: '#aab4c4',
+    cardHex: '#c9d1dd',
+    textHex: '#0f172a'
   },
   {
     id: 'slate',
