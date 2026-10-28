@@ -42,12 +42,12 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
               </div>
 
               {/* Was ist auf dem Tag gespeichert? */}
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-                <span className="text-xs font-extrabold text-slate-300 block">
+              <div className="p-4 rounded-2xl bg-[var(--app-card-sub)] border border-[var(--app-border)] space-y-3">
+                <span className="text-xs font-extrabold text-[var(--app-text)] block">
                   Gespeicherte Daten auf diesem NFC-Tag:
                 </span>
 
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-[var(--app-input-bg)] border border-[var(--app-border)] flex items-center gap-3">
                   <span
                     className="w-9 h-9 rounded-xl border border-white/20 shrink-0 shadow-inner"
                     style={{ backgroundColor: activeTargetSpool.colorHex || '#f97316' }}
@@ -57,11 +57,11 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
                       <span className="text-[10px] font-extrabold uppercase text-orange-400">
                         {activeTargetSpool.brand}
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-bold border border-slate-700">
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--app-card-sub)] text-[var(--app-text)] font-bold border border-[var(--app-border)]">
                         {activeTargetSpool.material}
                       </span>
                     </div>
-                    <h4 className="font-bold text-sm text-white truncate">
+                    <h4 className="font-bold text-sm text-[var(--app-text)] truncate">
                       {activeTargetSpool.name}
                     </h4>
                   </div>
@@ -69,34 +69,34 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
                     <span className="font-mono-num font-extrabold text-sm text-emerald-400 block">
                       {activeTargetSpool.remainingWeight}g
                     </span>
-                    <span className="text-[10px] text-slate-400">von {activeTargetSpool.initialWeight}g</span>
+                    <span className="text-[10px] text-[var(--app-text-muted)]">von {activeTargetSpool.initialWeight}g</span>
                   </div>
                 </div>
 
                 {/* Detail-Gitter */}
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="p-2 rounded-lg bg-slate-950 border border-slate-850">
-                    <span className="text-slate-400 text-[10px] block">Farbe & Hex:</span>
-                    <span className="font-bold text-white flex items-center gap-1.5 mt-0.5">
+                  <div className="p-2 rounded-lg bg-[var(--app-input-bg)] border border-[var(--app-border)]">
+                    <span className="text-[var(--app-text-muted)] text-[10px] block">Farbe & Hex:</span>
+                    <span className="font-bold text-[var(--app-text)] flex items-center gap-1.5 mt-0.5">
                       <span className="w-2.5 h-2.5 rounded-full border border-white/20" style={{ backgroundColor: activeTargetSpool.colorHex }} />
                       <span>{activeTargetSpool.colorName || 'Standard'} ({activeTargetSpool.colorHex})</span>
                     </span>
                   </div>
-                  <div className="p-2 rounded-lg bg-slate-950 border border-slate-850">
-                    <span className="text-slate-400 text-[10px] block">Kilopreis:</span>
-                    <span className="font-mono-num font-bold text-white block mt-0.5">
+                  <div className="p-2 rounded-lg bg-[var(--app-input-bg)] border border-[var(--app-border)]">
+                    <span className="text-[var(--app-text-muted)] text-[10px] block">Kilopreis:</span>
+                    <span className="font-mono-num font-bold text-[var(--app-text)] block mt-0.5">
                       {activeTargetSpool.pricePerKg?.toFixed(2).replace('.', ',')} €/kg
                     </span>
                   </div>
-                  <div className="p-2 rounded-lg bg-slate-950 border border-slate-850">
-                    <span className="text-slate-400 text-[10px] block">Spulen-Tara (Leer):</span>
-                    <span className="font-mono-num font-bold text-white block mt-0.5">
+                  <div className="p-2 rounded-lg bg-[var(--app-input-bg)] border border-[var(--app-border)]">
+                    <span className="text-[var(--app-text-muted)] text-[10px] block">Spulen-Tara (Leer):</span>
+                    <span className="font-mono-num font-bold text-[var(--app-text)] block mt-0.5">
                       {activeTargetSpool.emptySpoolWeight || 200} g
                     </span>
                   </div>
-                  <div className="p-2 rounded-lg bg-slate-950 border border-slate-850">
-                    <span className="text-slate-400 text-[10px] block">Trocknung:</span>
-                    <span className="font-bold text-white block mt-0.5">
+                  <div className="p-2 rounded-lg bg-[var(--app-input-bg)] border border-[var(--app-border)]">
+                    <span className="text-[var(--app-text-muted)] text-[10px] block">Trocknung:</span>
+                    <span className="font-bold text-[var(--app-text)] block mt-0.5">
                       {activeTargetSpool.dryTemp || 50}°C / {activeTargetSpool.dryHours || 6}h
                     </span>
                   </div>
@@ -104,9 +104,9 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
               </div>
 
               {/* Schnelle Gewichtsanpassung (+/-) direkt hier */}
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+              <div className="p-3.5 rounded-xl bg-[var(--app-input-bg)] border border-[var(--app-border)] space-y-3">
                 <div className="flex justify-between items-center text-[11px]">
-                  <span className="font-bold text-slate-300 block">
+                  <span className="font-bold text-[var(--app-text)] block">
                     ⚡ Gewicht direkt anpassen (+ / -):
                   </span>
                   <span className="text-[11px] text-emerald-400 font-mono-num font-extrabold">
@@ -135,7 +135,7 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
                 </div>
 
                 {/* Zeile 2: Schnelltasten Hinzufügen (+) */}
-                <div className="space-y-1 pt-1.5 border-t border-slate-850">
+                <div className="space-y-1 pt-1.5 border-t border-[var(--app-border)]">
                   <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
                     <Plus className="w-3 h-3 text-emerald-400" />
                     <span>Gramm hinzufügen (+ Korrektur):</span>
@@ -155,8 +155,8 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
                 </div>
 
                 {/* Zeile 3: Manuelle Eingabe */}
-                <div className="pt-2 border-t border-slate-850 space-y-1.5">
-                  <span className="text-[10px] text-slate-400 font-semibold block">
+                <div className="pt-2 border-t border-[var(--app-border)] space-y-1.5">
+                  <span className="text-[10px] text-[var(--app-text-muted)] font-semibold block">
                     Beliebigen Betrag anpassen:
                   </span>
                   <div className="flex items-center gap-2">
@@ -180,9 +180,9 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
                         value={adjustGramsInput}
                         onChange={e => setAdjustGramsInput(e.target.value)}
                         placeholder="Gramm..."
-                        className="w-full text-center px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono-num font-bold text-white focus:outline-none focus:border-orange-500"
+                        className="w-full text-center px-3 py-2 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] text-xs font-mono-num font-bold text-[var(--app-text)] focus:outline-none focus:border-orange-500"
                       />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono-num text-slate-500 pointer-events-none">
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono-num text-[var(--app-text-muted)] pointer-events-none">
                         g
                       </span>
                     </div>
@@ -201,9 +201,9 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
                   </div>
                 </div>
 
-                <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+                <div className="p-2 rounded-lg bg-[var(--app-card-sub)]/80 border border-[var(--app-border)] text-[10px] text-[var(--app-text-muted)] flex items-center justify-between">
                   <span>🔄 Direkt synchronisiert:</span>
-                  <span className="font-mono-num font-bold text-white">
+                  <span className="font-mono-num font-bold text-[var(--app-text)]">
                     {activeTargetSpool.remainingWeight}g Netto ({Math.round((activeTargetSpool.remainingWeight / (activeTargetSpool.initialWeight || 1000)) * 100)}%)
                   </span>
                 </div>
@@ -231,7 +231,7 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
                   <Trash2 className="w-4 h-4" />
                   <span>{isWriting ? 'Lösche NFC-Tag...' : 'NFC-Tag löschen & leeren'}</span>
                 </button>
-                <p className="text-[10px] text-slate-400 text-center">
+                <p className="text-[10px] text-[var(--app-text-muted)] text-center">
                   Entfernt die Daten vom Tag und setzt die Spule wieder auf rot (unbeschrieben).
                 </p>
 
@@ -241,7 +241,7 @@ export const NfcInspectTab: React.FC<NfcInspectTabProps> = ({
                     setWriteErrorMessage('');
                     setActiveTab('write-direct');
                   }}
-                  className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer mt-1"
+                  className="w-full py-2 px-3 rounded-xl bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-[var(--app-text)] font-semibold text-xs border border-[var(--app-border)] flex items-center justify-center gap-1.5 transition cursor-pointer mt-1"
                 >
                   <RotateCw className="w-3.5 h-3.5 text-orange-400" />
                   <span>Tag neu überschreiben</span>

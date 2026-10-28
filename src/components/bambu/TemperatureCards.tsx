@@ -77,7 +77,7 @@ export const TemperatureCards: React.FC<TemperatureCardsProps> = ({
                         <span>Düse 1 (Links)</span>
                         {isPrinterConnected && <Edit3 className="w-2.5 h-2.5 opacity-60" />}
                       </span>
-                      <span className="text-[9px] text-slate-400 font-mono">M104 S</span>
+                      <span className="text-[9px] text-[var(--app-text-muted)] font-mono">M104 S</span>
                     </span>
                     <div className="flex items-baseline gap-1">
                       <span className="text-base font-mono-num font-extrabold text-orange-400">
@@ -112,7 +112,7 @@ export const TemperatureCards: React.FC<TemperatureCardsProps> = ({
                     }}
                     placeholder="210"
                   />
-                  <span className="text-[11px] font-bold text-slate-400">°C</span>
+                  <span className="text-[11px] font-bold text-[var(--app-text-muted)]">°C</span>
                   <button
                     onClick={() => handleSendGcodeLine(`M104 S${inlineNozzle1Temp}`)}
                     disabled={!isPrinterConnected || Boolean(actionLoading)}
@@ -153,7 +153,7 @@ export const TemperatureCards: React.FC<TemperatureCardsProps> = ({
                         <span>Düse 2 (Rechts)</span>
                         {isPrinterConnected && <Edit3 className="w-2.5 h-2.5 opacity-60" />}
                       </span>
-                      <span className="text-[9px] text-slate-400 font-mono">M104 T0</span>
+                      <span className="text-[9px] text-[var(--app-text-muted)] font-mono">M104 T0</span>
                     </span>
                     <div className="flex items-baseline gap-1">
                       <span className="text-base font-mono-num font-extrabold text-amber-400">
@@ -192,7 +192,7 @@ export const TemperatureCards: React.FC<TemperatureCardsProps> = ({
                     }}
                     placeholder="210"
                   />
-                  <span className="text-[11px] font-bold text-slate-400">°C</span>
+                  <span className="text-[11px] font-bold text-[var(--app-text-muted)]">°C</span>
                   <button
                     onClick={() => handleSendGcodeLine(`M104 T0 S${inlineNozzle2Temp}`)}
                     disabled={!isPrinterConnected || Boolean(actionLoading)}
@@ -233,7 +233,7 @@ export const TemperatureCards: React.FC<TemperatureCardsProps> = ({
                         <span>Druckbett</span>
                         {isPrinterConnected && <Edit3 className="w-2.5 h-2.5 opacity-60" />}
                       </span>
-                      <span className="text-[9px] text-slate-400 font-mono">M140 S</span>
+                      <span className="text-[9px] text-[var(--app-text-muted)] font-mono">M140 S</span>
                     </span>
                     <div className="flex items-baseline gap-1">
                       <span className="text-base font-mono-num font-extrabold text-rose-400">
@@ -268,7 +268,7 @@ export const TemperatureCards: React.FC<TemperatureCardsProps> = ({
                     }}
                     placeholder="55"
                   />
-                  <span className="text-[11px] font-bold text-slate-400">°C</span>
+                  <span className="text-[11px] font-bold text-[var(--app-text-muted)]">°C</span>
                   <button
                     onClick={() => handleSendGcodeLine(`M140 S${inlineBedTemp}`)}
                     disabled={!isPrinterConnected || Boolean(actionLoading)}
@@ -316,7 +316,7 @@ export const TemperatureCards: React.FC<TemperatureCardsProps> = ({
                   <button
                     onClick={() => handleSendGcodeLine('M106 S255')}
                     disabled={!isPrinterConnected}
-                    className="flex-1 py-1 px-1.5 rounded-lg border text-[10px] font-bold hover:bg-white/10 transition cursor-pointer text-center text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex-1 py-1 px-1.5 rounded-lg border text-[10px] font-bold hover:bg-[var(--app-accent-sub)] transition cursor-pointer text-center text-[var(--app-text)] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ borderColor: 'var(--app-border)' }}
                   >
                     Lüfter 100%
@@ -324,7 +324,7 @@ export const TemperatureCards: React.FC<TemperatureCardsProps> = ({
                   <button
                     onClick={() => handleSendGcodeLine('M106 S0')}
                     disabled={!isPrinterConnected}
-                    className="flex-1 py-1 px-1.5 rounded-lg border text-[10px] font-bold hover:bg-white/10 transition cursor-pointer text-center text-slate-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex-1 py-1 px-1.5 rounded-lg border text-[10px] font-bold hover:bg-[var(--app-accent-sub)] transition cursor-pointer text-center text-[var(--app-text-muted)] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ borderColor: 'var(--app-border)' }}
                   >
                     Lüfter Aus

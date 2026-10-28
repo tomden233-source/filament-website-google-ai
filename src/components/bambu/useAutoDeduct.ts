@@ -44,7 +44,7 @@ export function useAutoDeduct({ spools, amsSlots, onDeductWeight, isConnected, g
           .reverse(); // älteste zuerst
         for (const task of open) {
           if (cancelled) return;
-          const { spools: sp, amsSlots: slots, onDeductWeight: deduct, notify: toast } = latest.current;
+          const { spools: sp, amsSlots: slots, notify: toast } = latest.current;
           const perSpool = new Map<string, number>();
           for (const f of task.filaments) {
             const assigned = f.slot !== undefined ? slots[f.slot + 1] : undefined;

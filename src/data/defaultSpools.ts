@@ -1,7 +1,5 @@
 import {
   AppSettings,
-  BrandConfig,
-  MaterialDryingConfig,
   MaterialType,
   Spool,
   VersionProfile
@@ -970,6 +968,27 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
       '📲 Neuer Knopf „Neue App jetzt installieren“ im Menü Verbinden (nur in der Android-App), ohne Browser und ohne QR-Code',
       '💬 Klare Meldung: lädt, „Installieren“ bestätigen oder „Installieren erlauben“, falls Android das erst freigeben muss',
       '🔢 Aktualisierte Zahlen-FunFacts: 29.000+ Codezeilen, ca. 14.000 Wörter, 5 Chats, 45 Commits und 72 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.73',
+    label: '1.73 (Fehlerjagd & Feinschliff)',
+    releaseDate: '28.10.2026',
+    description: 'Komplette Fehlersuche: keine Typ- und Konsolenfehler mehr, alle Fenster in allen 5 Helligkeiten lesbar, Gewichte können nicht mehr verfälscht werden, Esc schließt jedes Fenster, aufgeräumte Spulenkarten und ein schnellerer Start.',
+    features: [
+      '🐞 Fehlerjagd: 0 Typfehler, 0 Fehler in der Konsole (PC + Handy, alle Fenster durchgeklickt). Neue Typfehler stoppen ab jetzt den Upload automatisch',
+      '🎨 Lesbar in allen Themes: unsichtbare weiße Texte im hellen Modus behoben (NFC-, Spulen-, G-Code-, App-, Kamera-Fenster), Farben in Soft, Grau und Dämmerung automatisch kontrastreicher',
+      '⚖️ Gewicht-Schutz: „+“ geht nicht mehr über die Füllmenge der Spule, die Brutto→Netto-Reparatur läuft nur noch einmal (sonst hätte „+25 g“ Gewichte verfälschen können)',
+      '📲 NFC: Scan wird beim Schließen des Fensters sicher beendet. Die neue App (APK) wird jetzt automatisch angeboten',
+      '⌨️ Esc schließt jedes Fenster, immer nur das oberste',
+      '🃏 Spulenkarten aufgeräumt: Name über die volle Breite, die Marke (z. B. Eryone) ist beim Bearbeiten immer markiert',
+      '🔔 Meldungen kompakter, Antippen schließt sie, am Handy über der Daumenleiste. Etikett-Fehler wird nicht mehr abgeschnitten',
+      '🏠 Home Assistant zeigt ehrlich „Token fehlt“, abgelehnte Drucker-Befehle melden sich jetzt statt still zu scheitern',
+      '🚀 Schnellerer Start: große Fenster und die Etiketten-Kompression werden erst bei Bedarf geladen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 29.000+ Codezeilen, ca. 14.000 Wörter, 5 Chats, 46 Commits und 73 Revisionsstufen'
     ],
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],

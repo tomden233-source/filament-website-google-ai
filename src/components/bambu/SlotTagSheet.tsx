@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Nfc, Check, Loader2, Search, AlertTriangle } from 'lucide-react';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 import type { Spool } from '../../types/filament';
 import type { HwTray } from '../../utils/amsMatch';
 import { useNfcTags } from '../../utils/nfcRead';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const SlotTagSheet: React.FC<Props> = ({ slot, spools, tray, connected, onAssign, onClose }) => {
+  useEscapeClose(onClose);
   const [busy, setBusy] = useState(false);
   const [spool, setSpool] = useState<Spool | null>(null);
   const [result, setResult] = useState<SlotSendResult | null>(null);
@@ -119,7 +121,7 @@ export const SlotTagSheet: React.FC<Props> = ({ slot, spools, tray, connected, o
               </div>
             </div>
             {busy ? (
-              <Loader2 className="w-5 h-5 animate-spin shrink-0" style={{ color: 'var(--app-accent)' }} />
+              <Loader2 className="w-5 h-5 animate-spin shrink-0" style={{ color: 'var(--app-accent-text)' }} />
             ) : result?.confirmed ? (
               <Check className="w-5 h-5 text-emerald-500 shrink-0" />
             ) : (

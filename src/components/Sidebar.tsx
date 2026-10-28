@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 
 import QRCode from 'qrcode';
-import { FunFactsModal } from './FunFactsModal';
 
 import {
   X,
@@ -32,7 +31,6 @@ import { ThemeBrightness, ThemeAccent } from '../types/theme';
 import { SettingsThemesPanel } from './sidebar/SettingsThemesPanel';
 import { SettingsPresetsPanel } from './sidebar/SettingsPresetsPanel';
 import { SettingsConnectionsPanel } from './sidebar/SettingsConnectionsPanel';
-import { BambuSettingsModal } from './BambuSettingsModal';
 import { SettingsHomeAssistantPanel } from './sidebar/SettingsHomeAssistantPanel';
 import { ConnectTab } from './sidebar/ConnectTab';
 import { AiAgentTab } from './sidebar/AiAgentTab';
@@ -45,6 +43,9 @@ import { useHomeAssistantPanel } from './sidebar/useHomeAssistantPanel';
 import { usePresetSettings } from './sidebar/usePresetSettings';
 import { useGcodeImport } from './sidebar/useGcodeImport';
 import { useAgentChat } from './sidebar/useAgentChat';
+
+const FunFactsModal = lazy(() => import('./FunFactsModal').then(m => ({ default: m.FunFactsModal })));
+const BambuSettingsModal = lazy(() => import('./BambuSettingsModal').then(m => ({ default: m.BambuSettingsModal })));
 
 export interface SidebarProps {
   isOpen: boolean;
@@ -86,13 +87,11 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onClose,
-  viewMode,
   onSetViewMode,
   spools,
   onDeductWeight,
   onMarkDried,
   onOpenNewSpool,
-  onOpenQr,
   onSyncCloud,
   onExportBackup,
   onImportBackup,
@@ -114,7 +113,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onResetBrandPreset,
   onUpdateEibosBagTara,
   onUpdateCardSize,
-  onResetAllSettings,
   cloudDbUrl,
   syncStatus
 }) => {
@@ -406,7 +404,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               style={{
                 backgroundColor: 'var(--app-card)',
                 borderColor: 'var(--app-accent)',
-                color: 'var(--app-accent)'
+                color: 'var(--app-accent-text)'
               }}
               title="Echte Zahlen: Druckzeit, Lager, Filament-Länge, Code"
             >
@@ -508,7 +506,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               style={{
                 backgroundColor: 'var(--app-card)',
                 borderColor: 'var(--app-border)',
-                color: 'var(--app-accent)'
+                color: 'var(--app-accent-text)'
               }}
               title="Neuen Snapshot/Profil sichern"
             >
@@ -581,7 +579,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   style={{
                     backgroundColor: isActive ? 'var(--app-accent-sub)' : 'var(--app-card)',
                     borderColor: isActive ? 'var(--app-accent)' : 'var(--app-border)',
-                    color: isActive ? 'var(--app-accent)' : 'var(--app-text-muted)',
+                    color: isActive ? 'var(--app-accent-text)' : 'var(--app-text-muted)',
                     boxShadow: isActive ? '0 0 0 1px var(--app-accent)' : undefined
                   }}
                   title={item.labelLine1 ? `${item.labelLine1} & ${item.labelLine2}` : item.label}
@@ -677,7 +675,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         style={{
                           backgroundColor: 'var(--app-accent-sub)',
                           borderColor: 'var(--app-accent)',
-                          color: 'var(--app-accent)'
+                          color: 'var(--app-accent-text)'
                         }}
                       >
                         <LayoutGrid className="w-4 h-4" />
@@ -696,7 +694,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       style={{
                         backgroundColor: 'var(--app-accent-sub)',
                         borderColor: 'var(--app-accent)',
-                        color: 'var(--app-accent)'
+                        color: 'var(--app-accent-text)'
                       }}
                     >
                       {appSettings.cardSize || 340} px
@@ -710,7 +708,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span className="font-extrabold px-2 py-0.5 rounded-md border" style={{
                         backgroundColor: 'var(--app-accent-sub)',
                         borderColor: 'var(--app-accent)',
-                        color: 'var(--app-accent)'
+                        color: 'var(--app-accent-text)'
                       }}>
                         {(appSettings.cardSize || 340) <= 250
                           ? '⚡ 4–5 Kacheln / Reihe'
@@ -821,8 +819,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </aside>
 
       {/* Fun Facts & Self-Hosting Modals */}
-      <BambuSettingsModal isOpen={showBambuSettings} onClose={() => setShowBambuSettings(false)} />
-      <FunFactsModal isOpen={showFunFacts} onClose={() => setShowFunFacts(false)} spools={spools} />
+      <Suspense fallback={null}>
+        {showBambuSettings && <BambuSettingsModal isOpen onClose={() => setShowBambuSettings(false)} />}
+        {showFunFacts && <FunFactsModal isOpen onClose={() => setShowFunFacts(false)} spools={spools} />}
+      </Suspense>
     </div>
   );
 };

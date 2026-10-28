@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Search, Nfc, ChevronDown, Ban } from 'lucide-react';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 import type { Spool } from '../types/filament';
 import { baseMaterial, colorDistance } from '../utils/amsMatch';
 
@@ -21,6 +22,7 @@ interface PickerProps {
 const norm = (s: string) => s.toLowerCase();
 
 export const SpoolPicker: React.FC<PickerProps> = ({ spools, title = 'Spule wählen', selectedId, hint, allowClear, onPick, onClose }) => {
+  useEscapeClose(onClose);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 

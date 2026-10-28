@@ -114,7 +114,7 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
                   <p className="text-xs font-bold text-rose-300">
                     Drucker ist aktuell ausgeschaltet (stromlos)
                   </p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-[var(--app-text-muted)]">
                     Die Home Assistant LAN-Steckdose ({haCreds.switchEntity}) ist abgeschaltet. Schalte die Steckdose ein, um den Bambu Lab X2D zu starten.
                   </p>
                 </div>
@@ -145,7 +145,7 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
                   Aktueller Druckauftrag:
                 </span>
                 <span className={`text-xs font-mono font-semibold break-all ${
-                  isPrinterPowerOff ? 'text-slate-400' : 'text-[#00AE42]'
+                  isPrinterPowerOff ? 'text-[var(--app-text-muted)]' : 'text-[#00AE42]'
                 }`}>
                   {isSocketOff
                     ? 'Drucker ist ausgeschaltet (kein Strom)'
@@ -162,8 +162,8 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
                     Schicht {isPrinterConnected ? `${liveState.data.layer_num} / ${liveState.data.total_layer_num || 0}` : '-- / --'}
                   </span>
                 </span>
-                <span className="text-slate-400">•</span>
-                <span className={`flex items-center gap-1 ${isPrinterConnected ? 'text-[#00AE42]' : 'text-slate-400'}`}>
+                <span className="text-[var(--app-text-muted)]">•</span>
+                <span className={`flex items-center gap-1 ${isPrinterConnected ? 'text-[#00AE42]' : 'text-[var(--app-text-muted)]'}`}>
                   <Clock className="w-3.5 h-3.5" />
                   <span>{isPrinterConnected ? liveState.formatted.remainingTimeStr : '--'}</span>
                 </span>

@@ -50,8 +50,8 @@ export const BRIGHTNESS_OPTIONS: BrightnessOption[] = [
     name: '4. Dämmerung',
     subtitle: 'Dunkles Schiefergrau',
     level: '35% Dunkel',
-    bgHex: '#475467',
-    cardHex: '#566377',
+    bgHex: '#3d4859',
+    cardHex: '#4a566a',
     textHex: '#f8fafc'
   },
   {

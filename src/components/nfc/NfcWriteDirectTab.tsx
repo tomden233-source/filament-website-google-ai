@@ -22,7 +22,7 @@ export const NfcWriteDirectTab: React.FC<NfcWriteDirectTabProps> = ({
   return (
 <div className="space-y-4 text-xs">
               {/* Spulen-Preview */}
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+              <div className="p-4 rounded-2xl bg-[var(--app-card-sub)] border border-[var(--app-border)] space-y-3">
                 <div className="flex items-center gap-3">
                   <span
                     className="w-10 h-10 rounded-xl border border-white/20 shrink-0 shadow-md"
@@ -33,14 +33,14 @@ export const NfcWriteDirectTab: React.FC<NfcWriteDirectTabProps> = ({
                       <span className="text-[10px] font-extrabold uppercase text-orange-400">
                         {targetSpool.brand}
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-bold border border-slate-700">
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--app-card-sub)] text-[var(--app-text)] font-bold border border-[var(--app-border)]">
                         {targetSpool.material}
                       </span>
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-400 font-bold border border-rose-500/30">
                         Noch unbeschrieben
                       </span>
                     </div>
-                    <h3 className="font-extrabold text-base text-white truncate mt-0.5">
+                    <h3 className="font-extrabold text-base text-[var(--app-text)] truncate mt-0.5">
                       {targetSpool.name}
                     </h3>
                   </div>
@@ -48,7 +48,7 @@ export const NfcWriteDirectTab: React.FC<NfcWriteDirectTabProps> = ({
                     <span className="font-mono-num font-extrabold text-sm text-emerald-400 block">
                       {targetSpool.remainingWeight}g
                     </span>
-                    <span className="text-[10px] text-slate-400">Netto</span>
+                    <span className="text-[10px] text-[var(--app-text-muted)]">Netto</span>
                   </div>
                 </div>
               </div>
@@ -63,7 +63,7 @@ export const NfcWriteDirectTab: React.FC<NfcWriteDirectTabProps> = ({
                     <h4 className="font-extrabold text-sm text-emerald-300">
                       Erfolgreich auf NFC-Tag geschrieben!
                     </h4>
-                    <p className="text-xs text-slate-300">
+                    <p className="text-xs text-[var(--app-text)]">
                       Der Tag ist nun mit <strong>„{targetSpool.brand} {targetSpool.name}“</strong> verknüpft und leuchtet ab jetzt grün.
                     </p>
                   </div>
@@ -77,7 +77,7 @@ export const NfcWriteDirectTab: React.FC<NfcWriteDirectTabProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-4">
+                <div className="p-6 rounded-2xl bg-[var(--app-card-sub)] border border-[var(--app-border)] text-center space-y-4">
                   <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping" />
                     <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white shadow-xl shadow-orange-500/30">
@@ -86,10 +86,10 @@ export const NfcWriteDirectTab: React.FC<NfcWriteDirectTabProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <h4 className="font-extrabold text-sm text-white">
+                    <h4 className="font-extrabold text-sm text-[var(--app-text)]">
                       Halte den NFC-Tag an dein Smartphone
                     </h4>
-                    <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                    <p className="text-xs text-[var(--app-text-muted)] max-w-xs mx-auto">
                       Klicke auf den Button unten oder halte den NFC-Tag an die Rückseite deines Geräts.
                     </p>
                   </div>

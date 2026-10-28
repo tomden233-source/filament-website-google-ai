@@ -2,7 +2,7 @@ import { UpdateBanner } from './components/UpdateBanner';
 import { isAppShell } from './utils/env';
 import { peekIdleTag } from './utils/nativeNfc';
 import { fixSpoolWeights } from './utils/spoolSanity';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { storageApi, cloudSync } from './api';
 
 import {
@@ -24,12 +24,8 @@ import { spoolIdFromHash } from './utils/spoolLink';
 import { Navbar, DeviceMode } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 
-import { SpoolModal } from './components/SpoolModal';
-import { AppAndQrModal } from './components/AppAndQrModal';
 
 import { HistoryModal } from './components/HistoryModal';
-import { CameraModal } from './components/CameraModal';
-import { NfcModal } from './components/NfcModal';
 import { QuickDeductModal } from './components/QuickDeductModal';
 import { RightLogDrawer } from './components/RightLogDrawer';
 import { addSystemLog } from './utils/logService';
@@ -49,10 +45,19 @@ import { useThemeSettings } from './hooks/useThemeSettings';
 import { useAppSettings } from './hooks/useAppSettings';
 import { useDryingReminders } from './hooks/useDryingReminders';
 import { LowStockBanner } from './components/workshop/LowStockBanner';
-import { WorkshopModal, WorkshopTab } from './components/workshop/WorkshopModal';
+import type { WorkshopTab } from './components/workshop/WorkshopModal';
 import { getLocationStats } from './utils/spoolAlerts';
 import { getWorkshopSettings } from './utils/workshopSettings';
 import { localNotify } from './utils/notify';
+
+const WEIGHT_FIX_KEY = 'filamenthub_weightfix_v171';
+
+// Große Fenster erst laden, wenn sie gebraucht werden (die App startet schneller)
+const SpoolModal = lazy(() => import('./components/SpoolModal').then(m => ({ default: m.SpoolModal })));
+const AppAndQrModal = lazy(() => import('./components/AppAndQrModal').then(m => ({ default: m.AppAndQrModal })));
+const CameraModal = lazy(() => import('./components/CameraModal').then(m => ({ default: m.CameraModal })));
+const NfcModal = lazy(() => import('./components/NfcModal').then(m => ({ default: m.NfcModal })));
+const WorkshopModal = lazy(() => import('./components/workshop/WorkshopModal').then(m => ({ default: m.WorkshopModal })));
 
 const LEGACY_SPOOL_KEYS = [
   'filamenthub_spools_v123',
@@ -99,7 +104,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.72';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.73';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
@@ -289,7 +294,7 @@ export default function App() {
     setToasts(prev => [...prev, { id, text }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 10000);
+    }, 8000);
   }, []);
 
   // Erinnerung: Trocknen fällig, AMS-Trocknung fertig
@@ -377,8 +382,11 @@ export default function App() {
     syncWithCloud(false);
   }, []);
 
-  // Unmögliche Restgewichte (mehr als die Spule fasst, Brutto statt Netto) automatisch geraderücken
+  // Einmalige Reparatur alter Daten (v1.71): Brutto statt Netto eingetragen, mehr als die Spule fasst.
+  // Läuft nur einmal pro Gerät, damit spätere Eingaben (z. B. leicht überfüllte Spulen laut Waage) nie verändert werden.
   useEffect(() => {
+    if (safeStorage.getItem(WEIGHT_FIX_KEY) === 'done' || spools.length === 0) return;
+    safeStorage.setItem(WEIGHT_FIX_KEY, 'done');
     const { spools: fixed, fixes } = fixSpoolWeights(spools);
     if (!fixes.length) return;
     setSpools(fixed);
@@ -559,8 +567,9 @@ export default function App() {
     const spool = spools.find(s => s.id === spoolId);
     if (!spool) return;
 
-    const maxWeight = Math.max(spool.initialWeight || 1000, 3000);
     const prevRemaining = spool.remainingWeight || 0;
+    // Mit „+“ nie über die Füllmenge der Spule (oder den bisherigen Stand, falls die Waage mehr ergab)
+    const maxWeight = Math.max(spool.initialWeight || 1000, prevRemaining);
     const newRemaining = Math.max(0, Math.min(maxWeight, prevRemaining + deltaGrams));
     const updatedSpools = spools.map(s => (s.id === spoolId ? { ...s, remainingWeight: newRemaining } : s));
 
@@ -1062,50 +1071,66 @@ export default function App() {
       </main>
 
       {/* Spool Modal */}
-      <SpoolModal
-        isOpen={isSpoolModalOpen}
-        onClose={() => {
-          setIsSpoolModalOpen(false);
-          setSpoolToEdit(null);
-          setSpoolPrefill(null);
-        }}
-        onSave={handleSaveSpool}
-        spoolToEdit={spoolToEdit}
-        prefillData={spoolPrefill}
-        appSettings={appSettings}
-        locationOptions={locationStats.map(l => l.name)}
-        onPrintLabel={spool => {
-          setIsSpoolModalOpen(false);
-          setLabelSpoolId(spool.id);
-          setWorkshopTab('labels');
-          setIsWorkshopOpen(true);
-        }}
-      />
+      {isSpoolModalOpen && (
+        <Suspense fallback={null}>
+        <SpoolModal
+          isOpen={isSpoolModalOpen}
+          onClose={() => {
+            setIsSpoolModalOpen(false);
+            setSpoolToEdit(null);
+            setSpoolPrefill(null);
+          }}
+          onSave={handleSaveSpool}
+          spoolToEdit={spoolToEdit}
+          prefillData={spoolPrefill}
+          appSettings={appSettings}
+          locationOptions={locationStats.map(l => l.name)}
+          onPrintLabel={spool => {
+            setIsSpoolModalOpen(false);
+            setLabelSpoolId(spool.id);
+            setWorkshopTab('labels');
+            setIsWorkshopOpen(true);
+          }}
+        />
+        </Suspense>
+      )}
 
       {/* Werkstatt: Meldungen und Helfer */}
-      <WorkshopModal
-        isOpen={isWorkshopOpen}
-        onClose={() => setIsWorkshopOpen(false)}
-        tab={workshopTab}
-        onTabChange={setWorkshopTab}
-        spools={spools}
-        labelSpoolId={labelSpoolId}
-      />
+      {isWorkshopOpen && (
+        <Suspense fallback={null}>
+        <WorkshopModal
+          isOpen={isWorkshopOpen}
+          onClose={() => setIsWorkshopOpen(false)}
+          tab={workshopTab}
+          onTabChange={setWorkshopTab}
+          spools={spools}
+          labelSpoolId={labelSpoolId}
+        />
+        </Suspense>
+      )}
 
       {/* Smartphone Kamera-Modal */}
-      <CameraModal
-        isOpen={isCameraModalOpen}
-        onClose={() => setIsCameraModalOpen(false)}
-        onSpoolRecognized={handleSpoolRecognizedFromCamera}
-      />
+      {isCameraModalOpen && (
+        <Suspense fallback={null}>
+        <CameraModal
+          isOpen={isCameraModalOpen}
+          onClose={() => setIsCameraModalOpen(false)}
+          onSpoolRecognized={handleSpoolRecognizedFromCamera}
+        />
+        </Suspense>
+      )}
 
       {/* Kombiniertes Smartphone App- & QR-Code Modal */}
-      <AppAndQrModal
-        isOpen={isAppAndQrOpen}
-        onClose={() => setIsAppAndQrOpen(false)}
-        cloudDbUrl={cloudDbUrl}
-        defaultTab={appAndQrTab}
-      />
+      {isAppAndQrOpen && (
+        <Suspense fallback={null}>
+        <AppAndQrModal
+          isOpen={isAppAndQrOpen}
+          onClose={() => setIsAppAndQrOpen(false)}
+          cloudDbUrl={cloudDbUrl}
+          defaultTab={appAndQrTab}
+        />
+        </Suspense>
+      )}
 
       {/* Druck-Verlauf Modal */}
       <HistoryModal
@@ -1116,29 +1141,33 @@ export default function App() {
       />
 
       {/* NFC Tag Manager Modal (Lesen, Beschreiben, Erkennen) */}
-      <NfcModal
-        isOpen={isNfcModalOpen}
-        onClose={() => setIsNfcModalOpen(false)}
-        spools={spools}
-        initialMode={nfcModalMode}
-        preselectedSpoolId={nfcSpoolId}
-        onDeductWeight={handleDeductWeight}
-        onAddWeight={handleAddWeight}
-        onMarkSpoolWritten={handleMarkSpoolNfcWritten}
-        onResetAllNfcWritten={handleResetAllNfcWritten}
-        onOpenNewSpoolWithPrefill={prefill => {
-          setIsNfcModalOpen(false);
-          setSpoolToEdit(null);
-          setSpoolPrefill(prefill);
-          setIsSpoolModalOpen(true);
-        }}
-        onSelectSpoolForEdit={spool => {
-          setIsNfcModalOpen(false);
-          setSpoolToEdit(spool);
-          setSpoolPrefill(null);
-          setIsSpoolModalOpen(true);
-        }}
-      />
+      {isNfcModalOpen && (
+        <Suspense fallback={null}>
+        <NfcModal
+          isOpen={isNfcModalOpen}
+          onClose={() => setIsNfcModalOpen(false)}
+          spools={spools}
+          initialMode={nfcModalMode}
+          preselectedSpoolId={nfcSpoolId}
+          onDeductWeight={handleDeductWeight}
+          onAddWeight={handleAddWeight}
+          onMarkSpoolWritten={handleMarkSpoolNfcWritten}
+          onResetAllNfcWritten={handleResetAllNfcWritten}
+          onOpenNewSpoolWithPrefill={prefill => {
+            setIsNfcModalOpen(false);
+            setSpoolToEdit(null);
+            setSpoolPrefill(prefill);
+            setIsSpoolModalOpen(true);
+          }}
+          onSelectSpoolForEdit={spool => {
+            setIsNfcModalOpen(false);
+            setSpoolToEdit(spool);
+            setSpoolPrefill(null);
+            setIsSpoolModalOpen(true);
+          }}
+        />
+        </Suspense>
+      )}
 
       {/* Quick Deduct Modal */}
       <QuickDeductModal
@@ -1152,19 +1181,28 @@ export default function App() {
       {isEditUsedModalOpen && <EditUsedModal setIsEditUsedModalOpen={setIsEditUsedModalOpen} editUsedInputValue={editUsedInputValue} setEditUsedInputValue={setEditUsedInputValue} handleSaveUsedGrams={handleSaveUsedGrams} />}
 
       {/* Toast Notifications */}
-      <div className="fixed bottom-16 sm:bottom-14 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      {/* Meldungen: am Handy über der Daumen-Leiste, am PC unten rechts. Antippen schließt sie. */}
+      <div
+        className={`fixed z-[60] flex flex-col gap-2 pointer-events-none ${
+          deviceMode === 'app' ? 'left-3 right-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] items-center' : 'right-4 bottom-6 items-end'
+        }`}
+      >
         {toasts.map(t => (
-          <div
+          <button
+            type="button"
             key={t.id}
-            className="px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-2xl backdrop-blur-md transition-all"
+            onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
+            title="Antippen zum Schließen"
+            className="pointer-events-auto w-full max-w-sm text-left px-3.5 py-2.5 rounded-xl border-l-4 border text-xs font-semibold shadow-2xl backdrop-blur-md cursor-pointer animate-fadeIn"
             style={{
               backgroundColor: 'var(--app-card)',
-              borderColor: 'var(--app-accent)',
+              borderColor: 'var(--app-border)',
+              borderLeftColor: 'var(--app-accent)',
               color: 'var(--app-text)'
             }}
           >
-            {t.text}
-          </div>
+            <span className="line-clamp-3">{t.text}</span>
+          </button>
         ))}
       </div>
 

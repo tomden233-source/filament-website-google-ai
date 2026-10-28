@@ -176,7 +176,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
                       className="p-1.5 rounded-lg border flex items-center gap-1 text-[11px] cursor-pointer"
                       style={{ borderColor: 'var(--app-border)' }}
                     >
-                      <Undo2 className="w-3.5 h-3.5" style={{ color: 'var(--app-accent)' }} />
+                      <Undo2 className="w-3.5 h-3.5" style={{ color: 'var(--app-accent-text)' }} />
                       <span>Zurück</span>
                     </button>
                   </div>

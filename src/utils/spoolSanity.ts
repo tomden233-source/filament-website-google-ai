@@ -15,7 +15,7 @@ export function fixSpoolWeights(spools: Spool[]): { spools: Spool[]; fixes: Weig
   const fixes: WeightFix[] = [];
   const out = spools.map(sp => {
     let initial = Number(sp.initialWeight) || 1000;
-    let rest = Number(sp.remainingWeight);
+    const rest = Number(sp.remainingWeight);
     const tara = Number(sp.emptySpoolWeight) || 0;
     if (!isFinite(rest)) return sp;
     const label = `${sp.brand} ${sp.name}`.trim();

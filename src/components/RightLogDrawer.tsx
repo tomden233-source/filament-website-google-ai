@@ -1,5 +1,5 @@
-import { SpoolSelect } from './SpoolPicker';
 import React, { useState, useEffect, useRef } from 'react';
+import { SpoolSelect } from './SpoolPicker';
 import { printerApi } from '../api';
 import {
   ScrollText,
@@ -7,7 +7,6 @@ import {
   Trash2,
   Copy,
   Check,
-  X,
   Plug,
   Lightbulb,
   Flame,
@@ -15,9 +14,7 @@ import {
   Server,
   Camera,
   Activity,
-  Filter,
-  Search,
-  ExternalLink
+  Search
 } from 'lucide-react';
 import { LogCategory, SystemLogEntry, Spool } from '../types/filament';
 import { getSystemLogs, clearSystemLogs, addSystemLog } from '../utils/logService';
@@ -165,7 +162,7 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
         return { label: 'Kamera', icon: Camera, color: 'text-blue-400', bg: 'bg-blue-500/15 border-blue-500/30' };
       case 'system':
       default:
-        return { label: 'System', icon: Server, color: 'text-slate-300', bg: 'bg-slate-500/15 border-slate-500/30' };
+        return { label: 'System', icon: Server, color: 'text-[var(--app-text)]', bg: 'bg-slate-500/15 border-slate-500/30' };
     }
   };
 
@@ -180,10 +177,8 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
         <button
           onClick={handleToggle}
           title="Live-Logs ausklappen (Steckdose, Druckerstatus, Licht, Temperaturen, Spulen)"
-          className="group relative flex flex-col items-center justify-between py-3 px-1.5 rounded-l-2xl border-l-2 border-t border-b shadow-2xl backdrop-blur-xl cursor-pointer transition-all hover:scale-105 active:scale-95"
+          className="group relative flex flex-col items-center justify-between w-[22px] sm:w-8 min-h-[92px] sm:min-h-[140px] py-2 sm:py-3 px-0.5 sm:px-1.5 rounded-l-2xl border-l-2 border-t border-b shadow-2xl backdrop-blur-xl cursor-pointer transition-all opacity-80 hover:opacity-100 sm:opacity-100 hover:scale-105 active:scale-95"
           style={{
-            width: '32px',
-            minHeight: '140px',
             backgroundColor: 'var(--app-card)',
             borderColor: hasNewEntry ? 'var(--app-accent)' : 'var(--app-border)',
             color: 'var(--app-text)',
@@ -217,15 +212,15 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
               style={{
                 backgroundColor: 'var(--app-card-sub)',
                 borderColor: 'var(--app-border)',
-                color: 'var(--app-accent)'
+                color: 'var(--app-accent-text)'
               }}
             >
               {logs.length}
             </span>
           </div>
 
-          {/* Icon unten */}
-          <div style={{ color: 'var(--app-text-muted)' }}>
+          {/* Icon unten (am Handy weggelassen: der Streifen soll möglichst wenig verdecken) */}
+          <div className="hidden sm:block" style={{ color: 'var(--app-text-muted)' }}>
             <ScrollText className="w-4 h-4" />
           </div>
         </button>
@@ -264,7 +259,7 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
               style={{
                 backgroundColor: 'var(--app-accent-sub)',
                 borderColor: 'var(--app-accent)',
-                color: 'var(--app-accent)'
+                color: 'var(--app-accent-text)'
               }}
             >
               <ScrollText className="w-4 h-4" />
@@ -317,6 +312,8 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
             {/* Schließen Button */}
             <button
               onClick={() => setIsOpen(false)}
+              title="Logs schließen"
+              aria-label="Logs schließen"
               className="p-1.5 rounded-lg border transition cursor-pointer ml-1 hover:opacity-80"
               style={{
                 backgroundColor: 'var(--app-card)',
@@ -339,7 +336,7 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
             }}
           >
             <div className="flex items-center justify-between text-xs font-extrabold">
-              <span className="flex items-center gap-1.5" style={{ color: 'var(--app-accent)' }}>
+              <span className="flex items-center gap-1.5" style={{ color: 'var(--app-accent-text)' }}>
                 <span>🖨️</span>
                 <span className="truncate max-w-[240px]">Druck: {activeJob.fileName}</span>
               </span>
@@ -531,7 +528,7 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
                 <button
                   onClick={() => setSearchQuery('')}
                   className="text-xs underline cursor-pointer"
-                  style={{ color: 'var(--app-accent)' }}
+                  style={{ color: 'var(--app-accent-text)' }}
                 >
                   Suche zurücksetzen
                 </button>

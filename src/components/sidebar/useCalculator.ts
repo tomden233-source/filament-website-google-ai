@@ -18,9 +18,9 @@ export function useCalculator({ spools }: useCalculatorParams) {
 
   const [calcPrinterWatts, setCalcPrinterWatts] = useState<number>(150);
 
-  const [calcKwhPrice, setCalcKwhPrice] = useState<number>(0.35);
+  const [calcKwhPrice] = useState<number>(0.35);
 
-  const [calcWearEuro, setCalcWearEuro] = useState<number>(0.30);
+  const [calcWearEuro] = useState<number>(0.30);
 
   const filamentCost = (calcGrams / 1000) * calcPricePerKg;
 

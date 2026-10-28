@@ -83,5 +83,19 @@ export default defineConfig(() => {
         '@': path.resolve(import.meta.dirname || '.', '.'),
       },
     },
+    build: {
+      rolldownOptions: {
+        output: {
+          // React und weitere Bibliotheken in eigene Dateien: bleiben bei App-Updates im Cache, die App lädt schneller
+          codeSplitting: {
+            groups: [
+              { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 20 },
+              { name: 'icons', test: /node_modules[\\/]lucide-react[\\/]/, priority: 15 },
+              { name: 'vendor', test: /node_modules[\\/]/, priority: 10 }
+            ]
+          }
+        }
+      }
+    }
   };
 });

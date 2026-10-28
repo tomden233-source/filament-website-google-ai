@@ -51,20 +51,19 @@ export const NfcModal: React.FC<NfcModalProps> = ({
   preselectedSpoolId,
   onDeductWeight,
   onAddWeight,
-  onOpenNewSpoolWithPrefill,
   onSelectSpoolForEdit,
   onMarkSpoolWritten,
   onResetAllNfcWritten
 }) => {
   const [activeTab, setActiveTab] = useState<'read' | 'write' | 'batch' | 'write-direct' | 'inspect'>(initialMode);
-  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [, setIsScanning] = useState<boolean>(false);
   const [scanStatusMessage, setScanStatusMessage] = useState<string>('Warte auf NFC-Tag...');
 
   // Gescannte Daten (Lesen)
   const [detectedTagUid, setDetectedTagUid] = useState<string>('');
   const [unwrittenTagDetected, setUnwrittenTagDetected] = useState<boolean>(false);
   const [loadedSpool, setLoadedSpool] = useState<Spool | null>(null);
-  const [loadedPayload, setLoadedPayload] = useState<NfcPayload | null>(null);
+  const [, setLoadedPayload] = useState<NfcPayload | null>(null);
 
   // Einzel-Schreib-Modus
   const [selectedSpoolId, setSelectedSpoolId] = useState<string>(
@@ -94,7 +93,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
 
   // BATCH-MODUS: "Alle Spulen nacheinander beschreiben"
   const [batchTargetSpoolId, setBatchTargetSpoolId] = useState<string>('');
-  const [isBatchActive, setIsBatchActive] = useState<boolean>(true);
+  const [, setIsBatchActive] = useState<boolean>(true);
   const [isBatchWriting, setIsBatchWriting] = useState<boolean>(false);
   const [batchLastSuccessMessage, setBatchLastSuccessMessage] = useState<string>('');
   const [batchErrorMessage, setBatchErrorMessage] = useState<string>('');
@@ -124,6 +123,15 @@ export const NfcModal: React.FC<NfcModalProps> = ({
     const nextUnwritten = spools.find(s => !s.nfcWritten);
     return nextUnwritten || spools[0];
   }, [batchTargetSpoolId, spools]);
+
+  // Fenster wird geschlossen (ausgeblendet): laufenden Scan sicher beenden, sonst bekäme ein unsichtbarer Leser die Tags
+  useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+      batchLoopRef.current = false;
+    },
+    []
+  );
 
   useEffect(() => {
     if (!isOpen) {
@@ -458,7 +466,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
     } finally {
       setIsBatchWriting(false);
     }
-  }, [spools, onMarkSpoolWritten]);
+  }, [spools, onMarkSpoolWritten, writeFormat]);
 
   // Simulation für Desktop / Entwickler
   const handleSimulateBatchTagContact = () => {
@@ -527,18 +535,18 @@ export const NfcModal: React.FC<NfcModalProps> = ({
     <div className="space-y-2.5">
       <div className="space-y-1.5">
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-text-muted)]" />
           <input
             type="text"
             placeholder="Spule suchen (Marke, Farbe, Material)..."
             value={spoolSearchQuery}
             onChange={e => setSpoolSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition"
+            className="w-full pl-9 pr-8 py-2 rounded-xl bg-[var(--app-input-bg)] border border-[var(--app-border)] text-xs text-[var(--app-text)] placeholder-slate-500 focus:outline-none focus:border-orange-500 transition"
           />
           {spoolSearchQuery && (
             <button
               onClick={() => setSpoolSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--app-text-muted)] hover:text-[var(--app-text)]"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -553,7 +561,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
               className={`px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 transition cursor-pointer ${
                 spoolMaterialFilter === mat
                   ? 'bg-orange-500 text-white shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
+                  : 'bg-[var(--app-card-sub)] text-[var(--app-text-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)]'
               }`}
             >
               {mat === 'ALL' ? 'Alle' : mat}
@@ -562,9 +570,9 @@ export const NfcModal: React.FC<NfcModalProps> = ({
         </div>
       </div>
 
-      <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1 border border-slate-800 rounded-xl p-1 bg-slate-950/60">
+      <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1 border border-[var(--app-border)] rounded-xl p-1 bg-[var(--app-input-bg)]/60">
         {filteredSpools.length === 0 ? (
-          <div className="py-6 text-center text-slate-400 text-xs">
+          <div className="py-6 text-center text-[var(--app-text-muted)] text-xs">
             Keine Spule gefunden für „{spoolSearchQuery}“
           </div>
         ) : (
@@ -577,7 +585,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                 className={`p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-2.5 ${
                   isSelected
                     ? 'bg-orange-500/15 border-orange-500 shadow-sm'
-                    : 'bg-slate-900 hover:bg-slate-850 border-slate-800/80 hover:border-slate-700'
+                    : 'bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] border-[var(--app-border)]/80 hover:border-orange-500/50'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -590,7 +598,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                       <span className="text-[10px] font-extrabold uppercase text-orange-400">
                         {s.brand}
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-bold border border-slate-700">
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--app-card-sub)] text-[var(--app-text)] font-bold border border-[var(--app-border)]">
                         {s.material}
                       </span>
                       {s.nfcWritten ? (
@@ -603,7 +611,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="font-semibold text-xs text-white truncate mt-0.5">
+                    <div className="font-semibold text-xs text-[var(--app-text)] truncate mt-0.5">
                       {s.name}
                     </div>
                   </div>
@@ -617,7 +625,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                     className={`w-5 h-5 rounded-full border flex items-center justify-center transition ${
                       isSelected
                         ? 'border-orange-500 bg-orange-500 text-white'
-                        : 'border-slate-600 bg-slate-800'
+                        : 'border-[var(--app-border)] bg-[var(--app-card-sub)]'
                     }`}
                   >
                     {isSelected && <Check className="w-3 h-3" />}
@@ -655,7 +663,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                 <Tag className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-extrabold text-sm text-white truncate">
+                <h3 className="font-extrabold text-sm text-[var(--app-text)] truncate">
                   Spule auf NFC-Tag schreiben
                 </h3>
                 <p className="text-[11px] text-orange-400 font-semibold truncate">
@@ -669,7 +677,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                 <CheckCircle2 className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-extrabold text-sm text-white truncate">
+                <h3 className="font-extrabold text-sm text-[var(--app-text)] truncate">
                   NFC-Tag Informationen
                 </h3>
                 <p className="text-[11px] text-emerald-400 font-semibold truncate">
@@ -678,7 +686,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold">
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] text-xs font-bold">
               {/* TAB 1: BATCH-MODUS (ALLE SPULEN BESCHREIBEN) */}
               <button
                 onClick={() => {
@@ -688,11 +696,12 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                 className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
                   activeTab === 'batch'
                     ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
                 }`}
               >
                 <Zap className="w-3.5 h-3.5" />
-                <span>Alle Spulen beschreiben</span>
+                <span className="hidden sm:inline">Alle Spulen beschreiben</span>
+                <span className="sm:hidden">Alle</span>
               </button>
 
               {/* TAB 2: LESEN */}
@@ -702,7 +711,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                   startNfcScan();
                 }}
                 className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'read' ? 'bg-orange-500 text-white shadow' : 'text-slate-400 hover:text-white'
+                  activeTab === 'read' ? 'bg-orange-500 text-white shadow' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
                 }`}
               >
                 <Radio className="w-3.5 h-3.5" />
@@ -717,11 +726,12 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                   setWriteErrorMessage('');
                 }}
                 className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'write' ? 'bg-orange-500 text-white shadow' : 'text-slate-400 hover:text-white'
+                  activeTab === 'write' ? 'bg-orange-500 text-white shadow' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
                 }`}
               >
                 <PenTool className="w-3.5 h-3.5" />
-                <span>Einzel-Spule</span>
+                <span className="hidden sm:inline">Einzel-Spule</span>
+                <span className="sm:hidden">Einzeln</span>
               </button>
             </div>
           )}
@@ -733,7 +743,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
                   setActiveTab('batch');
                   setIsBatchActive(true);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold border border-slate-700 transition cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-[var(--app-text)] text-[11px] font-semibold border border-[var(--app-border)] transition cursor-pointer"
                 title="Zur Übersicht aller Spulen"
               >
                 Übersicht
@@ -741,7 +751,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              className="p-1.5 rounded-xl text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-accent-sub)] transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>

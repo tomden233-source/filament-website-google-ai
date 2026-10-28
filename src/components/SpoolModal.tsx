@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Flame, ExternalLink, Zap, Settings2, Check, Scale } from 'lucide-react';
+import { X, Flame, ExternalLink, Zap, Settings2, Scale } from 'lucide-react';
 import { AppSettings, MaterialType, Spool } from '../types/filament';
 import { BRAND_DATABASE, MATERIAL_PRESETS } from '../data/defaultSpools';
 import { COMMON_LOCATIONS } from '../utils/spoolAlerts';
 import { getBambuProfile } from '../data/bambuParameters';
-import { findHexForColorName, generateAutoShopUrl, getBrandInfo, parseFilamentText } from '../utils/shopLinks';
+import { generateAutoShopUrl, getBrandInfo, parseFilamentText } from '../utils/shopLinks';
 
 interface SpoolModalProps {
   isOpen: boolean;
@@ -241,12 +241,12 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
 
           <div className="flex items-center gap-1">
             {/* Toggle Schnell vs Detail */}
-            <div className="flex p-0.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold">
+            <div className="flex p-0.5 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] text-xs font-bold">
               <button
                 type="button"
                 onClick={() => setModalTab('quick')}
                 className={`px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1 ${
-                  modalTab === 'quick' ? 'bg-orange-500 text-white shadow' : 'text-slate-400 hover:text-white'
+                  modalTab === 'quick' ? 'bg-orange-500 text-white shadow' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
                 }`}
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -256,7 +256,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                 type="button"
                 onClick={() => setModalTab('detail')}
                 className={`px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1 ${
-                  modalTab === 'detail' ? 'bg-orange-500 text-white shadow' : 'text-slate-400 hover:text-white'
+                  modalTab === 'detail' ? 'bg-orange-500 text-white shadow' : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
                 }`}
               >
                 <Settings2 className="w-3.5 h-3.5" />
@@ -268,7 +268,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
               onClick={onClose}
               className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer ml-1"
             >
-              <X className="w-5 h-5 text-slate-400" />
+              <X className="w-5 h-5 text-[var(--app-text-muted)]" />
             </button>
           </div>
         </div>
@@ -281,11 +281,12 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
             <div className="space-y-3 text-xs">
               {/* 1. Marke Schnellauswahl */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold text-[var(--app-text)] mb-1">
                   1. Marke / Hersteller:
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {POPULAR_BRANDS.map(b => (
+                  {/* Aktuelle Marke immer sichtbar (auch wenn sie nicht zu den beliebten gehört, z. B. Eryone) */}
+                  {(!isOtherBrand && brand && !POPULAR_BRANDS.includes(brand) ? [brand, ...POPULAR_BRANDS] : POPULAR_BRANDS).map(b => (
                     <button
                       key={b}
                       type="button"
@@ -293,7 +294,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                       className={`px-2.5 py-1.5 rounded-xl font-bold transition cursor-pointer border ${
                         brand === b && !isOtherBrand
                           ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                          : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
+                          : 'bg-[var(--app-card-sub)] text-[var(--app-text)] border-[var(--app-border)] hover:border-slate-500'
                       }`}
                     >
                       {b}
@@ -305,7 +306,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                     className={`px-2.5 py-1.5 rounded-xl font-bold transition cursor-pointer border ${
                       isOtherBrand
                         ? 'bg-orange-500 text-white border-orange-500'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-500'
+                        : 'bg-[var(--app-card-sub)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:border-slate-500'
                     }`}
                   >
                     + Andere
@@ -317,14 +318,14 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                     placeholder="Herstellername eingeben..."
                     value={customBrand}
                     onChange={e => setCustomBrand(e.target.value)}
-                    className="w-full mt-1.5 px-3 py-1.5 rounded-xl text-xs bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
+                    className="w-full mt-1.5 px-3 py-1.5 rounded-xl text-xs bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] focus:outline-none focus:border-orange-500"
                   />
                 )}
               </div>
 
               {/* 2. Material Schnellauswahl */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold text-[var(--app-text)] mb-1">
                   2. Material:
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
@@ -336,7 +337,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                       className={`py-1.5 rounded-xl font-bold transition cursor-pointer border text-center ${
                         material === mat
                           ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                          : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
+                          : 'bg-[var(--app-card-sub)] text-[var(--app-text)] border-[var(--app-border)] hover:border-slate-500'
                       }`}
                     >
                       {mat}
@@ -348,7 +349,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
               {/* 3. Farbe Schnellauswahl */}
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-[11px] font-bold text-slate-300">
+                  <label className="block text-[11px] font-bold text-[var(--app-text)]">
                     3. Farbe ({colorName}):
                   </label>
                   <div className="flex items-center gap-1.5">
@@ -364,7 +365,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-3 min-[420px]:grid-cols-5 gap-1.5">
                   {COMMON_COLORS.map(col => {
                     const isSelected = colorHex.toLowerCase() === col.hex.toLowerCase();
                     return (
@@ -375,14 +376,14 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                         className={`p-1.5 rounded-xl border flex items-center justify-center gap-1.5 transition cursor-pointer ${
                           isSelected
                             ? 'border-orange-500 bg-orange-500/20'
-                            : 'border-slate-700 bg-slate-900 hover:border-slate-600'
+                            : 'border-[var(--app-border)] bg-[var(--app-card-sub)] hover:border-orange-500/50'
                         }`}
                       >
                         <span
                           className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0"
                           style={{ backgroundColor: col.hex }}
                         />
-                        <span className="text-[10px] font-semibold text-slate-200 truncate">
+                        <span className="text-[10px] font-semibold text-[var(--app-text)] truncate">
                           {col.name}
                         </span>
                       </button>
@@ -393,7 +394,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
 
               {/* Bezeichnung Eingabe */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold text-[var(--app-text)] mb-1">
                   Bezeichnung / Name:
                 </label>
                 <input
@@ -401,18 +402,18 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                   placeholder={`z.B. ${brand} ${material} ${colorName}`}
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl text-xs bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full px-3 py-1.5 rounded-xl text-xs bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               {/* 4. Gewicht & Tara-Waage */}
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="p-3 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                  <span className="text-[11px] font-bold text-[var(--app-text)] flex items-center gap-1">
                     <Scale className="w-3.5 h-3.5 text-orange-400" />
                     <span>4. Netto-Filament ({remainingWeight}g Rest)</span>
                   </span>
-                  <span className="text-[10px] text-slate-400">Leerspule: {emptySpoolWeight}g</span>
+                  <span className="text-[10px] text-[var(--app-text-muted)]">Leerspule: {emptySpoolWeight}g</span>
                 </div>
 
                 <div className="flex gap-1.5">
@@ -427,7 +428,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                       className={`flex-1 py-1.5 rounded-lg text-xs font-mono-num font-bold border transition cursor-pointer text-center ${
                         remainingWeight === w
                           ? 'bg-orange-500 text-white border-orange-500'
-                          : 'bg-slate-950 text-slate-300 border-slate-700'
+                          : 'bg-[var(--app-input-bg)] text-[var(--app-text)] border-[var(--app-border)]'
                       }`}
                     >
                       {w}g
@@ -436,14 +437,14 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                 </div>
 
                 {/* Optional mit Küchenwaage gewogen */}
-                <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
-                  <span className="text-[11px] text-slate-400">Oder Brutto auf Waage:</span>
+                <div className="flex items-center gap-2 pt-1 border-t border-[var(--app-border)]/80">
+                  <span className="text-[11px] text-[var(--app-text-muted)]">Oder Brutto auf Waage:</span>
                   <input
                     type="number"
                     placeholder="z.B. 1250g"
                     value={scaleGross}
                     onChange={e => handleScaleGrossChange(e.target.value)}
-                    className="w-24 px-2.5 py-1 rounded-lg text-xs font-mono-num bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-orange-500 text-center"
+                    className="w-24 px-2.5 py-1 rounded-lg text-xs font-mono-num bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] focus:outline-none focus:border-orange-500 text-center"
                   />
                   <span className="text-[11px] text-emerald-400 font-mono-num font-bold">
                     = {remainingWeight}g Netto
@@ -459,7 +460,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
           {modalTab === 'detail' && (
             <div className="space-y-3 text-xs">
               {/* Shop-Link */}
-              <div className="rounded-xl border border-orange-500/30 p-2.5 space-y-1.5 bg-slate-900/60">
+              <div className="rounded-xl border border-orange-500/30 p-2.5 space-y-1.5 bg-[var(--app-card-sub)]/60">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-bold text-orange-400 uppercase">
                     Shop-Link zum Nachbestellen:
@@ -480,7 +481,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                     placeholder="Leer lassen für automatischen Shop-Link"
                     value={productUrl}
                     onChange={e => setProductUrl(e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg text-xs bg-slate-950 border border-slate-700 text-white outline-none focus:border-orange-500"
+                    className="flex-1 px-2.5 py-1.5 rounded-lg text-xs bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] outline-none focus:border-orange-500"
                   />
                   <button
                     type="button"
@@ -495,37 +496,37 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
               {/* Preis & Gewichte Detail */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Preis (€/kg)</label>
+                  <label className="block text-[11px] text-[var(--app-text-muted)] mb-1">Preis (€/kg)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={pricePerKg}
                     onChange={e => setPricePerKg(parseFloat(e.target.value) || 19.99)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Leerspule (g)</label>
+                  <label className="block text-[11px] text-[var(--app-text-muted)] mb-1">Leerspule (g)</label>
                   <input
                     type="number"
                     value={emptySpoolWeight}
                     onChange={e => setEmptySpoolWeight(parseInt(e.target.value) || 200)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Startgewicht (g)</label>
+                  <label className="block text-[11px] text-[var(--app-text-muted)] mb-1">Startgewicht (g)</label>
                   <input
                     type="number"
                     value={initialWeight}
                     onChange={e => setInitialWeight(parseInt(e.target.value) || 1000)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono-num"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num"
                   />
                 </div>
               </div>
 
               {/* Trocknungsprozess */}
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="p-3 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                     <Flame className="w-4 h-4" />
@@ -541,73 +542,73 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Intervall (Tage)</label>
+                    <label className="block text-[10px] text-[var(--app-text-muted)] mb-0.5">Intervall (Tage)</label>
                     <input
                       type="number"
                       value={dryIntervalDays}
                       onChange={e => setDryIntervalDays(parseInt(e.target.value) || 30)}
-                      className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-white font-mono-num text-xs"
+                      className="w-full px-2 py-1 rounded bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Temp (°C)</label>
+                    <label className="block text-[10px] text-[var(--app-text-muted)] mb-0.5">Temp (°C)</label>
                     <input
                       type="number"
                       value={dryTemp}
                       onChange={e => setDryTemp(parseInt(e.target.value) || 50)}
-                      className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-white font-mono-num text-xs"
+                      className="w-full px-2 py-1 rounded bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Dauer (Std.)</label>
+                    <label className="block text-[10px] text-[var(--app-text-muted)] mb-0.5">Dauer (Std.)</label>
                     <input
                       type="number"
                       value={dryHours}
                       onChange={e => setDryHours(parseInt(e.target.value) || 5)}
-                      className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-white font-mono-num text-xs"
+                      className="w-full px-2 py-1 rounded bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num text-xs"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Material-Profil: beste Temperaturen, werden beim Einlegen ins AMS vorgeschlagen */}
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="p-3 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] space-y-2">
                 <span className="text-xs font-bold text-sky-400">Beste Druck-Temperaturen (Profil)</span>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Düse (°C)</label>
+                    <label className="block text-[10px] text-[var(--app-text-muted)] mb-0.5">Düse (°C)</label>
                     <input
                       type="number"
                       placeholder={String(getBambuProfile(isOtherBrand ? customBrand || 'Sonstige' : brand, material).nozzleTempOtherLayers)}
                       value={nozzleTemp}
                       onChange={e => setNozzleTemp(e.target.value)}
-                      className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-white font-mono-num text-xs"
+                      className="w-full px-2 py-1 rounded bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 mb-0.5">Bett (°C)</label>
+                    <label className="block text-[10px] text-[var(--app-text-muted)] mb-0.5">Bett (°C)</label>
                     <input
                       type="number"
                       placeholder={String(getBambuProfile(isOtherBrand ? customBrand || 'Sonstige' : brand, material).bedTempTexturedPEI)}
                       value={bedTemp}
                       onChange={e => setBedTemp(e.target.value)}
-                      className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-white font-mono-num text-xs"
+                      className="w-full px-2 py-1 rounded bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num text-xs"
                     />
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-500">Leer lassen = Standardwert des Materials. Trocknungszeit und -temperatur stehen oben.</p>
+                <p className="text-[10px] text-[var(--app-text-muted)]">Leer lassen = Standardwert des Materials. Trocknungszeit und -temperatur stehen oben.</p>
               </div>
 
               {/* Lagerort */}
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Lagerort:</label>
+                <label className="block text-[11px] text-[var(--app-text-muted)] mb-1">Lagerort:</label>
                 <input
                   type="text"
                   list="spool-location-options"
                   placeholder="z.B. Regal 2, Box, Trockner"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs"
+                  className="w-full px-3 py-1.5 rounded-xl bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-xs"
                 />
                 <datalist id="spool-location-options">
                   {Array.from(new Set([...locationOptions, ...COMMON_LOCATIONS])).map(l => (
@@ -620,7 +621,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                       key={l}
                       type="button"
                       onClick={() => setLocation(l)}
-                      className="px-2 py-0.5 rounded-lg border text-[10px] font-bold cursor-pointer bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                      className="px-2 py-0.5 rounded-lg border text-[10px] font-bold cursor-pointer bg-[var(--app-card-sub)] border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-accent-sub)]"
                     >
                       {l}
                     </button>
@@ -632,7 +633,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onPrintLabel(spoolToEdit)}
-                  className="w-full px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+                  className="w-full px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer bg-[var(--app-card-sub)] border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-accent-sub)]"
                 >
                   QR-Etikett drucken
                 </button>
@@ -640,13 +641,13 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
 
               {/* Lagerort / Notiz */}
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Lagerort / Notiz / NFC-Tag:</label>
+                <label className="block text-[11px] text-[var(--app-text-muted)] mb-1">Lagerort / Notiz / NFC-Tag:</label>
                 <input
                   type="text"
                   placeholder="z.B. Box 3, Vakuumbeutel, NFC Tag #2"
                   value={storageNote}
                   onChange={e => setStorageNote(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs"
+                  className="w-full px-3 py-1.5 rounded-xl bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-xs"
                 />
               </div>
             </div>
@@ -657,7 +658,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer border bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 transition"
+              className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer border bg-[var(--app-card-sub)] text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-accent-sub)] transition"
             >
               Abbrechen
             </button>

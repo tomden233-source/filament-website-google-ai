@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* "dark:" folgt dem App-Theme (Dämmerung/Nacht), nicht der Handy-/PC-Einstellung */
+@custom-variant dark (&:where([data-theme="slate"], [data-theme="slate"] *, [data-theme="midnight"], [data-theme="midnight"] *));
+
 /* Die Akzentfarbe steuert auch alle bisherigen "orange"-Klassen (Tailwind), damit Blau, Grün usw. überall greifen */
 @theme {
   --color-orange-100: var(--a-100);
@@ -86,6 +89,9 @@
   --app-accent: #f97316;
   --app-accent-hover: #ea580c;
   --app-accent-sub: rgba(249, 115, 22, 0.15);
+  /* Akzent als Schriftfarbe: je nach Hintergrund dunkler (hell) oder heller (dunkel), damit sie lesbar bleibt */
+  --app-accent-text: var(--a-700);
+  --app-danger-text: #dc2626;
 }
 
 /* 5 Helligkeitsstufen, gleichmäßig von hell nach dunkel verteilt */
@@ -125,10 +131,12 @@
 
 /* 4. DÄMMERUNG (ca. 35 % Dunkel) */
 [data-theme="slate"] {
-  --app-bg: #475467;
-  --app-card: #566377;
-  --app-card-sub: #4d5a6e;
-  --app-border: #6b778b;
+  --app-accent-text: var(--a-300);
+  --app-danger-text: #fda4af;
+  --app-bg: #3d4859;
+  --app-card: #4a566a;
+  --app-card-sub: #424e61;
+  --app-border: #637085;
   --app-text: #f8fafc;
   --app-text-muted: #d3dae5;
   --app-input-bg: #3b4659;
@@ -136,6 +144,8 @@
 
 /* 5. NACHT (ca. 6 % fast schwarz) */
 [data-theme="midnight"] {
+  --app-accent-text: var(--a-400);
+  --app-danger-text: #f87171;
   --app-bg: #0b111e;
   --app-card: #141c2c;
   --app-card-sub: #0d1422;
@@ -197,9 +207,52 @@
   }
 }
 
+/* Regler, Häkchen und Auswahlfelder in der Akzentfarbe */
+input[type='range'],
+input[type='checkbox'],
+input[type='radio'],
+progress {
+  accent-color: var(--app-accent);
+}
+
+/* Native Auswahllisten und Felder passen sich hell/dunkel an */
+:root[data-theme='slate'],
+:root[data-theme='midnight'] {
+  color-scheme: dark;
+}
+:root[data-theme='polar'],
+:root[data-theme='warm'],
+:root[data-theme='titanium'] {
+  color-scheme: light;
+}
+
 .font-mono-num {
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
+}
+
+/* Sanftes Einblenden für Fenster, Meldungen und Hinweise */
+@keyframes fh-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fadeIn,
+.animate-fade-in,
+.animate-in {
+  animation: fh-fade-in 0.18s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn,
+  .animate-fade-in,
+  .animate-in {
+    animation: none;
+  }
 }
 
 @keyframes pulse-border {
@@ -231,3 +284,158 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--app-accent);
 }
+
+/* Helle Themes: Farbtöne, die für dunkle Flächen gedacht waren (…-300/-400), werden dunkler,
+   damit Text und Symbole auf hellem Grund gut lesbar sind. Dunkle Themes bleiben unverändert. */
+:root[data-theme="polar"],
+:root[data-theme="warm"],
+:root[data-theme="titanium"] {
+  --a-300: var(--a-700);
+  --a-400: var(--a-700);
+  --color-rose-300: #be123c;
+  --color-rose-400: #e11d48;
+  --color-red-300: #b91c1c;
+  --color-red-400: #dc2626;
+  --color-emerald-300: #047857;
+  --color-emerald-400: #047857;
+  --color-green-300: #15803d;
+  --color-green-400: #15803d;
+  --color-teal-300: #0f766e;
+  --color-teal-400: #0f766e;
+  --color-cyan-300: #0e7490;
+  --color-cyan-400: #0e7490;
+  --color-sky-300: #0369a1;
+  --color-sky-400: #0369a1;
+  --color-blue-300: #1d4ed8;
+  --color-blue-400: #2563eb;
+  --color-indigo-300: #4338ca;
+  --color-indigo-400: #4f46e5;
+  --color-violet-300: #6d28d9;
+  --color-violet-400: #7c3aed;
+  --color-purple-300: #7e22ce;
+  --color-purple-400: #9333ea;
+  --color-fuchsia-300: #a21caf;
+  --color-fuchsia-400: #c026d3;
+  --color-pink-300: #be185d;
+  --color-pink-400: #db2777;
+  --color-amber-300: #b45309;
+  --color-amber-400: #b45309;
+  --color-yellow-300: #a16207;
+  --color-yellow-400: #a16207;
+  --color-lime-300: #4d7c0f;
+  --color-lime-400: #4d7c0f;
+}
+
+/* Kräftige Schriftfarben (…-500) auf hellem Grund etwas dunkler, damit Zahlen und Warnungen gut lesbar sind */
+:root[data-theme="polar"] .text-emerald-500,
+:root[data-theme="warm"] .text-emerald-500,
+:root[data-theme="titanium"] .text-emerald-500 { color: #047857; }
+:root[data-theme="polar"] .text-green-500,
+:root[data-theme="warm"] .text-green-500,
+:root[data-theme="titanium"] .text-green-500 { color: #15803d; }
+:root[data-theme="polar"] .text-amber-500,
+:root[data-theme="warm"] .text-amber-500,
+:root[data-theme="titanium"] .text-amber-500 { color: #b45309; }
+:root[data-theme="polar"] .text-sky-500,
+:root[data-theme="warm"] .text-sky-500,
+:root[data-theme="titanium"] .text-sky-500 { color: #0369a1; }
+:root[data-theme="polar"] .text-rose-500,
+:root[data-theme="warm"] .text-rose-500,
+:root[data-theme="titanium"] .text-rose-500 { color: #e11d48; }
+:root[data-theme="polar"] .text-orange-500,
+:root[data-theme="warm"] .text-orange-500,
+:root[data-theme="titanium"] .text-orange-500 { color: var(--a-700); }
+
+/* Dämmerung (mittel-dunkel): farbige Schrift heller, sonst verschwimmt sie im Grau */
+:root[data-theme="slate"] {
+  --color-emerald-300: #a7f3d0;
+  --color-emerald-400: #6ee7b7;
+  --color-green-300: #bbf7d0;
+  --color-green-400: #86efac;
+  --color-rose-300: #fecdd3;
+  --color-rose-400: #fda4af;
+  --color-red-300: #fecaca;
+  --color-red-400: #fca5a5;
+  --color-sky-300: #bae6fd;
+  --color-sky-400: #7dd3fc;
+  --color-cyan-300: #a5f3fc;
+  --color-cyan-400: #67e8f9;
+  --color-blue-300: #bfdbfe;
+  --color-blue-400: #93c5fd;
+  --color-amber-300: #fde68a;
+  --color-amber-400: #fcd34d;
+  --color-yellow-300: #fef08a;
+  --color-yellow-400: #fde047;
+  --color-violet-300: #ddd6fe;
+  --color-violet-400: #c4b5fd;
+  --color-teal-300: #99f6e4;
+  --color-teal-400: #5eead4;
+  --a-400: var(--a-300);
+}
+:root[data-theme="slate"] .text-emerald-500 { color: #6ee7b7; }
+:root[data-theme="slate"] .text-rose-500 { color: #fda4af; }
+:root[data-theme="slate"] .text-amber-500 { color: #fcd34d; }
+:root[data-theme="slate"] .text-sky-500 { color: #7dd3fc; }
+:root[data-theme="slate"] .text-orange-500 { color: var(--a-300); }
+
+/* Grau (mittelhell): noch eine Stufe dunkler, weil der graue Grund wenig Kontrast lässt */
+:root[data-theme="titanium"] {
+  --a-300: color-mix(in srgb, var(--a-700) 78%, black);
+  --a-400: color-mix(in srgb, var(--a-700) 78%, black);
+  --app-accent-text: color-mix(in srgb, var(--a-700) 78%, black);
+  --app-danger-text: #991b1b;
+  --color-rose-300: #9f1239;
+  --color-rose-400: #9f1239;
+  --color-red-300: #991b1b;
+  --color-red-400: #991b1b;
+  --color-emerald-300: #065f46;
+  --color-emerald-400: #065f46;
+  --color-green-300: #166534;
+  --color-green-400: #166534;
+  --color-teal-300: #115e59;
+  --color-teal-400: #115e59;
+  --color-cyan-300: #155e75;
+  --color-cyan-400: #155e75;
+  --color-sky-300: #075985;
+  --color-sky-400: #075985;
+  --color-blue-300: #1e40af;
+  --color-blue-400: #1e40af;
+  --color-violet-300: #5b21b6;
+  --color-violet-400: #5b21b6;
+  --color-amber-300: #92400e;
+  --color-amber-400: #92400e;
+  --color-yellow-300: #854d0e;
+  --color-yellow-400: #854d0e;
+}
+:root[data-theme="titanium"] .text-emerald-500 { color: #065f46; }
+:root[data-theme="titanium"] .text-rose-500 { color: #9f1239; }
+:root[data-theme="titanium"] .text-amber-500 { color: #92400e; }
+:root[data-theme="titanium"] .text-sky-500 { color: #075985; }
+:root[data-theme="titanium"] .text-orange-500 { color: var(--app-accent-text); }
+
+/* Soft (Standard): grüne/rote Schrift auf hellen Tönungen ebenfalls etwas kräftiger */
+:root[data-theme="warm"] {
+  --color-rose-300: #9f1239;
+  --color-rose-400: #9f1239;
+  --color-red-300: #991b1b;
+  --color-red-400: #991b1b;
+  --color-emerald-300: #065f46;
+  --color-emerald-400: #065f46;
+  --color-green-300: #166534;
+  --color-green-400: #166534;
+  --color-teal-300: #115e59;
+  --color-teal-400: #115e59;
+  --color-cyan-300: #155e75;
+  --color-cyan-400: #155e75;
+  --color-sky-300: #075985;
+  --color-sky-400: #075985;
+  --color-blue-300: #1e40af;
+  --color-blue-400: #1e40af;
+  --color-violet-300: #5b21b6;
+  --color-violet-400: #5b21b6;
+  --color-amber-300: #92400e;
+  --color-amber-400: #92400e;
+  --color-yellow-300: #854d0e;
+  --color-yellow-400: #854d0e;
+}
+:root[data-theme="warm"] .text-emerald-500 { color: #065f46; }

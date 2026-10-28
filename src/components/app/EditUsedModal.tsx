@@ -1,5 +1,6 @@
 import React from 'react';
 import { Edit3 } from 'lucide-react';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 
 export interface EditUsedModalProps {
   setIsEditUsedModalOpen: any;
@@ -14,6 +15,7 @@ export const EditUsedModal: React.FC<EditUsedModalProps> = ({
   setEditUsedInputValue,
   handleSaveUsedGrams
 }) => {
+  useEscapeClose(() => setIsEditUsedModalOpen(false));
   return (
 <div
           onClick={() => setIsEditUsedModalOpen(false)}
@@ -44,7 +46,7 @@ export const EditUsedModal: React.FC<EditUsedModalProps> = ({
               </div>
               <button
                 onClick={() => setIsEditUsedModalOpen(false)}
-                className="p-1.5 rounded-lg border text-slate-400 hover:text-white transition cursor-pointer"
+                className="p-1.5 rounded-lg border text-[var(--app-text-muted)] hover:text-[var(--app-text)] transition cursor-pointer"
                 style={{ borderColor: 'var(--app-border)' }}
               >
                 ✕
@@ -71,7 +73,7 @@ export const EditUsedModal: React.FC<EditUsedModalProps> = ({
                     }}
                     placeholder="0"
                   />
-                  <span className="font-bold text-sm text-slate-400">g</span>
+                  <span className="font-bold text-sm text-[var(--app-text-muted)]">g</span>
                 </div>
               </div>
 
@@ -97,7 +99,7 @@ export const EditUsedModal: React.FC<EditUsedModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsEditUsedModalOpen(false)}
-                className="px-3.5 py-1.5 rounded-xl border text-xs font-semibold hover:bg-white/5 transition cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl border text-xs font-semibold hover:bg-[var(--app-accent-sub)] transition cursor-pointer"
                 style={{ borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
               >
                 Abbrechen

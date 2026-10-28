@@ -201,38 +201,6 @@ export function useHomeAssistantPanel({ activeTab, settingsSubTab }: useHomeAssi
     }
   }, [activeTab, settingsSubTab]);
 
-  const handleSetHaNozzle = async (tempVal: number) => {
-    try {
-      const res = await homeAssistantApi.setTemperature('nozzle', tempVal);
-      const data = res.data;
-      if (res.ok && data.success) {
-        setHaActionToast(`Düse auf ${tempVal}°C gesetzt!`);
-        addSystemLog('temp', `Home Assistant: Düsentemperatur auf ${tempVal}°C gesetzt`, 'X1C / X2D', 'info');
-        fetchHaTelemetry();
-      } else {
-        setHaActionToast(data.error || 'Fehler beim Setzen der Temperatur.');
-      }
-    } catch {
-      setHaActionToast('Verbindungsfehler zu Home Assistant.');
-    }
-  };
-
-  const handleSetHaBed = async (tempVal: number) => {
-    try {
-      const res = await homeAssistantApi.setTemperature('bed', tempVal);
-      const data = res.data;
-      if (res.ok && data.success) {
-        setHaActionToast(`Druckbett auf ${tempVal}°C gesetzt!`);
-        addSystemLog('temp', `Home Assistant: Druckbett auf ${tempVal}°C gesetzt`, 'X1C / X2D', 'info');
-        fetchHaTelemetry();
-      } else {
-        setHaActionToast(data.error || 'Fehler beim Setzen der Temperatur.');
-      }
-    } catch {
-      setHaActionToast('Verbindungsfehler zu Home Assistant.');
-    }
-  };
-
   const handleToggleHaLight = async () => {
     const nextMode = haLightActive ? 'off' : 'on';
     try {

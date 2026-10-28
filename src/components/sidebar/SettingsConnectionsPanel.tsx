@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Printer, Home, Cloud, CheckCircle2, Circle, ChevronDown, ChevronUp, Info, Settings2 } from 'lucide-react';
 import { safeStorage } from '../../utils/safeStorage';
+import { getHaCredentials } from '../../utils/haClient';
 import { IS_STATIC, IS_NATIVE } from '../../utils/env';
 
 export interface SettingsConnectionsPanelProps {
@@ -57,13 +58,15 @@ export const SettingsConnectionsPanel: React.FC<SettingsConnectionsPanelProps> =
 }) => {
   const [haOpen, setHaOpen] = useState(true);
   const bambuOk = !!safeStorage.getItem('bambu_access_token');
-  const haOk = !!haUrl?.trim();
+  // Eingerichtet heißt: Adresse UND Token da (die Adresse hat einen Standardwert, der allein nichts bringt)
+  const haToken = getHaCredentials().token;
+  const haOk = !!haUrl?.trim() && !!haToken;
 
   return (
     <div className="space-y-3.5">
       {/* Einleitung */}
       <div className="rounded-2xl border p-3.5 flex gap-2.5" style={card}>
-        <Info className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--app-accent)' }} />
+        <Info className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--app-accent-text)' }} />
         <p className="text-[11px] leading-relaxed" style={muted}>
           Hier verbindest du FilamentHub mit deinen Geräten. Alle Angaben sind freiwillig und werden nur auf diesem
           Gerät gespeichert. Ohne Verbindung funktioniert die Filament-Verwaltung ganz normal.
@@ -131,7 +134,7 @@ export const SettingsConnectionsPanel: React.FC<SettingsConnectionsPanelProps> =
               <p className="text-[10px]" style={muted}>Steckdose, Licht, Kamera, Sensoren</p>
             </div>
           </div>
-          <Status ok={haOk} okText="Eingerichtet" noText="Nicht verbunden" />
+          <Status ok={haOk} okText="Eingerichtet" noText={haUrl?.trim() && !haToken ? 'Token fehlt' : 'Nicht verbunden'} />
         </header>
 
         <p className="text-[11px] leading-relaxed" style={muted}>

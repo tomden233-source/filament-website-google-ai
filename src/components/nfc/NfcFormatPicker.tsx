@@ -15,7 +15,7 @@ const OPTIONS: { id: NfcWriteFormat; title: string; hint: string; badge?: string
 export const NfcFormatPicker: React.FC<NfcFormatPickerProps> = ({ writeFormat, setWriteFormat }) => {
   return (
     <div className="space-y-1.5">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tag-Format</span>
+      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--app-text-muted)]">Tag-Format</span>
       <div className="grid grid-cols-2 gap-2">
         {OPTIONS.map(opt => {
           const active = writeFormat === opt.id;
@@ -30,7 +30,7 @@ export const NfcFormatPicker: React.FC<NfcFormatPickerProps> = ({ writeFormat, s
                 borderColor: active ? 'var(--app-accent)' : 'var(--app-border)'
               }}
             >
-              <span className="flex items-center gap-1.5 text-[11px] font-extrabold" style={{ color: active ? 'var(--app-accent)' : 'var(--app-text)' }}>
+              <span className="flex items-center gap-1.5 text-[11px] font-extrabold" style={{ color: active ? 'var(--app-accent-text)' : 'var(--app-text)' }}>
                 {opt.title}
                 {opt.badge && (
                   <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white" style={{ backgroundColor: 'var(--app-accent)' }}>

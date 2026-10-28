@@ -63,22 +63,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   onUndo,
   onRedo,
   onOpenQr,
-  onSyncCloud,
-  isSyncing,
-  syncOk,
   onOpenHistory,
   onOpenWorkshop,
   historyCount,
   onOpenNewSpool,
   onOpenNfc,
-  activeVersionLabel,
-  versionProfiles = [],
   activeVersionId = 'v1.61',
-  onSelectVersion,
-  onCreateVersionProfile,
-  onRestoreDefault,
   onOpenCamera,
-  onOpenPWAInstall,
   onOpenConnectPrinter
 }) => {
   // Installierte Web-App oder Android-App: Browser-Hilfen (Umschalter, Webseite öffnen, QR) sind dort überflüssig
@@ -159,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 deviceMode === 'app'
                   ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-sm'
-                  : 'hover:text-white'
+                  : 'hover:text-[var(--app-text)]'
               }`}
               style={{
                 color: deviceMode === 'app' ? '#ffffff' : 'var(--app-text-muted)'
@@ -173,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 deviceMode === 'desktop'
                   ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-sm'
-                  : 'hover:text-white'
+                  : 'hover:text-[var(--app-text)]'
               }`}
               style={{
                 color: deviceMode === 'desktop' ? '#ffffff' : 'var(--app-text-muted)'
@@ -254,7 +245,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Globe className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-[11px] font-bold hidden md:inline">Webseite öffnen</span>
-            <ExternalLink className="w-3 h-3 text-slate-400" />
+            <ExternalLink className="w-3 h-3 text-[var(--app-text-muted)]" />
           </a>
 
           {/* KOMBINIERTES APP- & QR-SYMBOL */}
@@ -265,7 +256,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             style={{
               backgroundColor: 'var(--app-card-sub)',
               borderColor: 'var(--app-border)',
-              color: 'var(--app-accent)'
+              color: 'var(--app-accent-text)'
             }}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -310,6 +301,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Druck-Verlauf Log */}
           <button
             onClick={onOpenHistory}
+            title="Verlauf: Drucke vom Drucker und Abzüge"
+            aria-label="Verlauf öffnen"
             className="inline-flex items-center gap-1 px-2 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer"
             style={{
               backgroundColor: 'var(--app-card-sub)',

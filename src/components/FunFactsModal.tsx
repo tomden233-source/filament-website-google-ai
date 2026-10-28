@@ -17,6 +17,7 @@ import {
   CalendarDays,
   Euro
 } from 'lucide-react';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 import type { HistoryEntry, Spool } from '../types/filament';
 import { INITIAL_VERSION_PROFILES } from '../data/defaultSpools';
 import { STORAGE_KEY_HISTORY } from '../utils/storageKeys';
@@ -36,11 +37,11 @@ interface FunFactsModalProps {
 //  SCHÄTZUNG = ungefähr, genauer geht es nicht
 type Source = 'LIVE' | 'BAUEN' | 'GEZÄHLT' | 'SCHÄTZUNG';
 
-// Von Claude beim Update auf v1.72 gezählt
+// Von Claude beim Update auf v1.73 gezählt
 const CHATS = 5; // Chats im Projekt „filament webseite“
-const MESSAGES = 85; // deine Nachrichten in diesen Chats (ca.)
+const MESSAGES = 87; // deine Nachrichten in diesen Chats (ca.)
 const WORDS = 14000; // deine Wörter (ca., lange Sprachnachrichten zählen voll)
-const COMMITS = 45; // Commits auf GitHub (main)
+const COMMITS = 46; // Commits auf GitHub (main)
 const PROJECT_START = new Date('2026-10-19T00:00:00');
 
 const fmt = (n: number, digits = 0) => n.toLocaleString('de-DE', { maximumFractionDigits: digits, minimumFractionDigits: digits });
@@ -64,6 +65,7 @@ function readHistory(): HistoryEntry[] {
 }
 
 export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose, spools = [] }) => {
+  useEscapeClose(onClose, isOpen);
   const [tasks, setTasks] = useState<PrintTask[] | null>(null);
   const [tasksError, setTasksError] = useState<string | null>(null);
 
@@ -266,7 +268,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose, s
                   <div className="flex items-center gap-2 min-w-0">
                     <div
                       className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: 'var(--app-accent-sub)', color: 'var(--app-accent)' }}
+                      style={{ backgroundColor: 'var(--app-accent-sub)', color: 'var(--app-accent-text)' }}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
@@ -278,7 +280,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose, s
                     {src.label}
                   </span>
                 </div>
-                <div className={`${fact.big ? 'text-2xl' : 'text-lg'} font-extrabold font-mono-num tracking-tight leading-tight`} style={{ color: 'var(--app-accent)' }}>
+                <div className={`${fact.big ? 'text-2xl' : 'text-lg'} font-extrabold font-mono-num tracking-tight leading-tight`} style={{ color: 'var(--app-accent-text)' }}>
                   {fact.value}
                 </div>
                 <p className="text-[11px] leading-snug" style={{ color: 'var(--app-text-muted)' }}>

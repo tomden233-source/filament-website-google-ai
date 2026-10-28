@@ -3,9 +3,10 @@ import { Edit3, Wand2, Camera, Search, X, ArrowUpDown, Tag, Layers } from 'lucid
 import { BambuPrinterWidget } from '../BambuPrinterWidget';
 import { SpoolCard } from '../SpoolCard';
 import { LocationFilter } from '../workshop/LocationFilter';
+import type { Spool } from '../../types/filament';
 
 export interface DesktopDashboardProps {
-  spools: any;
+  spools: Spool[];
   totalGrams: any;
   totalValue: any;
   dueDryingCount: any;
@@ -29,7 +30,7 @@ export interface DesktopDashboardProps {
   setSortBy: any;
   activeMaterialFilter: any;
   setActiveMaterialFilter: any;
-  filteredSpools: any;
+  filteredSpools: Spool[];
   appSettings: any;
   now: any;
   handleApplyScale: (...args: any[]) => any;

@@ -1,7 +1,12 @@
 // Supvan/Katasymbol Funk-Protokoll (T50-Familie, dazu gehört der E10).
 // Nachgebaut nach dem MIT-lizenzierten Reverse-Engineering-Treiber heeen/supvan-cups.
 // LZMA: LZMA-JS (MIT, N. Rugg) mit kleiner 8-KiB-Wörterbuch-Erweiterung, siehe lzma.js.
-import LZMA from './lzma.js';
+// Wird erst beim ersten Drucken geladen (ca. 110 KB), damit die App schneller startet.
+let lzmaLib: any = null;
+async function loadLzma(): Promise<any> {
+  if (!lzmaLib) lzmaLib = (await import('./lzma.js')).default;
+  return lzmaLib;
+}
 
 export const CMD = {
   BUF_FULL: 0x10,
@@ -141,7 +146,8 @@ export function splitIntoBuffers(raster: Uint8Array, perLineByte: number, totalC
 }
 
 export function compressLzma(data: Uint8Array): Uint8Array {
-  const out = (LZMA as any).compress(data, { s: 13, f: 128, m: 1 }) as number[];
+  if (!lzmaLib) throw new Error("LZMA ist noch nicht geladen (zuerst compressBuffers aufrufen).");
+  const out = lzmaLib.compress(data, { s: 13, f: 128, m: 1 }) as number[];
   return Uint8Array.from(out, b => b & 0xff);
 }
 
@@ -157,7 +163,8 @@ function calcSpeed(avg: number): number {
 }
 
 /** Ein Puffer pro Block (der E10 druckt je Block nur den ersten Puffer) */
-export function compressBuffers(buffers: Uint8Array[]): { blocks: Uint8Array[]; speed: number } {
+export async function compressBuffers(buffers: Uint8Array[]): Promise<{ blocks: Uint8Array[]; speed: number }> {
+  await loadLzma();
   const blocks = buffers.map(b => compressLzma(b));
   const avg = blocks.reduce((n, b) => n + b.length, 0) / Math.max(1, blocks.length);
   return { blocks, speed: blocks.length > 1 ? 20 : calcSpeed(avg) };

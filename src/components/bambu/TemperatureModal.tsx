@@ -1,5 +1,6 @@
 import React from 'react';
 import { Flame, X, RefreshCw } from 'lucide-react';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 
 export interface TemperatureModalProps {
   setTempModalTarget: any;
@@ -18,6 +19,7 @@ export const TemperatureModal: React.FC<TemperatureModalProps> = ({
   handleSetTemperature,
   actionLoading
 }) => {
+  useEscapeClose(() => setTempModalTarget(null));
   return (
 <div
           onClick={() => setTempModalTarget(null)}
@@ -73,7 +75,7 @@ export const TemperatureModal: React.FC<TemperatureModalProps> = ({
                         className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition cursor-pointer text-center ${
                           tempModalValue === String(b.val)
                             ? 'bg-rose-500/25 border-rose-500 text-rose-300 font-extrabold'
-                            : 'border-white/10 text-slate-300 hover:bg-white/5'
+                            : 'border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-accent-sub)]'
                         }`}
                       >
                         {b.label}
@@ -93,7 +95,7 @@ export const TemperatureModal: React.FC<TemperatureModalProps> = ({
                         className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition cursor-pointer text-center ${
                           tempModalValue === String(b.val)
                             ? 'bg-orange-500/25 border-orange-500 text-orange-300 font-extrabold'
-                            : 'border-white/10 text-slate-300 hover:bg-white/5'
+                            : 'border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-accent-sub)]'
                         }`}
                       >
                         {b.label}
@@ -121,7 +123,7 @@ export const TemperatureModal: React.FC<TemperatureModalProps> = ({
                     color: 'var(--app-text)'
                   }}
                 />
-                <span className="text-sm font-bold text-slate-400">°C</span>
+                <span className="text-sm font-bold text-[var(--app-text-muted)]">°C</span>
               </div>
             </div>
 

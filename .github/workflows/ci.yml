@@ -15,9 +15,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Typprüfung: zeigt Fehler an, blockiert aber noch nicht (viele Altlasten). Später auf "blockierend" stellen.
+      # Typprüfung: seit v1.73 fehlerfrei, darum jetzt blockierend (neue Fehler fallen sofort auf)
       - name: Typprüfung
         run: npm run lint
-        continue-on-error: true
       - name: Build
         run: npm run build

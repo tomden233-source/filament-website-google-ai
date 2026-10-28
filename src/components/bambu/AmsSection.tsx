@@ -150,7 +150,7 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                       aria-label={`NFC-Tag für Slot ${slotIdx} lesen`}
                       title="Tag lesen und diesem Slot zuweisen"
                       className="w-7 h-7 rounded-full border flex items-center justify-center shrink-0 cursor-pointer active:scale-90"
-                      style={{ borderColor: 'var(--app-accent)', color: 'var(--app-accent)', backgroundColor: 'var(--app-accent-sub)' }}
+                      style={{ borderColor: 'var(--app-accent)', color: 'var(--app-accent-text)', backgroundColor: 'var(--app-accent-sub)' }}
                     >
                       <Nfc className="w-3.5 h-3.5" />
                     </button>
@@ -206,14 +206,14 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                       isDryingActive
                         ? 'bg-sky-500/20 text-sky-300 border-sky-400/50 animate-pulse'
-                        : 'bg-white/5 text-slate-400 border-white/10'
+                        : 'bg-[var(--app-card-sub)] text-[var(--app-text-muted)] border-[var(--app-border)]'
                     }`}
                   >
                     {isDryingActive ? '🔥 Trocknung aktiv' : 'Inaktiv (Standby)'}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+                <div className="flex items-center gap-2 text-[11px] text-[var(--app-text-muted)] font-mono">
                   {liveState.data.ams?.ams?.[0]?.temp && (
                     <span>AMS-Temp: {liveState.data.ams.ams[0].temp}°C</span>
                   )}
@@ -234,7 +234,7 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                       key={hrs}
                       onClick={() => setAmsDryHours(hrs)}
                       className={`px-2 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
-                        amsDryHours === hrs ? 'bg-sky-500/25 border-sky-400 text-sky-300' : 'border-white/10 text-slate-400'
+                        amsDryHours === hrs ? 'bg-sky-500/25 border-sky-400 text-sky-300' : 'border-[var(--app-border)] text-[var(--app-text-muted)]'
                       }`}
                     >
                       {hrs} Std.
@@ -252,7 +252,7 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                       key={t.val}
                       onClick={() => setAmsDryTemp(t.val)}
                       className={`px-2 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
-                        amsDryTemp === t.val ? 'bg-amber-500/25 border-amber-400 text-amber-300' : 'border-white/10 text-slate-400'
+                        amsDryTemp === t.val ? 'bg-amber-500/25 border-amber-400 text-amber-300' : 'border-[var(--app-border)] text-[var(--app-text-muted)]'
                       }`}
                     >
                       {t.label}

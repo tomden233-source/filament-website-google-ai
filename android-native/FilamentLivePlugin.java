@@ -27,7 +27,7 @@ import java.util.zip.ZipInputStream;
 public class FilamentLivePlugin extends Plugin {
 
     /** Muss mit "nativeApi" in live-version.json (apk.yml) übereinstimmen. Erhöhen, wenn sich Java-Plugins ändern. */
-    public static final int NATIVE_API = 2;
+    public static final int NATIVE_API = 3;
 
     static final String PREFS = "filament_live";
 

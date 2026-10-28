@@ -16,7 +16,7 @@ router.get('/api/storage/stats', (_req, res) => {
       return res.json({ success: true, stats: data });
     }
     return res.json({ success: true, stats: { manualUsedGrams: 0, totalPrintedHours: 342, totalDriedGrams: 8450 } });
-  } catch (e: any) {
+  } catch {
     return res.json({ success: true, stats: { manualUsedGrams: 0 } });
   }
 });

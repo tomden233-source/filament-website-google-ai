@@ -9,7 +9,7 @@ export const safeStorage = {
         const val = window.localStorage.getItem(key);
         if (val !== null) return val;
       }
-    } catch (e) {
+    } catch {
       // Zugriff verweigert oder SecurityError im iFrame
     }
     return memoryStore.get(key) ?? null;
@@ -20,7 +20,7 @@ export const safeStorage = {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(key, value);
       }
-    } catch (e) {
+    } catch {
       // Ignorieren & MemoryStore als Fallback nutzen
     }
     memoryStore.set(key, value);
@@ -31,7 +31,7 @@ export const safeStorage = {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(key);
       }
-    } catch (e) {}
+    } catch {}
     memoryStore.delete(key);
   },
 
@@ -41,7 +41,7 @@ export const safeStorage = {
         const val = window.sessionStorage.getItem(key);
         if (val !== null) return val;
       }
-    } catch (e) {}
+    } catch {}
     return memoryStore.get(`sess_${key}`) ?? null;
   },
 
@@ -50,7 +50,7 @@ export const safeStorage = {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.setItem(key, value);
       }
-    } catch (e) {}
+    } catch {}
     memoryStore.set(`sess_${key}`, value);
   },
 
@@ -59,7 +59,7 @@ export const safeStorage = {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.removeItem(key);
       }
-    } catch (e) {}
+    } catch {}
     memoryStore.delete(`sess_${key}`);
   }
 };

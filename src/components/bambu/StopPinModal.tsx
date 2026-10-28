@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, X, RefreshCw, Square } from 'lucide-react';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 
 export interface StopPinModalProps {
   setShowStopPinModal: any;
@@ -16,6 +17,7 @@ export const StopPinModal: React.FC<StopPinModalProps> = ({
   handleSendCommand,
   actionLoading
 }) => {
+  useEscapeClose(() => setShowStopPinModal(false));
   return (
 <div
           onClick={() => setShowStopPinModal(false)}

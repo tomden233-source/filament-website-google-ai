@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileCode, X, UploadCloud, RefreshCw, Play } from 'lucide-react';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 import type { Spool } from '../../types/filament';
 import { SpoolFitList } from '../workshop/SpoolFitList';
 
@@ -32,6 +33,7 @@ export const GcodeUploadModal: React.FC<GcodeUploadModalProps> = ({
   amsSlots = {},
   gcodeGrams = null
 }) => {
+  useEscapeClose(() => setShowGcodeModal(false));
   return (
 <div
           onClick={() => setShowGcodeModal(false)}
@@ -73,33 +75,33 @@ export const GcodeUploadModal: React.FC<GcodeUploadModalProps> = ({
               className="p-5 rounded-2xl border-2 border-dashed border-sky-500/40 hover:border-sky-400 bg-sky-500/5 hover:bg-sky-500/10 transition cursor-pointer flex flex-col items-center justify-center gap-2 text-center"
             >
               <UploadCloud className="w-8 h-8 text-sky-400" />
-              <span className="font-extrabold text-xs text-white">
+              <span className="font-extrabold text-xs text-[var(--app-text)]">
                 {selectedGcodeFile ? selectedGcodeFile.name : 'G-Code oder .3MF Datei auswählen'}
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-[var(--app-text-muted)]">
                 Klicke hier zum Durchsuchen (.gcode, .3mf)
               </span>
             </div>
 
             {selectedGcodeFile && gcodeFileInfo && (
-              <div className="p-3 rounded-xl border border-white/10 bg-black/20 space-y-1.5 text-xs">
+              <div className="p-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-card-sub)] space-y-1.5 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Dateiname:</span>
-                  <span className="font-mono font-bold text-white truncate max-w-[200px]">{gcodeFileInfo.name}</span>
+                  <span className="text-[var(--app-text-muted)]">Dateiname:</span>
+                  <span className="font-mono font-bold text-[var(--app-text)] truncate max-w-[200px]">{gcodeFileInfo.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Dateigröße:</span>
-                  <span className="font-mono text-slate-300">{gcodeFileInfo.sizeKb} KB</span>
+                  <span className="text-[var(--app-text-muted)]">Dateigröße:</span>
+                  <span className="font-mono text-[var(--app-text)]">{gcodeFileInfo.sizeKb} KB</span>
                 </div>
                 {gcodeFileInfo.layerCount && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Schichten (Layers):</span>
+                    <span className="text-[var(--app-text-muted)]">Schichten (Layers):</span>
                     <span className="font-mono text-sky-400 font-bold">{gcodeFileInfo.layerCount}</span>
                   </div>
                 )}
                 {gcodeFileInfo.estTimeMin && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Geschätzte Druckzeit:</span>
+                    <span className="text-[var(--app-text-muted)]">Geschätzte Druckzeit:</span>
                     <span className="font-mono text-[#00AE42] font-bold">{gcodeFileInfo.estTimeMin} Min.</span>
                   </div>
                 )}

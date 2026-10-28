@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import QRCode from 'qrcode';
 import {
   Clock,
@@ -21,7 +21,6 @@ import {
 import { Spool, ViewMode } from '../types/filament';
 import type { BambuLiveState } from '../types/bambu';
 import { printerApi } from '../api';
-import { BambuSettingsModal } from './BambuSettingsModal';
 import { safeStorage } from '../utils/safeStorage';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 import { addSystemLog } from '../utils/logService';
@@ -40,6 +39,8 @@ import { PrintUsageModal } from './bambu/PrintUsageModal';
 import { NfcSlotModal } from './bambu/NfcSlotModal';
 import { useAutoDeduct } from './bambu/useAutoDeduct';
 import { readTrays } from '../utils/amsMatch';
+
+const BambuSettingsModal = lazy(() => import('./BambuSettingsModal').then(m => ({ default: m.BambuSettingsModal })));
 
 export interface BambuPrinterWidgetProps {
   spools: Spool[];
@@ -108,8 +109,6 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // Klappe für Live-Kamera
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
   const [cameraSnapshotKey, setCameraSnapshotKey] = useState<number>(Date.now());
-  const [copiedRtsp, setCopiedRtsp] = useState<boolean>(false);
-  const [bambuCameraFailed, setBambuCameraFailed] = useState<boolean>(false);
 
   // Steuerung & Admin-PIN Modal
   const [showStopPinModal, setShowStopPinModal] = useState<boolean>(false);
@@ -138,14 +137,8 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const [inlineBedTemp, setInlineBedTemp] = useState<string>('55');
 
   // Lokale IP & Kamera
-  const [printerLocalIp, setPrinterLocalIp] = useState<string>(() => safeStorage.getItem('bambu_local_ip') || '192.168.68.53');
-  const [cameraAutoRefresh, setCameraAutoRefresh] = useState<boolean>(true);
+  const [printerLocalIp] = useState<string>(() => safeStorage.getItem('bambu_local_ip') || '192.168.68.53');
 
-  // Modal für Bambu Lab Cloud-Sicherheitssperre (Fehler 84033543)
-  const [cloudSecurityModalOpen, setCloudSecurityModalOpen] = useState<boolean>(false);
-
-  // Entwickler-Modus Hinweis Banner
-  const [showDevModeHint, setShowDevModeHint] = useState<boolean>(true);
 
   // Dynamischer QR-Code
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
@@ -173,7 +166,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const { setHaCameraBlobUrl, haCreds, haSwitchState, handleToggleSwitch, haSwitchLoading, handleFetchSwitchStatus, haCameraBlobUrl } = useHaSwitch({ setActionToast });
 
   // Kamera Quelle ('bambu' | 'ha')
-  const [cameraSource, setCameraSource] = useState<'bambu' | 'ha'>(() => {
+  const [cameraSource] = useState<'bambu' | 'ha'>(() => {
     return (safeStorage.getItem('filamenthub_camera_source') as 'bambu' | 'ha') || 'ha';
   });
 
@@ -201,22 +194,6 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       clearInterval(interval);
     };
   }, [isCameraOpen, cameraSnapshotKey]);
-
-  // VLC M3U Download Handler
-  const handleDownloadM3u = () => {
-    const streamTarget = cameraSource === 'ha'
-      ? `${haCreds.url}/api/camera_proxy_stream/${haCreds.cameraEntity}`
-      : realRtspUrl;
-    const downloadUrl = `/api/printer/stream.m3u?url=${encodeURIComponent(streamTarget)}&ip=${encodeURIComponent(printerLocalIp)}`;
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = 'bambu_x2d_camera.m3u';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setActionToast({ text: 'M3U-Datei heruntergeladen! Jetzt direkt mit VLC öffnen.', ok: true });
-    addSystemLog('kamera', 'M3U-Stream Playlist für VLC heruntergeladen', cameraSource === 'ha' ? `Home Assistant: ${haCreds.cameraEntity}` : 'Bambu RTSPS Port 322');
-  };
 
   // Statuswechsel für Live-Logs erfassen (z.B. Leerlauf, Drucken, Pausiert)
   const prevStatusRef = useRef<string>('');
@@ -417,7 +394,11 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
         addSystemLog('temp', `${targetLabel} Zieltemperatur auf ${temp}°C gestellt`, 'Bambu Lab X2D', 'info');
       } else {
         if (data.error?.includes('verify failed') || data.error?.includes('84033543')) {
-          setCloudSecurityModalOpen(true);
+          // Bambu sperrt fremde Befehle über die Cloud (Autorisierungs-Firmware)
+          setActionToast({
+            text: 'Bambu hat den Befehl abgelehnt: Fremd-Befehle sind über die Cloud gesperrt. Geht nur im LAN-Modus mit Entwickler-Modus.',
+            ok: false
+          });
         } else {
           setActionToast({
             text: data.error || 'Befehl abgelehnt. Bitte am X2D Display "Entwickler-Modus" auf AN stellen!',
@@ -532,24 +513,6 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const isPrinting = isPrinterConnected && liveState.data.gcode_state === 'RUNNING';
   const isPaused = isPrinterConnected && liveState.data.gcode_state === 'PAUSE';
 
-  // Reale RTSP-URL des Druckers
-  // Zugangscode nicht im Code ablegen: einmalig im Browser setzen, z.B.
-  // localStorage.setItem('bambu_access_code', 'DEIN_CODE')
-  const rtspAccessCode = (() => {
-    try {
-      return localStorage.getItem('bambu_access_code') || '';
-    } catch {
-      return '';
-    }
-  })();
-  const realRtspUrl = `rtsps://bblp:${rtspAccessCode || 'DEIN_ZUGANGSCODE'}@192.168.68.53:322/streaming/live/1`;
-
-  const handleCopyRtsp = () => {
-    navigator.clipboard.writeText(realRtspUrl);
-    setCopiedRtsp(true);
-    setTimeout(() => setCopiedRtsp(false), 3000);
-  };
-
   return (
     <div
       className="rounded-2xl border transition-all shadow-md overflow-hidden"
@@ -589,12 +552,13 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5 border"
                 style={{
                   backgroundColor: `${effectiveStatusColor}20`,
-                  color: effectiveStatusColor,
+                  // Grau (offline) als Schrift passend zum Theme, sonst kaum lesbar
+                  color: effectiveStatusColor === '#64748b' ? 'var(--app-text-muted)' : effectiveStatusColor,
                   borderColor: `${effectiveStatusColor}40`
                 }}
               >
                 {isSocketOff ? (
-                  <Power className="w-3 h-3 text-slate-400" />
+                  <Power className="w-3 h-3 text-[var(--app-text-muted)]" />
                 ) : !isPrinterConnected ? (
                   <span
                     className="w-1.5 h-1.5 rounded-full"
@@ -630,7 +594,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
               {liveState.data.subtask_name && isPrinterConnected && (
                 <>
                   <span>•</span>
-                  <span className="font-medium text-slate-300 truncate">
+                  <span className="font-medium text-[var(--app-text)] truncate">
                     Datei: {liveState.data.subtask_name}
                   </span>
                 </>
@@ -679,7 +643,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
             className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-40 disabled:cursor-not-allowed ${
               isLightOn
                 ? 'bg-amber-500/25 border-amber-500/60 text-amber-300 shadow-amber-500/20'
-                : 'border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                : 'border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-accent-sub)]'
             }`}
             style={{ backgroundColor: isLightOn ? undefined : 'var(--app-card-sub)' }}
           >
@@ -736,7 +700,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
             className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs ${
               isCameraOpen
                 ? 'bg-[#00AE42]/20 border-[#00AE42]/50 text-[#00AE42]'
-                : 'border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                : 'border-[var(--app-border)] text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-accent-sub)]'
             }`}
             style={{ backgroundColor: isCameraOpen ? undefined : 'var(--app-card-sub)' }}
           >
@@ -788,6 +752,9 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
           {/* 8. Ausklappen / Einklappen Pfeil */}
           <button
             onClick={() => setIsExpanded(prev => !prev)}
+            title={isExpanded ? 'Einklappen' : 'Mehr anzeigen (Temperaturen, AMS, Trocknung)'}
+            aria-label={isExpanded ? 'Einklappen' : 'Mehr anzeigen'}
+            aria-expanded={isExpanded}
             className="p-1.5 rounded-xl border transition cursor-pointer hover:opacity-80 ml-0.5"
             style={{
               backgroundColor: 'var(--app-card-sub)',
@@ -940,18 +907,22 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {/* Home Assistant Integration is configured cleanly in Sidebar menu without intrusive popup */}
 
       {/* MODAL 6: VERBINDUNGS-EINSTELLUNGEN (ZAHNRAD) */}
-      <BambuSettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        onConnected={() => {
-          printerApi
-            .status()
-            .then(res => {
-              if (res.data?.data) setLiveState(res.data);
-            })
-            .catch(() => {});
-        }}
-      />
+      {isSettingsModalOpen && (
+        <Suspense fallback={null}>
+        <BambuSettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          onConnected={() => {
+            printerApi
+              .status()
+              .then(res => {
+                if (res.data?.data) setLiveState(res.data);
+              })
+              .catch(() => {});
+          }}
+        />
+        </Suspense>
+      )}
 
       {/* ZERO LAYOUT SHIFT: Floating Fixed Toast am Bildschirmrand */}
       {actionToast && (

@@ -26,7 +26,7 @@ export const NfcWriteTab: React.FC<NfcWriteTabProps> = ({
 }) => {
   return (
 <div className="space-y-3.5 text-xs">
-              <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 text-[11px] text-slate-300 space-y-1">
+              <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 text-[11px] text-[var(--app-text)] space-y-1">
                 <span className="font-bold text-orange-400 flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5" />
                   <span>Einzelne Spule auf NFC-Tag schreiben</span>
@@ -41,15 +41,15 @@ export const NfcWriteTab: React.FC<NfcWriteTabProps> = ({
               {renderSpoolPicker()}
 
               {targetSpool && (
-                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3">
+                <div className="p-3 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span
                       className="w-6 h-6 rounded-full border border-white/20 shrink-0"
                       style={{ backgroundColor: targetSpool.colorHex || '#f97316' }}
                     />
                     <div className="min-w-0">
-                      <span className="font-bold text-white block truncate">{targetSpool.brand} {targetSpool.name}</span>
-                      <span className="text-[10px] text-slate-400">{targetSpool.material} • {targetSpool.remainingWeight}g Netto</span>
+                      <span className="font-bold text-[var(--app-text)] block truncate">{targetSpool.brand} {targetSpool.name}</span>
+                      <span className="text-[10px] text-[var(--app-text-muted)]">{targetSpool.material} • {targetSpool.remainingWeight}g Netto</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">

@@ -6,7 +6,6 @@ import {
   Key,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
   RefreshCw,
   Cpu,
   Sparkles,
@@ -627,7 +626,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
                 borderColor: 'var(--app-border)'
               }}
             >
-              <h4 className="font-extrabold text-sm flex items-center gap-2" style={{ color: 'var(--app-accent)' }}>
+              <h4 className="font-extrabold text-sm flex items-center gap-2" style={{ color: 'var(--app-accent-text)' }}>
                 <BookOpen className="w-4 h-4" />
                 <span>Was brauche ich und wo finde ich es?</span>
               </h4>

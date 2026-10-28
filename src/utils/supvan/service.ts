@@ -248,7 +248,7 @@ export async function printBitmaps(bitmaps: Bitmap[]): Promise<void> {
   try {
     for (const [i, bmp] of bitmaps.entries()) {
       const { raster, perLineByte, cols } = toRaster(bmp, s);
-      const { blocks, speed } = compressBuffers(splitIntoBuffers(raster, perLineByte, cols, s.density));
+      const { blocks, speed } = await compressBuffers(splitIntoBuffers(raster, perLineByte, cols, s.density));
       await printer.print(blocks, speed, p => set({ progress: (i + p) / bitmaps.length }));
       set({ progress: (i + 1) / bitmaps.length });
     }

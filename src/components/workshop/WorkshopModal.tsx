@@ -38,7 +38,7 @@ export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, t
           <div className="flex items-center gap-2.5">
             <div
               className="w-9 h-9 rounded-xl border flex items-center justify-center shrink-0"
-              style={{ backgroundColor: 'var(--app-accent-sub)', borderColor: 'var(--app-accent)', color: 'var(--app-accent)' }}
+              style={{ backgroundColor: 'var(--app-accent-sub)', borderColor: 'var(--app-accent)', color: 'var(--app-accent-text)' }}
             >
               <Wrench className="w-5 h-5" />
             </div>

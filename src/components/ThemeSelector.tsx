@@ -5,7 +5,7 @@ import {
   BRIGHTNESS_OPTIONS,
   ACCENT_OPTIONS
 } from '../types/theme';
-import { Palette, Sun, Moon } from 'lucide-react';
+import { Palette, Sun } from 'lucide-react';
 
 interface ThemeSelectorProps {
   brightness: ThemeBrightness;
@@ -42,7 +42,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
               title={`${opt.name}: ${opt.subtitle}`}
               className={`w-5 h-5 rounded-md border flex items-center justify-center transition cursor-pointer ${
                 brightness === opt.id
-                  ? 'ring-2 scale-110'
+                  ? 'ring-2 ring-[var(--app-accent)]/50 scale-110'
                   : 'hover:scale-105'
               }`}
               style={{
@@ -77,21 +77,21 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
             <Sun className="w-3.5 h-3.5 text-amber-400" />
             <span>5 Helligkeits-Themes</span>
           </span>
-          <span className="text-[10px] font-semibold font-mono-num" style={{ color: 'var(--app-accent)' }}>
+          <span className="text-[10px] font-semibold font-mono-num" style={{ color: 'var(--app-accent-text)' }}>
             {BRIGHTNESS_OPTIONS.find((b) => b.id === brightness)?.name}
           </span>
         </div>
 
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-5 gap-1">
           {BRIGHTNESS_OPTIONS.map((opt) => {
             const isActive = brightness === opt.id;
             return (
               <button
                 key={opt.id}
                 onClick={() => onSetBrightness(opt.id)}
-                className={`p-2 rounded-xl border flex flex-col items-center gap-1 text-center transition cursor-pointer ${
+                className={`py-2 px-1 rounded-xl border flex flex-col items-center gap-1 text-center transition cursor-pointer ${
                   isActive
-                    ? 'ring-2'
+                    ? 'ring-2 ring-[var(--app-accent)]/40'
                     : 'hover:opacity-90'
                 }`}
                 style={{
@@ -113,8 +113,8 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                   />
                 </div>
                 <span
-                  className="text-[10px] font-bold truncate w-full"
-                  style={{ color: isActive ? 'var(--app-accent)' : 'var(--app-text)' }}
+                  className="text-[9.5px] font-bold tracking-tight truncate w-full"
+                  style={{ color: isActive ? 'var(--app-accent-text)' : 'var(--app-text)' }}
                 >
                   {opt.name.split('. ')[1]?.split(' ')[0]}
                 </span>
@@ -130,7 +130,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
           <Palette className="w-3.5 h-3.5 text-sky-400" />
           <span>Akzent-Farbschema</span>
         </span>
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5">
           {ACCENT_OPTIONS.map((acc) => {
             const isActive = accent === acc.id;
             return (
@@ -141,7 +141,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                 style={{
                   backgroundColor: isActive ? 'var(--app-accent-sub)' : 'var(--app-card)',
                   borderColor: isActive ? 'var(--app-accent)' : 'var(--app-border)',
-                  color: isActive ? 'var(--app-accent)' : 'var(--app-text)'
+                  color: isActive ? 'var(--app-accent-text)' : 'var(--app-text)'
                 }}
                 title={acc.name}
               >
@@ -149,8 +149,8 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
                   className="w-3 h-3 rounded-full shrink-0 shadow"
                   style={{ backgroundColor: acc.colorHex }}
                 />
-                <span className="text-[10px] font-semibold hidden sm:inline truncate">
-                  {acc.name.split('-')[0]}
+                <span className="text-[11px] font-semibold truncate">
+                  {acc.name.split('-')[1] || acc.name}
                 </span>
               </button>
             );

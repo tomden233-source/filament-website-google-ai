@@ -1,5 +1,6 @@
 import React from 'react';
 import { Palette, X, RefreshCw, Check } from 'lucide-react';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 
 const BAMBU_PRESET_COLORS = [
   { name: 'Grau', hex: '898989' },
@@ -46,6 +47,7 @@ export const AmsSlotEditModal: React.FC<AmsSlotEditModalProps> = ({
   handleSaveAmsSlotToPrinter,
   actionLoading
 }) => {
+  useEscapeClose(() => setEditingAmsSlot(null));
   return (
 <div
           onClick={() => setEditingAmsSlot(null)}
@@ -89,14 +91,14 @@ export const AmsSlotEditModal: React.FC<AmsSlotEditModalProps> = ({
                     className={`p-1 rounded-xl border flex flex-col items-center gap-1 transition cursor-pointer ${
                       amsEditColor.toUpperCase() === c.hex.toUpperCase()
                         ? 'ring-2 ring-[#00AE42] border-[#00AE42]'
-                        : 'border-white/10 hover:border-white/30'
+                        : 'border-[var(--app-border)] hover:border-orange-500/50'
                     }`}
                   >
                     <span
                       className="w-6 h-6 rounded-full border border-black/40 shadow-xs"
                       style={{ backgroundColor: `#${c.hex}` }}
                     />
-                    <span className="text-[9px] font-semibold truncate w-full text-center text-slate-300">
+                    <span className="text-[9px] font-semibold truncate w-full text-center text-[var(--app-text)]">
                       {c.name}
                     </span>
                   </button>
@@ -105,9 +107,9 @@ export const AmsSlotEditModal: React.FC<AmsSlotEditModalProps> = ({
 
               {/* Benutzerdefinierter Hex-Code */}
               <div className="flex items-center gap-2 pt-1">
-                <span className="text-[11px] text-slate-400">HEX Code:</span>
+                <span className="text-[11px] text-[var(--app-text-muted)]">HEX Code:</span>
                 <div className="flex items-center gap-1 flex-1">
-                  <span className="text-xs font-mono text-slate-400">#</span>
+                  <span className="text-xs font-mono text-[var(--app-text-muted)]">#</span>
                   <input
                     type="text"
                     maxLength={6}
@@ -153,7 +155,7 @@ export const AmsSlotEditModal: React.FC<AmsSlotEditModalProps> = ({
                     className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition cursor-pointer text-center ${
                       amsEditMaterial === mat
                         ? 'bg-[#00AE42]/20 border-[#00AE42] text-[#00AE42]'
-                        : 'border-white/10 text-slate-300 hover:bg-white/5'
+                        : 'border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-accent-sub)]'
                     }`}
                   >
                     {mat}
@@ -165,7 +167,7 @@ export const AmsSlotEditModal: React.FC<AmsSlotEditModalProps> = ({
             {/* Temperaturbereich */}
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <label className="text-[10px] text-slate-400 block">Min. Düsentemperatur:</label>
+                <label className="text-[10px] text-[var(--app-text-muted)] block">Min. Düsentemperatur:</label>
                 <input
                   type="number"
                   value={amsEditMinTemp}
@@ -179,7 +181,7 @@ export const AmsSlotEditModal: React.FC<AmsSlotEditModalProps> = ({
                 />
               </div>
               <div>
-                <label className="text-[10px] text-slate-400 block">Max. Düsentemperatur:</label>
+                <label className="text-[10px] text-[var(--app-text-muted)] block">Max. Düsentemperatur:</label>
                 <input
                   type="number"
                   value={amsEditMaxTemp}

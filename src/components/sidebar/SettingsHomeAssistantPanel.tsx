@@ -124,13 +124,13 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                                 Dauerhaft gespeichert
                               </span>
                             </div>
-                            <div className="text-[10px] font-mono truncate text-slate-400">
+                            <div className="text-[10px] font-mono truncate text-[var(--app-text-muted)]">
                               {nabuUrlInput || 'https://xxxxxxxx.ui.nabu.casa'}
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0 text-slate-400">
+                        <div className="flex items-center gap-1 shrink-0 text-[var(--app-text-muted)]">
                           {isNabuVaultOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </div>
                       </button>
@@ -145,7 +145,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold block flex items-center justify-between" style={{ color: 'var(--app-text)' }}>
                               <span>Nabu Casa URL oder Lokale HA-Adresse:</span>
-                              <span className="text-slate-400 font-mono text-[9px]">https://*.ui.nabu.casa</span>
+                              <span className="text-[var(--app-text-muted)] font-mono text-[9px]">https://*.ui.nabu.casa</span>
                             </label>
                             <input
                               type="text"
@@ -165,7 +165,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold block flex items-center justify-between" style={{ color: 'var(--app-text)' }}>
                               <span>Langlebiger Zugangs-Token (Long-Lived Access Token):</span>
-                              <span className="text-slate-400 font-mono text-[9px]">HA Profil → Token erstellen</span>
+                              <span className="text-[var(--app-text-muted)] font-mono text-[9px]">HA Profil → Token erstellen</span>
                             </label>
                             <div className="relative">
                               <input
@@ -183,7 +183,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                               <button
                                 type="button"
                                 onClick={() => setShowNabuToken(!showNabuToken)}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--app-text-muted)] hover:text-[var(--app-text)] cursor-pointer"
                                 title={showNabuToken ? 'Token verbergen' : 'Token anzeigen'}
                               >
                                 {showNabuToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -208,7 +208,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                                     <AlertTriangle className="w-4 h-4 shrink-0" />
                                     <span>Home Assistant Token abgewiesen (HTTP 401) – So erstellst du ein neues:</span>
                                   </div>
-                                  <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-300">
+                                  <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--app-text)]">
                                     <li>In Home Assistant unten links auf dein <strong>Profil / Benutzernamen</strong> klicken.</li>
                                     <li>Ganz nach unten scrollen zum Abschnitt <strong>„Langlebige Zugangs-Token“</strong>.</li>
                                     <li>Auf <strong>„Token erstellen“</strong> klicken (Name z.B. <em>FilamentHub</em>), den langen Code kopieren und hier oben im Feld einfügen.</li>
@@ -245,7 +245,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                               type="button"
                               onClick={handleTestNabuConnection}
                               disabled={nabuTesting}
-                              className="py-2 px-3 rounded-lg border font-bold text-xs transition cursor-pointer flex items-center gap-1.5 hover:bg-white/10"
+                              className="py-2 px-3 rounded-lg border font-bold text-xs transition cursor-pointer flex items-center gap-1.5 hover:bg-[var(--app-accent-sub)]"
                               style={{
                                 backgroundColor: 'var(--app-card)',
                                 borderColor: 'var(--app-border)',
@@ -269,7 +269,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                               <Sparkles className={`w-3.5 h-3.5 text-indigo-400 ${haTriggering ? 'animate-spin' : ''}`} />
                               <span>{haTriggering ? 'Triggere Home Assistant...' : '🚀 Automation in HA ausführen (auto_pull_github)'}</span>
                             </button>
-                            <span className="text-[9px] block text-center mt-1 text-slate-400">
+                            <span className="text-[9px] block text-center mt-1 text-[var(--app-text-muted)]">
                               Triggert <code className="font-mono text-[9px] text-indigo-300">automation.filament_website_auto_pull_github</code> direkt über die Home Assistant API.
                             </span>
                           </div>
@@ -292,7 +292,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                         <button
                           onClick={fetchHaTelemetry}
                           disabled={haLoading}
-                          className="px-2.5 py-1 rounded-lg border text-[10px] font-bold flex items-center gap-1 transition cursor-pointer hover:bg-white/10"
+                          className="px-2.5 py-1 rounded-lg border text-[10px] font-bold flex items-center gap-1 transition cursor-pointer hover:bg-[var(--app-accent-sub)]"
                           style={{ borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
                         >
                           <RefreshCw className={`w-3 h-3 ${haLoading ? 'animate-spin text-[#00AE42]' : ''}`} />
@@ -300,7 +300,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                         </button>
                       </div>
                       <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
-                        Liest automatisch alle <strong>60 Entitäten</strong> des Bambu Lab X2D (<code className="font-mono text-[10px] bg-black/20 px-1 py-0.5 rounded">ha-bambulab</code> Integration) aus Home Assistant aus.
+                        Liest automatisch alle <strong>60 Entitäten</strong> des Bambu Lab X2D (<code className="font-mono text-[10px] bg-[var(--app-card-sub)] px-1 py-0.5 rounded">ha-bambulab</code> Integration) aus Home Assistant aus.
                       </p>
                     </div>
 
@@ -395,7 +395,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                     >
                       <div className="flex items-center gap-2">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${
-                          haLightActive ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : 'bg-black/20 border-white/10 text-slate-400'
+                          haLightActive ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : 'bg-[var(--app-card-sub)] border-[var(--app-border)] text-[var(--app-text-muted)]'
                         }`}>
                           <Lightbulb className="w-4 h-4" />
                         </div>
@@ -414,7 +414,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                         className={`px-3.5 py-1.5 rounded-xl font-bold text-xs border transition cursor-pointer ${
                           haLightActive
                             ? 'bg-amber-500/25 border-amber-500/50 text-amber-300 hover:bg-amber-500/35'
-                            : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                            : 'bg-[var(--app-card-sub)] border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-accent-sub)]'
                         }`}
                       >
                         {haLightActive ? 'Ausschalten' : 'Einschalten'}
@@ -477,7 +477,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                                 setTimeout(() => setCopiedEntityId(null), 2000);
                               } catch {}
                             }}
-                            className="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer hover:bg-white/10"
+                            className="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer hover:bg-[var(--app-accent-sub)]"
                             style={{
                               backgroundColor: 'var(--app-card)',
                               borderColor: 'var(--app-border)',
@@ -569,11 +569,11 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                                 <span className="font-sans font-bold truncate text-xs" style={{ color: 'var(--app-text)' }}>
                                   {s.name || s.entity_id}
                                 </span>
-                                <span className="text-[9px] px-1.5 py-0.2 rounded font-sans font-semibold uppercase bg-black/20 text-slate-400 shrink-0">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded font-sans font-semibold uppercase bg-[var(--app-card-sub)] text-[var(--app-text-muted)] shrink-0">
                                   {s.category || 'sensor'}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">
+                              <div className="flex items-center gap-1 text-[10px] text-[var(--app-text-muted)] mt-0.5">
                                 <span className="truncate max-w-[210px]">{s.entity_id}</span>
                                 <button
                                   type="button"
@@ -585,7 +585,7 @@ export const SettingsHomeAssistantPanel: React.FC<SettingsHomeAssistantPanelProp
                                       setTimeout(() => setCopiedEntityId(null), 2000);
                                     } catch {}
                                   }}
-                                  className="p-0.5 hover:text-white cursor-pointer"
+                                  className="p-0.5 hover:text-[var(--app-text)] cursor-pointer"
                                   title="Entitäts-ID kopieren"
                                 >
                                   {copiedEntityId === s.entity_id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}

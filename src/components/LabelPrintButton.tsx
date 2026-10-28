@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, Loader2, Check } from 'lucide-react';
 import type { Spool } from '../types/filament';
 import { printSpoolLabel, usePrinter } from '../utils/supvan/service';
@@ -62,14 +63,21 @@ export const LabelPrintButton: React.FC<Props> = ({ spool, compact, className = 
         <Icon className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} />
         {!compact && <span>Etikett</span>}
       </button>
-      {state === 'err' && msg && (
-        <span
-          role="alert"
-          className="absolute right-0 top-full mt-1 z-[80] w-52 rounded-lg border border-rose-500/40 bg-rose-500/15 backdrop-blur px-2 py-1.5 text-[10px] font-bold text-rose-400 shadow-lg"
-        >
-          {msg}
-        </span>
-      )}
+      {state === 'err' &&
+        msg &&
+        createPortal(
+          // Fest unten in der Mitte (über der Handy-Leiste), damit die Meldung nie abgeschnitten wird
+          <div
+            role="alert"
+            onClick={() => setState('idle')}
+            className="fixed left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] sm:bottom-6 z-[90] w-[min(92vw,22rem)] rounded-xl border border-rose-500/40 px-3 py-2.5 text-xs font-bold text-rose-500 shadow-2xl cursor-pointer animate-fadeIn flex items-start gap-2"
+            style={{ backgroundColor: 'var(--app-card)' }}
+          >
+            <Printer className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{msg}</span>
+          </div>,
+          document.body
+        )}
     </span>
   );
 };

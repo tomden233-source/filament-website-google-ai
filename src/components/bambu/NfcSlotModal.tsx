@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { X, Nfc, Check, Loader2, Search, Minus, Plus, Thermometer } from 'lucide-react';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { getSpoolProfile } from '../../utils/spoolProfile';
 import type { Spool } from '../../types/filament';
 import { triggerNfcHaptic } from '../../utils/nfcManager';
@@ -84,6 +85,7 @@ const Stepper: React.FC<{ label: string; value: number; onChange: (v: number) =>
 );
 
 export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onAssign }) => {
+  useEscapeClose(onClose);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -298,7 +300,7 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
                     </span>
                     <span
                       className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
-                      style={{ backgroundColor: 'var(--app-accent-sub)', color: 'var(--app-accent)' }}
+                      style={{ backgroundColor: 'var(--app-accent-sub)', color: 'var(--app-accent-text)' }}
                     >
                       {s.material}
                     </span>
@@ -327,7 +329,7 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
                           backgroundColor: active ? 'var(--app-accent-sub)' : 'var(--app-card-sub)'
                         }}
                       >
-                        <span className="text-sm font-extrabold" style={{ color: active ? 'var(--app-accent)' : 'var(--app-text)' }}>
+                        <span className="text-sm font-extrabold" style={{ color: active ? 'var(--app-accent-text)' : 'var(--app-text)' }}>
                           {i + 1}
                         </span>
                         <span
@@ -348,7 +350,7 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
 
               <div>
                 <div className="text-xs font-extrabold mb-2 flex items-center gap-1.5">
-                  <Thermometer className="w-3.5 h-3.5" style={{ color: 'var(--app-accent)' }} />
+                  <Thermometer className="w-3.5 h-3.5" style={{ color: 'var(--app-accent-text)' }} />
                   Düsentemperatur
                 </div>
                 <div className="grid grid-cols-2 gap-2">

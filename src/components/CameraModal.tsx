@@ -146,20 +146,20 @@ export const CameraModal: React.FC<CameraModalProps> = ({
       }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto"
     >
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl my-6">
-        <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+      <div className="bg-[var(--app-card)] text-[var(--app-text)] border border-[var(--app-border)] rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl my-6 animate-fadeIn">
+        <div className="flex justify-between items-start border-b border-[var(--app-border)] pb-3">
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <h3 className="text-base font-bold text-[var(--app-text)] flex items-center gap-2">
               <Camera className="w-5 h-5 text-orange-400" />
               <span>Spule mit Handykamera erfassen</span>
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-[var(--app-text-muted)] mt-0.5">
               Etikett oder Spule fotografieren – KI erkennt Marke, Material, Farbe & Tara automatisch!
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+            className="p-1 rounded-lg text-[var(--app-text-muted)] hover:text-[var(--app-text)] cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -181,7 +181,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition cursor-pointer"
+              className="w-full py-2.5 rounded-xl bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-[var(--app-text)] text-xs font-semibold flex items-center justify-center gap-2 border border-[var(--app-border)] transition cursor-pointer"
             >
               <Upload className="w-4 h-4 text-sky-400" />
               <span>Foto aus Galerie / Datei auswählen</span>
@@ -215,7 +215,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
         {/* Vorschau & Analyse */}
         {imagePreview && (
           <div className="space-y-3">
-            <div className="relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800 max-h-56 flex items-center justify-center">
+            <div className="relative rounded-xl overflow-hidden bg-[var(--app-input-bg)] border border-[var(--app-border)] max-h-56 flex items-center justify-center">
               <img
                 src={imagePreview}
                 alt="Fotografierte Spule"
@@ -226,7 +226,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                   setImagePreview(null);
                   setRecognizedData(null);
                 }}
-                className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900/80 text-slate-300 hover:text-white backdrop-blur-md cursor-pointer"
+                className="absolute top-2 right-2 p-1.5 rounded-lg bg-[var(--app-card-sub)]/80 text-[var(--app-text)] hover:text-[var(--app-text)] backdrop-blur-md cursor-pointer"
                 title="Anderes Foto aufnehmen"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -235,19 +235,19 @@ export const CameraModal: React.FC<CameraModalProps> = ({
 
             {/* Ladeanzeige */}
             {isAnalyzing && (
-              <div className="p-4 rounded-xl bg-slate-950 border border-orange-500/30 flex items-center justify-center gap-3">
+              <div className="p-4 rounded-xl bg-[var(--app-input-bg)] border border-orange-500/30 flex items-center justify-center gap-3">
                 <RefreshCw className="w-5 h-5 text-orange-400 animate-spin" />
                 <div className="text-xs">
-                  <p className="font-bold text-white">Analysiere Spule mit KI...</p>
-                  <p className="text-[11px] text-slate-400">Erkenne Hersteller, Material, Farbe & Tara</p>
+                  <p className="font-bold text-[var(--app-text)]">Analysiere Spule mit KI...</p>
+                  <p className="text-[11px] text-[var(--app-text-muted)]">Erkenne Hersteller, Material, Farbe & Tara</p>
                 </div>
               </div>
             )}
 
             {/* Erkannte Daten */}
             {recognizedData && !isAnalyzing && (
-              <div className="rounded-xl bg-slate-950 border border-emerald-500/40 p-3.5 space-y-2.5">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="rounded-xl bg-[var(--app-input-bg)] border border-emerald-500/40 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4" />
                     <span>Spulendaten erfolgreich erkannt</span>
@@ -260,35 +260,35 @@ export const CameraModal: React.FC<CameraModalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">Hersteller</span>
-                    <span className="font-bold text-white">{recognizedData.brand}</span>
+                  <div className="p-2 rounded-lg bg-[var(--app-card-sub)] border border-[var(--app-border)]">
+                    <span className="text-[10px] text-[var(--app-text-muted)] block">Hersteller</span>
+                    <span className="font-bold text-[var(--app-text)]">{recognizedData.brand}</span>
                   </div>
-                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">Material</span>
+                  <div className="p-2 rounded-lg bg-[var(--app-card-sub)] border border-[var(--app-border)]">
+                    <span className="text-[10px] text-[var(--app-text-muted)] block">Material</span>
                     <span className="font-bold text-orange-400">{recognizedData.material}</span>
                   </div>
-                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">Farbe</span>
+                  <div className="p-2 rounded-lg bg-[var(--app-card-sub)] border border-[var(--app-border)]">
+                    <span className="text-[10px] text-[var(--app-text-muted)] block">Farbe</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span
                         className="w-3.5 h-3.5 rounded-full border border-white/20"
                         style={{ backgroundColor: recognizedData.colorHex || '#f97316' }}
                       />
-                      <span className="font-semibold text-white">{recognizedData.colorName}</span>
+                      <span className="font-semibold text-[var(--app-text)]">{recognizedData.colorName}</span>
                     </div>
                   </div>
-                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">Leerspule (Tara)</span>
+                  <div className="p-2 rounded-lg bg-[var(--app-card-sub)] border border-[var(--app-border)]">
+                    <span className="text-[10px] text-[var(--app-text-muted)] block">Leerspule (Tara)</span>
                     <span className="font-mono-num font-bold text-emerald-400">
                       {recognizedData.emptySpoolWeight} g
                     </span>
                   </div>
                 </div>
 
-                <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs">
-                  <span className="text-[10px] text-slate-400 block">Bezeichnung</span>
-                  <span className="font-semibold text-white">{recognizedData.name}</span>
+                <div className="p-2 rounded-lg bg-[var(--app-card-sub)] border border-[var(--app-border)] text-xs">
+                  <span className="text-[10px] text-[var(--app-text-muted)] block">Bezeichnung</span>
+                  <span className="font-semibold text-[var(--app-text)]">{recognizedData.name}</span>
                 </div>
 
                 <button

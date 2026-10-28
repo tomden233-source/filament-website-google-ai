@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, RefreshCw, Check, Printer, History } from 'lucide-react';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { SpoolSelect } from '../SpoolPicker';
 import { printerApi, type PrintTask } from '../../api/printerApi';
 import type { Spool } from '../../types/filament';
@@ -21,6 +22,7 @@ const fmtDate = (iso: string) => {
 };
 
 export const PrintUsageModal: React.FC<Props> = ({ spools, onDeductWeight, onClose }) => {
+  useEscapeClose(onClose);
   const [tasks, setTasks] = useState<PrintTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export const PrintUsageModal: React.FC<Props> = ({ spools, onDeductWeight, onClo
       >
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-extrabold text-sm flex items-center gap-2">
-            <span className="relative w-5 h-5 flex items-center justify-center" style={{ color: 'var(--app-accent)' }}>
+            <span className="relative w-5 h-5 flex items-center justify-center" style={{ color: 'var(--app-accent-text)' }}>
               <Printer className="w-4 h-4" />
               <History className="w-3 h-3 absolute -right-1 -bottom-1 rounded-full" style={{ backgroundColor: 'var(--app-card)' }} />
             </span>
