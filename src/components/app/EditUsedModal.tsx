@@ -89,7 +89,7 @@ export const EditUsedModal: React.FC<EditUsedModalProps> = ({
               </div>
 
               <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
-                💾 Dieser Wert wird dauerhaft im Browser-Speicher und auf deinem Server / Raspberry Pi in <code className="text-orange-400">./data/filamenthub-storage.json</code> gesichert.
+                💾 Dieser Wert wird dauerhaft im Browser-Speicher und, falls ein lokaler Server läuft, in <code className="text-orange-400">./data/filamenthub-storage.json</code> gesichert.
               </p>
             </div>
 

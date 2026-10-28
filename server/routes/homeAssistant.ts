@@ -97,7 +97,7 @@ router.post('/api/homeassistant/test', async (req, res) => {
   } catch (err: any) {
     return res.status(500).json({
       success: false,
-      error: `Verbindungsfehler zu Home Assistant: ${err?.message || 'Host nicht erreichbar'}. Falls HA lokal auf dem Raspberry Pi läuft, nutze die direkte Browser-Abfrage oder trage die Nabu Casa / IP URL ein.`
+      error: `Verbindungsfehler zu Home Assistant: ${err?.message || 'Host nicht erreichbar'}. Falls HA lokal läuft, nutze die direkte Browser-Abfrage oder trage die Nabu Casa / IP URL ein.`
     });
   }
 });

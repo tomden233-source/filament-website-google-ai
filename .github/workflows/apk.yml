@@ -1,0 +1,88 @@
+name: Build Android APK
+
+# Baut aus der Web-App eine echte, installierbare Android-APK (Capacitor)
+# und veröffentlicht sie als Release "apk-latest". Der QR-Code in der App zeigt auf diesen Download.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+
+      - name: Web-App bauen (App-Modus, Wurzel-Pfad)
+        run: npm run build
+        env:
+          VITE_BASE: /
+          VITE_STATIC: 'true'
+          VITE_NATIVE: 'true'
+
+      - name: Capacitor installieren (nur im Build, nicht im Projekt)
+        run: npm install --no-save --no-package-lock @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+
+      - name: Android-Projekt erzeugen
+        run: |
+          npx cap add android
+          npx cap sync android
+          # Eigenes App-Icon statt Standard-Icon
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp public/pwa-512x512.png android/app/src/main/res/mipmap-$d/ic_launcher.png
+            cp public/pwa-512x512.png android/app/src/main/res/mipmap-$d/ic_launcher_round.png
+            cp public/pwa-512x512.png android/app/src/main/res/mipmap-$d/ic_launcher_foreground.png
+          done
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+
+      - name: Signierte Release-APK bauen
+        working-directory: android
+        env:
+          KS_FILE: ${{ github.workspace }}/android-signing/filamenthub.keystore
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'filamenthub' }}
+        run: |
+          VERSION=$(node -p "require('../package.json').version")
+          sed -i "s/versionName \".*\"/versionName \"$VERSION\"/; s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" app/build.gradle
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$KS_FILE" \
+            -Pandroid.injected.signing.store.password="$KS_PASS" \
+            -Pandroid.injected.signing.key.alias=filamenthub \
+            -Pandroid.injected.signing.key.password="$KS_PASS"
+          cp app/build/outputs/apk/release/app-release.apk ../FilamentHub.apk
+
+      - name: APK als Artefakt speichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: FilamentHub-apk
+          path: FilamentHub.apk
+
+      - name: Release "apk-latest" aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          gh release delete apk-latest --cleanup-tag --yes || true
+          gh release create apk-latest FilamentHub.apk \
+            --title "FilamentHub APK v$VERSION" \
+            --notes "Automatisch gebaut aus Commit ${GITHUB_SHA::7}. Auf dem Handy installieren (Unbekannte Quellen erlauben)." \
+            --latest

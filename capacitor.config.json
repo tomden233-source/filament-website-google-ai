@@ -1,0 +1,7 @@
+{
+  "appId": "com.filamenthub.app",
+  "appName": "FilamentHub",
+  "webDir": "dist",
+  "android": { "allowMixedContent": true },
+  "server": { "androidScheme": "https" }
+}

@@ -5,10 +5,10 @@ import { dataDir } from '../paths.js';
 
 const router = Router();
 
-// Dauerhafter Speicher für verdrucktes Filament & Raspberry-Pi-Zähler
+// Dauerhafter Speicher für verdrucktes Filament & Zähler
 const statsFilePath = path.join(dataDir, 'filamenthub-storage.json');
 
-// API-Route: Dauerhafter Speicher für verdrucktes Filament & Raspberry Pi Zähler
+// API-Route: Dauerhafter Speicher für verdrucktes Filament & Zähler
 router.get('/api/storage/stats', (_req, res) => {
   try {
     if (fs.existsSync(statsFilePath)) {

@@ -36,13 +36,13 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
 
   // Felder für Token-Verbindung
   const [serialNumber, setSerialNumber] = useState(() => {
-    return safeStorage.getItem('bambu_serial_number') || '20P9BJ610801860';
+    return safeStorage.getItem('bambu_serial_number') || '';
   });
   const [userId, setUserId] = useState(() => {
-    return safeStorage.getItem('bambu_user_id') || '811729950';
+    return safeStorage.getItem('bambu_user_id') || '';
   });
   const [accessToken, setAccessToken] = useState(() => {
-    return safeStorage.getItem('bambu_access_token') || 'AQBlIrxYaDJQLHR67612VNjPWPtuRaU7GBT_tkBkLmCrnAotm0l1TH3BYIxWrsw6ZSJA_cmWSzYhgJjekZ1bTOGGr1i0WqXrkw3P1G4htCCwgwRpmr3FoKLPIwwKX_cSj2Wn3goRYnnUlg';
+    return safeStorage.getItem('bambu_access_token') || '';
   });
   const [brokerHost, setBrokerHost] = useState(() => {
     const saved = safeStorage.getItem('bambu_broker_host');

@@ -50,7 +50,7 @@ export function apiFetch(path: string, init: RequestInit & { timeoutMs?: number 
   if (IS_STATIC && path.startsWith('/api')) {
     return Promise.resolve(
       new Response(
-        JSON.stringify({ success: false, error: 'Nicht verfügbar auf GitHub Pages (kein Server). Dafür den Server auf dem Raspberry Pi oder Docker nutzen.' }),
+        JSON.stringify({ success: false, error: 'Nicht verfügbar auf GitHub Pages (kein Server). Diese Funktion braucht den lokalen Server (npm run dev).' }),
         { status: 503, headers: { 'Content-Type': 'application/json' } }
       )
     );

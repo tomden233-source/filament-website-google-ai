@@ -16,10 +16,15 @@ npm run build && npm start   # Produktion (NODE_ENV=production)
 Die Seite https://tomden234.github.io/filament-website-google-ai/ wird bei jedem Push auf `main` per GitHub Action gebaut (`.github/workflows/pages.yml`, Vite, Ordner `dist`). Einmalig unter *Settings → Pages* die Quelle auf *GitHub Actions* stellen.
 
 - Auf Pages läuft nur das Frontend (`VITE_STATIC=true`, Basispfad = Repo-Name). Spulen und Einstellungen liegen im Browser.
-- Drucker, Git-Push, Home Assistant und Foto-Erkennung brauchen den Server (`server.ts`) auf dem Raspberry Pi oder in Docker.
+- Drucker-Livedaten, Git-Push und Foto-Erkennung brauchen den Server (`server.ts`), den du lokal mit `npm run dev` startest. Home Assistant lässt sich direkt aus dem Browser anbinden.
 - Lokal testen: `VITE_BASE=/filament-website-google-ai/ VITE_STATIC=true npm run build && npm run preview`
 
-Docker: `docker compose up -d` (siehe `docker-compose.yml`). Installation auf dem Raspberry Pi: [INSTALL_RASPBERRY_PI.md](INSTALL_RASPBERRY_PI.md).
+## Android-App (APK)
+
+Der Workflow `.github/workflows/apk.yml` baut bei jedem Push auf `main` eine signierte APK (Capacitor) und veröffentlicht sie im Release `apk-latest`. Fester Download-Link, auf den der QR-Code in der App zeigt: `https://github.com/tomden234/filament-website-google-ai/releases/latest/download/FilamentHub.apk`.
+
+- Signiert wird mit `android-signing/filamenthub.keystore` (nur für diese Sideload-App). Eigenen Schlüssel nutzen: Passwort als Secret `ANDROID_KEYSTORE_PASSWORD` hinterlegen und die Keystore-Datei ersetzen.
+- Das Repository muss öffentlich sein, damit der Download ohne Login am Handy klappt.
 
 ## Umgebungsvariablen
 
@@ -40,7 +45,7 @@ Alle Werte stehen als Vorlage in `.env.example`.
 ## Zugangsdaten und Sicherheit
 
 - Echte Zugangsdaten gehören nie ins Repository: `.env`, `.git-credentials.json`, `.bambu-config.json` und `.ha-config.json` stehen in der `.gitignore`. Vorlagen heißen `*.example.json`.
-- Der Server speichert eingegebene Tokens in diesen Dateien (bzw. in `data/`). Der ZIP-Export und das Docker-Image schließen sie aus.
+- Der Server speichert eingegebene Tokens in diesen Dateien (bzw. in `data/`).
 - Ist die Seite von außen erreichbar, setze `APP_API_KEY`. Im Browser einmalig: `localStorage.setItem('app_api_key', 'DEIN_KEY')`.
 - Wurde ein Token je öffentlich, gilt es als kompromittiert: bei GitHub bzw. am Drucker erneuern.
 
@@ -51,10 +56,10 @@ Alle Werte stehen als Vorlage in `.env.example`.
   - `hooks/`, `utils/`, `api/` (zentrale Server-Aufrufe), `types/`, `data/`
   - `utils/openTag3d.ts`: Encoder und Decoder für OpenTag3D-NFC-Tags
 - `server.ts`: Einstieg des Express-Servers (Middleware, Routen einhängen, Vite/Static)
-- `server/routes/`: Routen nach Thema (Drucker, Kamera, Home Assistant, Git, Speicher, Erkennung, Projekt-Download)
+- `server/routes/`: Routen nach Thema (Drucker, Kamera, Home Assistant, Git, Speicher, Erkennung)
 - `server/bambuMqtt.ts`: MQTT-Anbindung an den Bambu-Drucker, `server/bambuCloudApi.ts`: Bambu-Cloud-HTTP-Aufrufe
-- `addon/`, `config.yaml`, `repository.yaml`: Home-Assistant-Add-on
-- `scripts/`: Hilfsskripte (ZIP-Export, PWA-Icons)
+- `android-signing/`, `capacitor.config.json`: Signatur und Konfiguration der Android-App
+- `scripts/`: Hilfsskripte (PWA-Icons)
 
 ## Prüfen
 

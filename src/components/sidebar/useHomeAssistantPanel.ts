@@ -194,7 +194,7 @@ export function useHomeAssistantPanel({ activeTab, settingsSubTab }: useHomeAssi
   };
 
   useEffect(() => {
-    if (activeTab === 'settings' && settingsSubTab === 'homeassistant') {
+    if (activeTab === 'settings' && settingsSubTab === 'connections') {
       fetchHaTelemetry();
       const interval = setInterval(fetchHaTelemetry, 4000);
       return () => clearInterval(interval);
