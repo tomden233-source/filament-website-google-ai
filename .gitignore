@@ -7,3 +7,10 @@ coverage/
 .env*
 !.env.example
 .aistudio/
+
+# Zugangsdaten & lokale Konfiguration (nie committen)
+.git-credentials.json
+data/git-credentials.json
+.bambu-config.json
+.ha-config.json
+data/.ha-config.json
