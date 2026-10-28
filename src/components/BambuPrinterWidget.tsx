@@ -37,6 +37,7 @@ import { useHaSwitch } from './bambu/useHaSwitch';
 import { useGcodeUpload } from './bambu/useGcodeUpload';
 import { PrintUsageModal } from './bambu/PrintUsageModal';
 import { NfcSlotModal } from './bambu/NfcSlotModal';
+import { useAutoDeduct } from './bambu/useAutoDeduct';
 
 export interface BambuPrinterWidgetProps {
   spools: Spool[];
@@ -198,6 +199,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
 
   // Home Assistant & Steckdosen State (Unified haClient)
+  useAutoDeduct({ spools, amsSlots, onDeductWeight, isConnected: Boolean(liveState.connected), gcodeState: liveState.data.gcode_state, notify: setActionToast });
   const { setHaCameraBlobUrl, haCreds, haSwitchState, handleToggleSwitch, haSwitchLoading, handleFetchSwitchStatus, haCameraBlobUrl } = useHaSwitch({ setActionToast });
 
   // Kamera Quelle ('bambu' | 'ha')

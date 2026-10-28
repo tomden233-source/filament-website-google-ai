@@ -2,47 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { X, RefreshCw, Check, Scale } from 'lucide-react';
 import { printerApi, type PrintTask } from '../../api/printerApi';
 import type { Spool } from '../../types/filament';
+import { AUTO_KEY, AUTO_SINCE_KEY, bestSpool, isAutoDeductOn, markDone, readDone } from '../../utils/printUsage';
 import { safeStorage } from '../../utils/safeStorage';
 
 // Letzte Druckaufträge aus der Bambu Cloud mit Verbrauch pro Farbe. Ein Tipp zieht die Gramm von der passenden Spule ab.
 // Bereits abgezogene Aufträge werden gemerkt, damit nichts doppelt abgezogen wird.
 
-const DONE_KEY = 'bambu_tasks_deducted';
-
 interface Props {
   spools: Spool[];
   onDeductWeight: (spoolId: string, grams: number) => void;
   onClose: () => void;
-}
-
-function readDone(): string[] {
-  try {
-    return JSON.parse(safeStorage.getItem(DONE_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function rgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '').padEnd(6, '0');
-  return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0, parseInt(h.slice(4, 6), 16) || 0];
-}
-
-function bestSpool(spools: Spool[], material: string, colorHex: string): string {
-  const same = spools.filter(s => s.material?.toLowerCase() === material.toLowerCase());
-  const pool = same.length ? same : spools;
-  const [r, g, b] = rgb(colorHex);
-  let best = '';
-  let bestD = Infinity;
-  for (const s of pool) {
-    const [r2, g2, b2] = rgb(s.colorHex || '#888888');
-    const d = (r - r2) ** 2 + (g - g2) ** 2 + (b - b2) ** 2;
-    if (d < bestD) {
-      bestD = d;
-      best = s.id;
-    }
-  }
-  return best;
 }
 
 const fmtDate = (iso: string) => {
@@ -55,6 +24,7 @@ export const PrintUsageModal: React.FC<Props> = ({ spools, onDeductWeight, onClo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string[]>(readDone);
+  const [auto, setAuto] = useState<boolean>(isAutoDeductOn);
   const [choice, setChoice] = useState<Record<string, string>>({});
   // Immer die neueste Abzugsfunktion nutzen, sonst überschreibt der zweite Abzug den ersten (veralteter Spulenstand)
   const deductRef = useRef(onDeductWeight);
@@ -77,6 +47,14 @@ export const PrintUsageModal: React.FC<Props> = ({ spools, onDeductWeight, onClo
     load();
   }, [load]);
 
+  const toggleAuto = () => {
+    const next = !auto;
+    setAuto(next);
+    safeStorage.setItem(AUTO_KEY, next ? 'on' : 'off');
+    // Beim Einschalten zählt nur, was ab jetzt fertig wird
+    if (next) safeStorage.setItem(AUTO_SINCE_KEY, new Date().toISOString());
+  };
+
   const pick = (key: string, material: string, colorHex: string) => choice[key] || bestSpool(spools, material, colorHex);
 
   const deduct = (task: PrintTask) => {
@@ -88,9 +66,8 @@ export const PrintUsageModal: React.FC<Props> = ({ spools, onDeductWeight, onClo
     Array.from(perSpool.entries()).forEach(([id, grams], n) => {
       setTimeout(() => deductRef.current(id, Math.round(grams)), n * 250);
     });
-    const next = [...done, task.id];
-    setDone(next);
-    safeStorage.setItem(DONE_KEY, JSON.stringify(next.slice(-200)));
+    markDone([task.id]);
+    setDone(readDone());
   };
 
   const sorted = useMemo(() => tasks, [tasks]);
@@ -116,6 +93,25 @@ export const PrintUsageModal: React.FC<Props> = ({ spools, onDeductWeight, onClo
             </button>
           </div>
         </div>
+
+        <button
+          onClick={toggleAuto}
+          className="w-full flex items-center justify-between gap-3 rounded-xl border p-3 text-left cursor-pointer"
+          style={{ backgroundColor: 'var(--app-card-sub)', borderColor: auto ? 'var(--app-accent)' : 'var(--app-border)' }}
+        >
+          <span>
+            <span className="block text-xs font-extrabold">Auto-Abzug nach jedem Druck</span>
+            <span className="block text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
+              Fertige Drucke werden von der Spule im AMS-Slot abgezogen (sonst nach Material und Farbe).
+            </span>
+          </span>
+          <span
+            className="shrink-0 px-2 py-1 rounded-lg text-[11px] font-bold"
+            style={{ backgroundColor: auto ? 'var(--app-accent)' : 'var(--app-card)', color: auto ? '#fff' : 'var(--app-text-muted)' }}
+          >
+            {auto ? 'AN' : 'AUS'}
+          </span>
+        </button>
 
         <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
           Letzte Aufträge aus deiner Bambu Cloud. Die Gramm sind die Schätzung des Slicers, bei abgebrochenen Drucken ist der echte Verbrauch kleiner.

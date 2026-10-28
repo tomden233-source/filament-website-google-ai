@@ -850,5 +850,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.66',
+    label: '1.66 (Auto-Abzug nach jedem Druck)',
+    releaseDate: '28.10.2026',
+    description: 'Fertige Drucke werden automatisch von der Spule abgezogen. Die App holt den Verbrauch aus der Bambu Cloud und merkt sich jeden Auftrag, damit nie doppelt abgezogen wird, auch wenn die App beim Druckende zu war.',
+    features: [
+      '🤖 Auto-Abzug: Wenn ein Druck fertig ist, zieht die App die Gramm pro Farbe von der passenden Spule ab und zeigt eine Meldung „Auto-Abzug …“',
+      '🎯 Richtige Spule: Zuerst die Spule, die du dem AMS-Slot zugewiesen hast, sonst Material und Farbe',
+      '📥 Nachholen: Was fertig wurde, während die App zu war, wird beim nächsten Öffnen abgezogen, aber nur Drucke ab dem Einschalten',
+      '🔘 Schalter: Im Fenster „Verbrauch“ lässt sich der Auto-Abzug an- und ausschalten, das manuelle Abziehen bleibt',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23.700+ Codezeilen, 4.000+ Prompt-Wörter, 3M Tokens und 66 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
