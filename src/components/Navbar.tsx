@@ -69,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNfc,
   activeVersionLabel,
   versionProfiles = [],
-  activeVersionId = 'v1.53',
+  activeVersionId = 'v1.54',
   onSelectVersion,
   onCreateVersionProfile,
   onRestoreDefault,
@@ -128,9 +128,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Eingebettete Versionsanzeige in sauberer App-Schrift (Plus Jakarta Sans) */}
             <span
               className="text-xs font-bold tracking-tight px-2 py-0.5 rounded-lg border border-orange-500/30 text-orange-400 bg-orange-500/15 shrink-0 select-none shadow-sm"
-              title={`FilamentHub ${activeVersionId || 'v1.53'}`}
+              title={`FilamentHub ${activeVersionId || 'v1.54'}`}
             >
-              {activeVersionId || 'v1.53'}
+              {activeVersionId || 'v1.54'}
             </span>
           </div>
         </div>

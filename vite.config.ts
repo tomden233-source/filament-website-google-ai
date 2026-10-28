@@ -6,6 +6,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
+    // Für GitHub Pages wird per VITE_BASE ein Unterpfad gesetzt (z. B. /filament-website-google-ai/).
+    base: process.env.VITE_BASE || '/',
     plugins: [
       react(),
       tailwindcss(),
