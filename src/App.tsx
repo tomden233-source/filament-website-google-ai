@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { storageApi, cloudSync } from './api';
 import {
   Wand2,
   Layers,
@@ -129,10 +130,10 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    // Veraltete Stände automatisch auf die neue v1.54 anheben
-    if (!saved || saved !== 'v1.54') {
-      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.54');
-      return 'v1.54';
+    // Veraltete Stände automatisch auf die neue v1.56 anheben
+    if (!saved || saved !== 'v1.56') {
+      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.56');
+      return 'v1.56';
     }
     return saved;
   });
@@ -290,9 +291,9 @@ export default function App() {
   const [editUsedInputValue, setEditUsedInputValue] = useState<string>('0');
 
   useEffect(() => {
-    fetch('/api/storage/stats')
-      .then(res => res.json())
-      .then(data => {
+    storageApi
+      .getStats()
+      .then(({ data }) => {
         if (data.success && data.stats && data.stats.manualUsedGrams !== undefined) {
           setManualUsedGrams(data.stats.manualUsedGrams);
         }
@@ -445,16 +446,12 @@ export default function App() {
       setIsSyncing(true);
       setSyncStatus({ label: 'Speichere...', ok: false });
       try {
-        const res = await fetch(cloudDbUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            updatedAt: Date.now(),
-            spools: newSpools,
-            printHistory: newHistory
-          })
+        const saved = await cloudSync.save(cloudDbUrl, {
+          updatedAt: Date.now(),
+          spools: newSpools,
+          printHistory: newHistory
         });
-        if (res.ok) {
+        if (saved) {
           setSyncStatus({ label: 'Cloud synchron', ok: true });
         } else {
           setSyncStatus({ label: 'Lokal gespeichert', ok: false });
@@ -474,12 +471,12 @@ export default function App() {
       if (isSyncing) return;
       setIsSyncing(true);
       try {
-        const res = await fetch(cloudDbUrl, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
+        const cloud = await cloudSync.load(cloudDbUrl);
+        if (cloud.ok) {
+          const data = cloud.data;
           if (data && Array.isArray(data.spools) && data.spools.length > 0) {
-            setSpools(data.spools);
-            if (Array.isArray(data.printHistory)) setPrintHistory(data.printHistory);
+            setSpools(data.spools as Spool[]);
+            if (Array.isArray(data.printHistory)) setPrintHistory(data.printHistory as HistoryEntry[]);
             safeStorage.setItem(STORAGE_KEY_SPOOLS, JSON.stringify(data.spools));
             setSyncStatus({ label: 'Cloud synchron', ok: true });
             if (notify) showToast('Erfolgreich mit Cloud synchronisiert!');
@@ -970,11 +967,7 @@ export default function App() {
     setManualUsedGrams(val);
     safeStorage.setItem('filamenthub_manual_used_grams', String(val));
     try {
-      await fetch('/api/storage/stats', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manualUsedGrams: val })
-      });
+      await storageApi.saveManualUsedGrams(val);
     } catch {}
     showToast(`Verdrucktes Filament auf ${val} g gesetzt.`);
     setIsEditUsedModalOpen(false);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { gitApi } from '../api';
 import {
   Server,
   X,
@@ -30,9 +31,9 @@ interface SelfHostModalProps {
   currentVersion?: string;
 }
 
-export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, currentVersion = 'v1.54' }) => {
-  const versionNum = currentVersion ? currentVersion.replace(/^v/, '') : '1.54';
-  const versionTag = currentVersion ? (currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`) : 'v1.54';
+export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, currentVersion = 'v1.56' }) => {
+  const versionNum = currentVersion ? currentVersion.replace(/^v/, '') : '1.56';
+  const versionTag = currentVersion ? (currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`) : 'v1.56';
 
   // Standardmäßig IMMER "Zu Git posten" als aktiver Tab
   const [activeTab, setActiveTab] = useState<'git' | 'haos' | 'docker' | 'pm2' | 'data'>('git');
@@ -53,9 +54,10 @@ export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, c
 
   // Gespeicherte Git-Konfiguration vom Server laden (überdauert Browser-Cache & Neustarts)
   useEffect(() => {
-    fetch('/api/git/config')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
+    gitApi
+      .getConfig()
+      .then(res => {
+        const data = res.ok ? res.data : null;
         if (data?.repoUrl && !gitRepoUrl) {
           setGitRepoUrl(data.repoUrl);
         }
@@ -98,12 +100,8 @@ export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, c
       safeStorage.setItem('git_pat_token', tokenToTest);
       safeStorage.setItem('git_repo_url', gitRepoUrl.trim());
 
-      const res = await fetch('/api/git/test-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenToTest, repoUrl: gitRepoUrl.trim() })
-      });
-      const data = await res.json();
+      const res = await gitApi.testToken(tokenToTest, gitRepoUrl.trim());
+      const data = res.data;
       if (data.valid) {
         setGitTestResult({
           success: true,
@@ -138,20 +136,15 @@ export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, c
       // HA Zugangsdaten über getHaCredentials laden
       const haCreds = getHaCredentials();
 
-      const res = await fetch('/api/git/push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          repoUrl: gitRepoUrl.trim(),
-          token: gitToken.trim() || undefined,
-          branch: 'main',
-          commitMsg: `FilamentHub ${versionTag} (Token Diagnostics & Vault Persistence, Git Credential Store, Auto-Recover & HA 401 Guidance)`,
-          haUrl: haCreds.url,
-          haToken: haCreds.token
-        })
+      const res = await gitApi.push({
+        repoUrl: gitRepoUrl.trim(),
+        token: gitToken.trim() || undefined,
+        branch: 'main',
+        commitMsg: `FilamentHub ${versionTag} (Token Diagnostics & Vault Persistence, Git Credential Store, Auto-Recover & HA 401 Guidance)`,
+        haUrl: haCreds.url,
+        haToken: haCreds.token
       });
-      const data = await res.json();
-      setGitPushResult(data);
+      setGitPushResult(res.data as { success: boolean; message: string; hint?: string });
     } catch (e: any) {
       setGitPushResult({ success: false, message: 'Netzwerkfehler beim Git Push: ' + (e?.message || 'Server nicht erreichbar') });
     } finally {

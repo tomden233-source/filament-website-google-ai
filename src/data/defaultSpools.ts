@@ -666,6 +666,37 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.55',
+    label: '1.55 (Build-Fix für GitHub Pages: npm-Installation)',
+    releaseDate: '28.10.2026',
+    description: 'Der automatische Build für GitHub Pages brach bei der Paketinstallation ab (Konflikt zwischen vite 8 und esbuild 0.25). Mit .npmrc (legacy-peer-deps) läuft die Installation wie bisher lokal und im Docker-Build durch.',
+    features: [
+      '🧰 Build-Fix: Neue .npmrc mit legacy-peer-deps=true behebt den Abbruch bei npm ci und npm install auf GitHub Actions',
+      '🌐 Pages-Seite: Der Workflow kann die App jetzt bauen und unter /filament-website-google-ai/ veröffentlichen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 24.700+ Codezeilen, 2.950+ Prompt-Wörter, 2.48M Tokens und 55 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.56',
+    label: '1.56 (Zentrale API-Schicht, API-Key an einer Stelle & stabiler G-Code-Upload)',
+    releaseDate: '28.10.2026',
+    description: 'Alle Aufrufe an den eigenen Server laufen jetzt über eine gemeinsame API-Schicht (src/api/). API-Key, JSON-Antworten und Zeitlimits liegen an einer Stelle statt in 9 Dateien. Die App sieht für dich gleich aus, ist aber sauberer aufgebaut und leichter zu warten.',
+    features: [
+      '🧱 Neue API-Schicht src/api/: client.ts plus printerApi, homeAssistantApi, gitApi, storageApi und recognizeApi',
+      '🔑 API-Key zentral: Der optionale APP_API_KEY wird nur noch in client.ts angehängt, der fetch-Umbau in main.tsx ist entfernt, Fremdserver (Cloud-Sync) bekommen den Key nie',
+      '⏱️ Status-Abfrage mit Zeitlimit (8 s), damit hängende Anfragen das 3-Sekunden-Polling nicht verstopfen',
+      '📤 G-Code-Upload: Netzwerkfehler werden jetzt gemeldet, der Lade-Zustand bleibt nicht mehr hängen',
+      '🧩 Typ BambuLiveState nach src/types/bambu.ts ausgelagert',
+      '🔢 Aktualisierte Zahlen-FunFacts: 24.800+ Codezeilen, 3.000+ Prompt-Wörter, 2.51M Tokens und 56 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
 

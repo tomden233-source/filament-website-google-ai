@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { recognizeApi } from '../api';
 import {
   X,
   Camera,
@@ -77,14 +78,10 @@ export const CameraModal: React.FC<CameraModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const res = await fetch('/api/recognize-spool', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64Data, mimeType: mime })
-      });
+      const res = await recognizeApi.recognizeSpool(base64Data, mime);
 
       if (res.ok) {
-        const json = await res.json();
+        const json = res.data;
         if (json.success && json.spool) {
           const sp = json.spool;
           const brandInfo = getBrandInfo(sp.brand);

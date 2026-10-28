@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { printerApi } from '../api';
 import {
   ScrollText,
   ChevronRight,
@@ -53,8 +54,8 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
   useEffect(() => {
     const checkPrintStatus = async () => {
       try {
-        const res = await fetch('/api/bambu/status');
-        const data = await res.json();
+        const res = await printerApi.bambuStatus();
+        const data = res.data;
         if (data && data.success) {
           const fileName = data.printName || data.subtask_name || '';
           const grams = data.printGrams || 42;

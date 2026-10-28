@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { printerApi } from '../api';
 import {
   X,
   Shield,
@@ -84,12 +85,8 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
     setFeedback(null);
 
     try {
-      const res = await fetch('/api/printer/extract-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: accessToken.trim(), userId: userId.trim() })
-      });
-      const data = await res.json();
+      const res = await printerApi.extractUser(accessToken.trim(), userId.trim());
+      const data = res.data;
       if (data.success && data.userId) {
         setUserId(data.userId);
         safeStorage.setItem('bambu_user_id', data.userId);
@@ -123,12 +120,8 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
     setFeedback(null);
 
     try {
-      const res = await fetch('/api/printer/auto-connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: accessToken.trim() })
-      });
-      const data = await res.json();
+      const res = await printerApi.autoConnect(accessToken.trim());
+      const data = res.data;
       if (data.success && data.device) {
         setSerialNumber(data.device.dev_id);
         if (data.userId) {
@@ -181,19 +174,14 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
     setFeedback(null);
 
     try {
-      const res = await fetch('/api/printer/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          serialNumber: serialNumber.trim(),
-          userId: userId.trim(),
-          accessToken: accessToken.trim(),
-          brokerHost: cleanHost,
-          adminPin: adminPin.trim() || '1234'
-        })
+      const res = await printerApi.connect({
+        serialNumber: serialNumber.trim(),
+        userId: userId.trim(),
+        accessToken: accessToken.trim(),
+        brokerHost: cleanHost,
+        adminPin: adminPin.trim() || '1234'
       });
-
-      const data = await res.json();
+      const data = res.data;
 
       if (data.success) {
         safeStorage.setItem('bambu_serial_number', serialNumber.trim());
@@ -242,17 +230,12 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
     setFeedback(null);
 
     try {
-      const res = await fetch('/api/printer/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: loginEmail.trim(),
-          password: loginPassword,
-          verifyCode: login2FACode.trim() || undefined
-        })
+      const res = await printerApi.login({
+        email: loginEmail.trim(),
+        password: loginPassword,
+        verifyCode: login2FACode.trim() || undefined
       });
-
-      const data = await res.json();
+      const data = res.data;
 
       // Prüfen ob 2FA erforderlich ist
       if (res.status === 401 && (data.message?.includes('verify') || data.code === 40110)) {
@@ -304,7 +287,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
   // 4. Demo-Modus aktivieren
   const handleActivateDemo = async () => {
     try {
-      const res = await fetch('/api/printer/demo', { method: 'POST' });
+      await printerApi.demo();
       setFeedback({
         type: 'success',
         message: 'Demo-Telemetrie aktiv! Dashboard zeigt realistische X2D Druckdaten.'
