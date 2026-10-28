@@ -704,12 +704,30 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     releaseDate: '28.10.2026',
     description: 'Die 5 Helligkeits-Themes sind jetzt gleichmäßig von hell nach dunkel verteilt (statt fast nur hell oder dunkel), Soft ist das Standard-Theme. Alle Reste der Google-AI-Studio-Zeit sind entfernt, die Seite ist komplett auf GitHub Pages ausgerichtet und überflüssige Dateien sind weg.',
     features: [
-      '🎨 5 Helligkeitsstufen gleichmäßig verteilt: Weiß, Soft, Grau, Dämmerung und Nacht – von ganz hell bis fast schwarz in ähnlichen Abständen',
+      '🎨 5 Helligkeitsstufen gleichmäßig verteilt: Weiß, Soft, Grau, Dämmerung und Nacht – von ganz hell bis fast schwarz in ähnlichen Abständen, das mittlere Grau ist jetzt ein weicheres Blaugrau mit helleren Karten und besserem Kontrast',
       '☁️ Soft ist Standard: Soft ist das Standard-Theme (auch Startfarbe und Browser-Leiste), bisher gespeicherte Themes werden einmalig darauf zurückgesetzt',
       '🧹 AI-Studio-Reste entfernt: Screenshot-Ordner, metadata.json, Studio-Kommentare, Studio-Header und Texte wie „ohne AI Studio Credits“; der Name ist jetzt einfach FilamentHub',
       '🌐 GitHub Pages: Eigener Static-Modus ohne Server-Aufrufe (kein Dauer-Polling mehr), Service Worker kommt von der Vite-PWA mit richtigem Basispfad, Repo-Links zeigen auf tomden234',
       '🗑️ Aufgeräumt: .continue, .roo, bun.lock, alter Service Worker, Test-G-Code und Studio-Screenshots entfernt, uploads/ und data/ stehen in der .gitignore',
       '🔢 Aktualisierte Zahlen-FunFacts: 24.900+ Codezeilen, 3.050+ Prompt-Wörter, 2.54M Tokens und 57 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.58',
+    label: '1.58 (OpenTag3D-NFC-Tags, robustere Druckerverbindung & aufgeteilter Code)',
+    releaseDate: '28.10.2026',
+    description: 'Du kannst Spulen jetzt im offenen OpenTag3D-Format auf NFC-Tags schreiben, damit auch Fremdspulen sauber beschrieben sind. Die Verbindung zum Bambu-Drucker bricht nicht mehr durch zu viele Anfragen ab und meldet abgelaufene Tokens klar. Alle zu großen Dateien sind in kleine Bausteine aufgeteilt.',
+    features: [
+      '🏷️ OpenTag3D-Tags: Neues Tag-Format (Standard 2.004, application/opentag3d) beim Schreiben, einzeln und im Massen-Modus. Lesen erkennt solche Tags auch wieder (Zuordnung über Spulen-ID oder Marke, Material und Farbe). Mindestens NTAG215 nötig',
+      '🖨️ Druckerverbindung: pushall nur noch alle 15 Sekunden statt alle 3 (Bambu kann das drosseln), kein Endlos-Wiederverbinden mehr bei abgelehnten Zugangsdaten, Token wird vor dem Verbinden geprüft und ein abgelaufener Token klar gemeldet',
+      '✅ Ehrlicher Verbindungstest: Der Test meldet Fehler jetzt als Fehler, statt immer „erfolgreich" zu zeigen',
+      '🧩 Server aufgeteilt: server.ts von 1.762 auf 104 Zeilen, die Routen liegen in server/routes/ (Drucker, Kamera, Home Assistant, Git, Speicher, Erkennung)',
+      '🧩 Oberfläche aufgeteilt: Sidebar (2.609 auf 845 Zeilen), Bambu-Widget (2.650 auf 883), App (2.077 auf 1.071) und NFC-Fenster (1.632 auf 758) bestehen jetzt aus Tab-Komponenten und Hooks',
+      '🎨 Mittleres Grau-Theme weicher: Blaugrau mit helleren Karten und besserem Kontrast',
+      '🔢 Aktualisierte Zahlen-FunFacts: 25.200+ Codezeilen, 3.150+ Prompt-Wörter, 2.64M Tokens und 58 Revisionsstufen'
     ],
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],

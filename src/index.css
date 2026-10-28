@@ -39,13 +39,13 @@
 
 /* 3. GRAU (ca. 65 % Mittel) */
 [data-theme="titanium"] {
-  --app-bg: #98a2b3;
-  --app-card: #aab3c2;
-  --app-card-sub: #a0aaba;
-  --app-border: #7b8697;
-  --app-text: #0b1220;
-  --app-text-muted: #27323f;
-  --app-input-bg: #b9c1ce;
+  --app-bg: #aab4c4;
+  --app-card: #c9d1dd;
+  --app-card-sub: #bcc5d2;
+  --app-border: #909cae;
+  --app-text: #0f172a;
+  --app-text-muted: #334155;
+  --app-input-bg: #d6dce6;
 }
 
 /* 4. DÄMMERUNG (ca. 35 % Dunkel) */

@@ -209,8 +209,8 @@ export const BambuConnectModal: React.FC<BambuConnectModalProps> = ({
       }
     } catch {
       setTestResult({
-        success: true,
-        message: `Bambu Cloud Broker ${effectiveIp} für ${resolvedModel} erfolgreich hinterlegt!`
+        success: false,
+        message: 'Der FilamentHub-Server ist nicht erreichbar. Läuft er (Raspberry Pi / Docker)? Auf GitHub Pages gibt es keinen Server.'
       });
     } finally {
       setIsTesting(false);

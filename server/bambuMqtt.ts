@@ -2,6 +2,7 @@ import mqtt, { MqttClient } from 'mqtt';
 import { Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import * as bambuCloud from './bambuCloudApi.js';
 
 export interface BambuPrinterData {
   gcode_state: string;
@@ -134,6 +135,10 @@ class BambuMqttService {
     vt_tray: null,
     lights_report: null
   };
+
+  // Zu häufige pushall-Anfragen kann Bambu drosseln oder mit Trennung bestrafen. Der Drucker meldet Änderungen selbst,
+  // pushall dient nur dazu, den vollen Zustand regelmäßig aufzufrischen.
+  private static readonly PUSHALL_INTERVAL_MS = 15000;
 
   private keepaliveInterval: NodeJS.Timeout | null = null;
   private pendingPushallTimers = new Set<NodeJS.Timeout>();
@@ -300,51 +305,19 @@ class BambuMqttService {
       }
     }
   }
-
+  /**
+   * Prüft den Token gegen die Bambu Cloud API.
+   * 'valid' = akzeptiert, 'invalid' = abgelehnt (401/403), 'unknown' = Cloud nicht erreichbar (dann trotzdem versuchen)
+   */
+  public async checkToken(token: string): Promise<'valid' | 'invalid' | 'unknown'> {
+    return await bambuCloud.checkToken(token);
+  }
   /**
    * Extrahiert User-ID aus JWT Token oder Bambu API
    */
   public async resolveUserId(token: string, explicitUserId?: string): Promise<string | null> {
-    if (explicitUserId && explicitUserId.trim()) {
-      return explicitUserId.trim().replace(/^u_/, '');
-    }
-
-    if (!token) return null;
-
-    // 1. JWT Payload Dekodierung
-    try {
-      const parts = token.split('.');
-      if (parts.length >= 2) {
-        const payloadStr = Buffer.from(parts[1], 'base64').toString('utf8');
-        const payload = JSON.parse(payloadStr);
-        const candidate = payload.uid || payload.userId || payload.user_id || payload.sub;
-        if (candidate && /^\d+$/.test(String(candidate).trim())) {
-          return String(candidate).trim();
-        }
-      }
-    } catch {
-      // Weiter mit API Request
-    }
-
-    // 2. GET Request an Bambu Lab Profile API
-    try {
-      const res = await fetch('https://api.bambulab.com/v1/user-service/my/profile', {
-        headers: {
-          Authorization: `Bearer ${token.trim()}`,
-          'User-Agent': 'BambuStudio/01.09.00.00'
-        }
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const uid = json.uid || json.userId || json.user_id || (json.profile && json.profile.uid);
-        if (uid) return String(uid).trim();
-      }
-    } catch (e) {
-      console.warn('Konnte User-ID nicht über Bambu Profile API auflösen:', e);
-    }
-    return null;
+    return await bambuCloud.resolveUserId(token, explicitUserId);
   }
-
   /**
    * Ruft alle gebundenen Bambu-Drucker des Benutzers direkt über die Bambu Cloud API ab
    */
@@ -362,74 +335,8 @@ class BambuMqttService {
     }>;
     error?: string;
   }> {
-    if (!token || !token.trim()) {
-      return { success: false, error: 'Kein Token übergeben.' };
-    }
-
-    const cleanToken = token.trim();
-
-    try {
-      let userId: string | undefined;
-      let account: string | undefined;
-
-      // 1. Profil abrufen
-      try {
-        const profRes = await fetch('https://api.bambulab.com/v1/user-service/my/profile', {
-          headers: {
-            Authorization: `Bearer ${cleanToken}`,
-            'User-Agent': 'BambuStudio/01.09.05.51'
-          }
-        });
-        if (profRes.ok) {
-          const profJson = await profRes.json();
-          userId = String(profJson.uid || profJson.userId || '');
-          account = profJson.account || profJson.name;
-        }
-      } catch (e) {
-        console.warn('Fehler beim Profilabruf:', e);
-      }
-
-      // 2. Drucker abrufen
-      const devRes = await fetch('https://api.bambulab.com/v1/iot-service/api/user/bind', {
-        headers: {
-          Authorization: `Bearer ${cleanToken}`,
-          'User-Agent': 'BambuStudio/01.09.05.51'
-        }
-      });
-
-      if (!devRes.ok) {
-        return {
-          success: false,
-          error: `Bambu API Fehler (HTTP ${devRes.status}). Bitte Token prüfen.`
-        };
-      }
-
-      const devJson = await devRes.json();
-      const devices = Array.isArray(devJson.devices)
-        ? devJson.devices.map((d: any) => ({
-            dev_id: d.dev_id,
-            name: d.name || d.dev_product_name || 'Bambu Drucker',
-            online: Boolean(d.online),
-            print_status: d.print_status || 'UNKNOWN',
-            dev_product_name: d.dev_product_name || 'Bambu Lab',
-            dev_access_code: d.dev_access_code || ''
-          }))
-        : [];
-
-      return {
-        success: true,
-        userId,
-        account,
-        devices
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        error: err.message || 'Netzwerkfehler beim Abrufen der Druckerliste.'
-      };
-    }
+    return await bambuCloud.getBoundDevices(token);
   }
-
   /**
    * Konfigurationsdatei aus Bambu Studio (%APPDATA%\BambuStudio) parsen
    */
@@ -440,71 +347,13 @@ class BambuMqttService {
     serialNumber?: string;
     error?: string;
   } {
-    let foundToken = '';
-    let foundUid = '';
-    let foundSerial = '';
-
-    // 1. JSON-Parsing (bambu_network.json)
-    try {
-      const json = JSON.parse(rawText);
-      foundToken = json.access_token || json.token || json.user?.token || '';
-      foundUid = json.user_id || json.uid || json.user?.uid || '';
-
-      if (Array.isArray(json.devices) && json.devices.length > 0) {
-        foundSerial = json.devices[0].dev_id || json.devices[0].serial || '';
-      }
-    } catch {
-      // 2. INI / Text-Parsing (BambuStudio.conf)
-      const tokenMatch = rawText.match(/access_token\s*[:=]\s*"?([^"\r\n]+)"?/);
-      if (tokenMatch) foundToken = tokenMatch[1].trim();
-
-      const uidMatch = rawText.match(/user_id\s*[:=]\s*"?([^"\r\n]+)"?/);
-      if (uidMatch) foundUid = uidMatch[1].trim();
-
-      const devMatch = rawText.match(/dev_id\s*[:=]\s*"?([^"\r\n]+)"?/);
-      if (devMatch) foundSerial = devMatch[1].trim();
-    }
-
-    if (!foundToken && !foundUid && !foundSerial) {
-      return {
-        success: false,
-        error: 'Keine Zugangsdaten in der Datei gefunden. Bitte sicherstellen, dass Bambu Studio auf dem PC eingeloggt ist.'
-      };
-    }
-
-    return {
-      success: true,
-      accessToken: foundToken,
-      userId: foundUid ? String(foundUid).replace(/^u_/, '') : undefined,
-      serialNumber: foundSerial ? foundSerial.toUpperCase() : undefined
-    };
+    return bambuCloud.parseConfiguration(rawText);
   }
-
   /**
    * Login über Bambu Cloud API mit Studio Client Headern
    */
   public async loginBambu(account: string, pass: string, verifyCode?: string) {
-    const payload: any = {
-      account: account.trim(),
-      password: pass
-    };
-    if (verifyCode && verifyCode.trim()) {
-      payload.verifyCode = verifyCode.trim();
-    }
-
-    const res = await fetch('https://api.bambulab.com/v1/user-service/user/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'BambuStudio/01.09.05.51',
-        'X-BBL-Client-Type': 'BambuStudio',
-        'X-BBL-Client-Version': '01.09.05.51'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    return { ok: res.ok, status: res.status, data };
+    return await bambuCloud.loginBambu(account, pass, verifyCode);
   }
 
   /**
@@ -530,6 +379,14 @@ class BambuMqttService {
     const cleanToken = accessToken.trim();
     // Bambu Lab nutzt weltweit us.mqtt.bambulab.com. eu.mqtt.bambulab.com hat keine DNS-Auflösung.
     const cleanBroker = (brokerHost && brokerHost.trim() !== 'eu.mqtt.bambulab.com') ? brokerHost.trim() : 'us.mqtt.bambulab.com';
+
+    // Token vorab prüfen: ein abgelaufener Token ist die häufigste Ursache für „Verbindung geht nicht mehr"
+    const tokenState = await this.checkToken(cleanToken);
+    if (tokenState === 'invalid') {
+      throw new Error(
+        'Der Bambu-Cloud-Token ist abgelaufen oder ungültig (die Cloud lehnt ihn ab). Bitte neu anmelden bzw. einen frischen Token eintragen.'
+      );
+    }
 
     // User ID ermitteln
     const resolvedUid = await this.resolveUserId(cleanToken, params.userId);
@@ -645,7 +502,7 @@ class BambuMqttService {
           const pushingMsg = JSON.stringify({ pushing: { sequence_id: String(Date.now()), command: 'pushall' } });
           client.publish(reqTopic, pushingMsg);
 
-          // Zyklischer Keepalive-Pushall alle 3 Sekunden für sofortige Live-Reaktion auf Temperaturänderungen
+          // Zyklischer pushall zum Auffrischen des vollen Zustands (Änderungen kommen zusätzlich als Deltas)
           if (this.keepaliveInterval) clearInterval(this.keepaliveInterval);
           this.keepaliveInterval = setInterval(() => {
             if (this.client && this.connected && this.serialNumber) {
@@ -658,7 +515,7 @@ class BambuMqttService {
                 console.warn('[Bambu MQTTS] Keepalive-Pushall fehlgeschlagen:', e instanceof Error ? e.message : e);
               }
             }
-          }, 3000);
+          }, BambuMqttService.PUSHALL_INTERVAL_MS);
 
           this.broadcastSse();
           finishOnce(
@@ -679,11 +536,19 @@ class BambuMqttService {
           }
         });
 
-        client.on('error', err => {
+        client.on('error', (err: any) => {
           console.error('Bambu MQTT Fehler:', err);
-          this.lastError = err.message || 'MQTT Verbindungsfehler';
+          // Abgelehnte Zugangsdaten (MQTT-Code 4/5): nicht endlos neu versuchen, das hilft nie und kann die Cloud verärgern
+          const rejected = err?.code === 4 || err?.code === 5 || /not authorized|bad user ?name or password/i.test(err?.message || '');
+          const message = rejected
+            ? 'Die Bambu Cloud lehnt die Zugangsdaten ab (Token abgelaufen oder User-ID falsch). Bitte neu anmelden bzw. Token erneuern.'
+            : `MQTT Verbindungsfehler: ${err?.message || 'unbekannt'}`;
+          this.lastError = message;
+          if (rejected) {
+            try { client.end(true); } catch {}
+          }
           this.broadcastSse();
-          finishOnce(false, `MQTT Verbindungsfehler: ${err.message}`);
+          finishOnce(false, message);
         });
 
         client.on('close', () => {
