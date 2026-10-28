@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { Smartphone, Download, Check, Copy, ShieldCheck, Share } from 'lucide-react';
 import { APK_URL, IS_NATIVE } from '../../utils/env';
+import { installApkInApp } from '../../utils/liveUpdate';
 
 export interface ConnectTabProps {
   qrCodeDataUrl: any;
@@ -21,6 +22,20 @@ export const ConnectTab: React.FC<ConnectTabProps> = ({
 }) => {
   const [apkQr, setApkQr] = useState('');
   const [copiedApk, setCopiedApk] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [installNote, setInstallNote] = useState('');
+
+  // In der App: direkt laden und den Android-Installer öffnen (kein Browser nötig)
+  const installHere = async () => {
+    setInstalling(true);
+    setInstallNote('Lade neue App …');
+    const r = await installApkInApp();
+    setInstalling(false);
+    if (r === 'started') setInstallNote('Fertig geladen. Bitte „Installieren“ bestätigen.');
+    else if (r === 'needPermission') setInstallNote('Erlaube „Installieren“ für FilamentHub in den Einstellungen, dann hier nochmal tippen.');
+    else if (r === 'browser') window.location.href = APK_URL;
+    else setInstallNote('Download fehlgeschlagen. Bitte nochmal tippen.');
+  };
 
   useEffect(() => {
     QRCode.toDataURL(APK_URL, { width: 320, margin: 1.5, color: { dark: '#0b111e', light: '#ffffff' } })
@@ -66,6 +81,24 @@ export const ConnectTab: React.FC<ConnectTabProps> = ({
           )}
         </div>
 
+        {IS_NATIVE && (
+          <>
+            <button
+              type="button"
+              onClick={installHere}
+              disabled={installing}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white font-extrabold text-sm shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              <Download className="w-4 h-4" />
+              <span>{installing ? 'Lade …' : 'Neue App jetzt installieren'}</span>
+            </button>
+            {installNote && (
+              <p className="text-[11px] font-bold text-center" style={{ color: 'var(--app-text)' }}>
+                {installNote}
+              </p>
+            )}
+          </>
+        )}
         <a
           href={APK_URL}
           className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs shadow-lg shadow-orange-500/20 transition flex items-center justify-center gap-2 cursor-pointer"

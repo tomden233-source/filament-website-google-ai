@@ -960,5 +960,19 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.72',
+    label: '1.72 (App-Update-Knopf)',
+    releaseDate: '28.10.2026',
+    description: 'Im Menü „Verbinden“ gibt es in der Android-App jetzt einen grünen Knopf „Neue App jetzt installieren“: lädt die neueste APK direkt in der App und öffnet den Android-Installer.',
+    features: [
+      '📲 Neuer Knopf „Neue App jetzt installieren“ im Menü Verbinden (nur in der Android-App), ohne Browser und ohne QR-Code',
+      '💬 Klare Meldung: lädt, „Installieren“ bestätigen oder „Installieren erlauben“, falls Android das erst freigeben muss',
+      '🔢 Aktualisierte Zahlen-FunFacts: 29.000+ Codezeilen, ca. 14.000 Wörter, 5 Chats, 45 Commits und 72 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
