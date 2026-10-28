@@ -135,6 +135,10 @@ class BambuMqttService {
     lights_report: null
   };
 
+  // Zu häufige pushall-Anfragen kann Bambu drosseln oder mit Trennung bestrafen. Der Drucker meldet Änderungen selbst,
+  // pushall dient nur dazu, den vollen Zustand regelmäßig aufzufrischen.
+  private static readonly PUSHALL_INTERVAL_MS = 15000;
+
   private keepaliveInterval: NodeJS.Timeout | null = null;
   private pendingPushallTimers = new Set<NodeJS.Timeout>();
 
@@ -298,6 +302,23 @@ class BambuMqttService {
       } catch {
         // Fehler ignorieren
       }
+    }
+  }
+
+  /**
+   * Prüft den Token gegen die Bambu Cloud API.
+   * 'valid' = akzeptiert, 'invalid' = abgelehnt (401/403), 'unknown' = Cloud nicht erreichbar (dann trotzdem versuchen)
+   */
+  public async checkToken(token: string): Promise<'valid' | 'invalid' | 'unknown'> {
+    try {
+      const res = await fetch('https://api.bambulab.com/v1/user-service/my/profile', {
+        headers: { Authorization: `Bearer ${token}`, 'User-Agent': 'BambuStudio/01.09.05.51' },
+        signal: AbortSignal.timeout(6000)
+      });
+      if (res.status === 401 || res.status === 403) return 'invalid';
+      return res.ok ? 'valid' : 'unknown';
+    } catch {
+      return 'unknown';
     }
   }
 
@@ -531,6 +552,14 @@ class BambuMqttService {
     // Bambu Lab nutzt weltweit us.mqtt.bambulab.com. eu.mqtt.bambulab.com hat keine DNS-Auflösung.
     const cleanBroker = (brokerHost && brokerHost.trim() !== 'eu.mqtt.bambulab.com') ? brokerHost.trim() : 'us.mqtt.bambulab.com';
 
+    // Token vorab prüfen: ein abgelaufener Token ist die häufigste Ursache für „Verbindung geht nicht mehr"
+    const tokenState = await this.checkToken(cleanToken);
+    if (tokenState === 'invalid') {
+      throw new Error(
+        'Der Bambu-Cloud-Token ist abgelaufen oder ungültig (die Cloud lehnt ihn ab). Bitte neu anmelden bzw. einen frischen Token eintragen.'
+      );
+    }
+
     // User ID ermitteln
     const resolvedUid = await this.resolveUserId(cleanToken, params.userId);
     if (!resolvedUid) {
@@ -645,7 +674,7 @@ class BambuMqttService {
           const pushingMsg = JSON.stringify({ pushing: { sequence_id: String(Date.now()), command: 'pushall' } });
           client.publish(reqTopic, pushingMsg);
 
-          // Zyklischer Keepalive-Pushall alle 3 Sekunden für sofortige Live-Reaktion auf Temperaturänderungen
+          // Zyklischer pushall zum Auffrischen des vollen Zustands (Änderungen kommen zusätzlich als Deltas)
           if (this.keepaliveInterval) clearInterval(this.keepaliveInterval);
           this.keepaliveInterval = setInterval(() => {
             if (this.client && this.connected && this.serialNumber) {
@@ -658,7 +687,7 @@ class BambuMqttService {
                 console.warn('[Bambu MQTTS] Keepalive-Pushall fehlgeschlagen:', e instanceof Error ? e.message : e);
               }
             }
-          }, 3000);
+          }, BambuMqttService.PUSHALL_INTERVAL_MS);
 
           this.broadcastSse();
           finishOnce(
@@ -679,11 +708,19 @@ class BambuMqttService {
           }
         });
 
-        client.on('error', err => {
+        client.on('error', (err: any) => {
           console.error('Bambu MQTT Fehler:', err);
-          this.lastError = err.message || 'MQTT Verbindungsfehler';
+          // Abgelehnte Zugangsdaten (MQTT-Code 4/5): nicht endlos neu versuchen, das hilft nie und kann die Cloud verärgern
+          const rejected = err?.code === 4 || err?.code === 5 || /not authorized|bad user ?name or password/i.test(err?.message || '');
+          const message = rejected
+            ? 'Die Bambu Cloud lehnt die Zugangsdaten ab (Token abgelaufen oder User-ID falsch). Bitte neu anmelden bzw. Token erneuern.'
+            : `MQTT Verbindungsfehler: ${err?.message || 'unbekannt'}`;
+          this.lastError = message;
+          if (rejected) {
+            try { client.end(true); } catch {}
+          }
           this.broadcastSse();
-          finishOnce(false, `MQTT Verbindungsfehler: ${err.message}`);
+          finishOnce(false, message);
         });
 
         client.on('close', () => {
