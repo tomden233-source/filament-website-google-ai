@@ -1,0 +1,369 @@
+import React from 'react';
+import { Box, RefreshCw, Edit3, Droplets, Sun, Square } from 'lucide-react';
+import { safeStorage } from '../../utils/safeStorage';
+import { addSystemLog } from '../../utils/logService';
+import type { PrinterExpandedPanelProps as ParentProps } from './PrinterExpandedPanel';
+
+export interface AmsSectionProps {
+  setAmsSlots: ParentProps['setAmsSlots'];
+  setActionToast: ParentProps['setActionToast'];
+  activeSlot: ParentProps['activeSlot'];
+  amsSlots: ParentProps['amsSlots'];
+  spools: ParentProps['spools'];
+  liveState: ParentProps['liveState'];
+  handleSetActiveSlot: ParentProps['handleSetActiveSlot'];
+  setEditingAmsSlot: ParentProps['setEditingAmsSlot'];
+  setAmsEditColor: ParentProps['setAmsEditColor'];
+  setAmsEditMaterial: ParentProps['setAmsEditMaterial'];
+  handleSetAmsSlot: ParentProps['handleSetAmsSlot'];
+  onApplyDryingCredit: ParentProps['onApplyDryingCredit'];
+  amsDryTemp: ParentProps['amsDryTemp'];
+  isDryingActive: ParentProps['isDryingActive'];
+  getHumidityDisplay: ParentProps['getHumidityDisplay'];
+  calcRemainingTime: ParentProps['calcRemainingTime'];
+  setAmsDryHours: ParentProps['setAmsDryHours'];
+  amsDryHours: ParentProps['amsDryHours'];
+  setAmsDryTemp: ParentProps['setAmsDryTemp'];
+  handleToggleAmsDrying: ParentProps['handleToggleAmsDrying'];
+  dryLoading: ParentProps['dryLoading'];
+}
+
+export const AmsSection: React.FC<AmsSectionProps> = ({
+  setAmsSlots,
+  setActionToast,
+  activeSlot,
+  amsSlots,
+  spools,
+  liveState,
+  handleSetActiveSlot,
+  setEditingAmsSlot,
+  setAmsEditColor,
+  setAmsEditMaterial,
+  handleSetAmsSlot,
+  onApplyDryingCredit,
+  amsDryTemp,
+  isDryingActive,
+  getHumidityDisplay,
+  calcRemainingTime,
+  setAmsDryHours,
+  amsDryHours,
+  setAmsDryTemp,
+  handleToggleAmsDrying,
+  dryLoading
+}) => {
+  return (
+<div className="space-y-3 pt-1">
+            <div className="flex justify-between items-center text-xs flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-bold flex items-center gap-1.5" style={{ color: 'var(--app-text)' }}>
+                  <Box className="w-4 h-4 text-[#00AE42]" />
+                  <span>AMS Slots (Bambu Lab X2D):</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const printerSlots = { 1: 'sp-3', 2: 'sp-18', 3: 'sp-9', 4: 'sp-1' };
+                    setAmsSlots(printerSlots);
+                    safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(printerSlots));
+                    window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: { sync: true } }));
+                    setActionToast({ text: 'Spulen mit den 4 AMS-Slots synchronisiert!', ok: true });
+                    addSystemLog('drucker', 'Alle 4 AMS Slots mit aktuellen Drucker-Filamenten synchronisiert (Hellgrün, ELEGOO Marble, Galaxy Black, Basic Weiß)', 'AMS Sync', 'success');
+                  }}
+                  className="px-2 py-0.5 rounded-lg border border-[#00AE42]/40 bg-[#00AE42]/15 text-[#00AE42] hover:bg-[#00AE42]/25 text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                  title="Gleicht die 4 geladenen Spulen (Hellgrün, ELEGOO Marble, Galaxy Black, Basic Weiß) sofort mit den Slots ab"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Mit Drucker abgleichen</span>
+                </button>
+              </div>
+              <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
+                Aktiver Druck-Slot: <strong>Slot {activeSlot}</strong>
+              </span>
+            </div>
+
+            {/* 4 AMS Slots mit physischer Telemetrie unter jedem Slot */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {[1, 2, 3, 4].map(slotIdx => {
+                // Standard-Zuweisung falls noch nicht manuell gespeichert:
+                // Slot 1: sp-3 (Bambu Lab Hellgrün)
+                // Slot 2: sp-18 (ELEGOO Color Marble PLA)
+                // Slot 3: sp-9 (Prusament PETG Galaxy Black)
+                // Slot 4: sp-1 (Bambu Lab PETG Basic Weiß)
+                const defaultSlotSpools: Record<number, string> = {
+                  1: 'sp-3',
+                  2: 'sp-18',
+                  3: 'sp-9',
+                  4: 'sp-1'
+                };
+                const assignedId = amsSlots[slotIdx];
+                const effectiveSpoolId = assignedId !== undefined ? assignedId : (defaultSlotSpools[slotIdx] || '');
+                const spool = spools.find(s => s.id === effectiveSpoolId);
+                const isSlotEmpty = !effectiveSpoolId || !spool;
+                const isActive = activeSlot === slotIdx;
+
+                const hwTray = liveState.data.ams?.ams?.[0]?.tray?.[slotIdx - 1];
+                const rawHwColor = hwTray?.tray_color ? hwTray.tray_color.slice(0, 6) : '';
+                const hwHex = rawHwColor ? `#${rawHwColor}` : null;
+                const hwType = hwTray?.tray_type || (hwTray?.state === 0 ? 'Leer' : (spool?.material || 'PLA'));
+                const isHwEmpty = !spool && (hwTray?.state === 0 || !hwTray?.tray_type);
+
+                // Ganzflächige leuchtende Hintergrundfarbe im Farbton der Spule
+                const slotColorHex = isSlotEmpty
+                  ? null
+                  : (spool?.colorHex || hwHex || (slotIdx === 1 ? '#4ade80' : slotIdx === 2 ? '#e2e8f0' : slotIdx === 3 ? '#18181b' : '#f8fafc'));
+
+                return (
+                  <div
+                    key={slotIdx}
+                    onClick={() => handleSetActiveSlot(slotIdx)}
+                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 relative overflow-hidden ${
+                      isActive ? 'ring-2 ring-[#00AE42]/80' : 'hover:scale-[1.01]'
+                    } ${isSlotEmpty ? 'border-dashed opacity-85' : ''}`}
+                    style={{
+                      backgroundColor: slotColorHex
+                        ? undefined
+                        : isActive ? 'var(--app-accent-sub)' : 'var(--app-card-sub)',
+                      background: slotColorHex
+                        ? `linear-gradient(145deg, ${slotColorHex}38 0%, ${slotColorHex}18 50%, var(--app-card-sub) 100%)`
+                        : undefined,
+                      borderColor: slotColorHex
+                        ? `${slotColorHex}90`
+                        : isActive ? '#00AE42' : 'var(--app-border)',
+                      boxShadow: slotColorHex
+                        ? `0 6px 20px -3px ${slotColorHex}35`
+                        : undefined
+                    }}
+                  >
+                    {/* Header Slot */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-extrabold" style={{ color: 'var(--app-text)' }}>
+                          Slot {slotIdx}
+                        </span>
+                        {isSlotEmpty ? (
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30">
+                            Leer
+                          </span>
+                        ) : isActive ? (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#00AE42]/20 text-[#00AE42] border border-[#00AE42]/30">
+                            Aktiv
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          setEditingAmsSlot(slotIdx - 1);
+                          if (rawHwColor) setAmsEditColor(rawHwColor);
+                          if (hwType && hwType !== 'Leer') setAmsEditMaterial(hwType);
+                        }}
+                        title="Farbe & Material dieses Slots am Drucker einstellen"
+                        className="px-2 py-0.5 rounded-lg border border-white/10 hover:border-[#00AE42] text-[10px] font-bold flex items-center gap-1 text-slate-300 hover:text-white transition cursor-pointer bg-black/20"
+                      >
+                        <Edit3 className="w-3 h-3 text-[#00AE42]" />
+                        <span>Drucker anpassen</span>
+                      </button>
+                    </div>
+
+                    {/* Lokale FilamentHub Spulenzuweisung */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] block" style={{ color: 'var(--app-text-muted)' }}>
+                        FilamentHub Zuweisung:
+                      </label>
+                      <select
+                        value={effectiveSpoolId || ''}
+                        onChange={e => {
+                          e.stopPropagation();
+                          handleSetAmsSlot(slotIdx, e.target.value);
+                        }}
+                        className="w-full px-2 py-1 rounded-lg border text-[11px] outline-none cursor-pointer"
+                        style={{
+                          backgroundColor: 'var(--app-input-bg)',
+                          borderColor: 'var(--app-border)',
+                          color: 'var(--app-text)'
+                        }}
+                      >
+                        <option value="">(Keine Spule verknüpft)</option>
+                        {spools.map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.brand} {s.name} ({s.remainingWeight}g)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Trockenstand & anteilige Trocknungs-Anrechnung (z.B. 50% für halbe Zeit) */}
+                    {spool && (
+                      <div className="p-2 rounded-xl bg-orange-500/10 border border-orange-500/25 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-bold text-orange-400 flex items-center gap-1">
+                            <span>☀️ Trockenstand:</span>
+                          </span>
+                          <span className="font-mono-num font-bold text-slate-200">
+                            Soll: {spool.dryHours || 5}h
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const halfHours = Number(((spool.dryHours || 5) / 2).toFixed(1));
+                              onApplyDryingCredit?.(spool.id, halfHours, amsDryTemp);
+                            }}
+                            className="flex-1 py-1 px-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 font-bold text-[10px] border border-orange-500/40 transition cursor-pointer text-center active:scale-95 shadow-xs"
+                            title={`${(spool.dryHours || 5) / 2}h (50% der Trocknungszeit) anrechnen`}
+                          >
+                            +50% ({((spool.dryHours || 5) / 2)}h)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const fullHours = spool.dryHours || 5;
+                              onApplyDryingCredit?.(spool.id, fullHours, amsDryTemp);
+                            }}
+                            className="flex-1 py-1 px-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-[10px] border border-emerald-500/40 transition cursor-pointer text-center active:scale-95 shadow-xs"
+                            title={`${spool.dryHours || 5}h (100% Voll getrocknet) anrechnen`}
+                          >
+                            +100% ({spool.dryHours || 5}h)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TELEMETRIE DES ECHTEN DRUCKERS UNTER JEDEM SLOT */}
+                    <div className="p-2 rounded-xl border border-white/10 bg-black/20 space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-slate-400">Drucker-Telemetrie:</span>
+                        <span className="font-mono text-[9.5px] text-slate-500">
+                          {hwTray?.nozzle_temp_min ? `${hwTray.nozzle_temp_min}-${hwTray.nozzle_temp_max}°` : ''}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {slotColorHex ? (
+                          <span
+                            className="w-4 h-4 rounded-full border border-black/50 shadow-sm shrink-0"
+                            style={{ backgroundColor: slotColorHex }}
+                          />
+                        ) : (
+                          <span className="w-4 h-4 rounded-full border border-dashed border-slate-600 shrink-0" />
+                        )}
+
+                        <div className="min-w-0">
+                          <span className="font-extrabold text-[11px] block truncate" style={{ color: 'var(--app-text)' }}>
+                            {isSlotEmpty ? 'Slot frei (Keine Spule)' : (spool ? `${spool.brand} ${spool.name}` : (isHwEmpty ? 'Keine Spule erkannt' : hwType))}
+                          </span>
+                          <span className="font-mono text-[9.5px] block text-slate-400">
+                            {slotColorHex ? `${slotColorHex.toUpperCase()}` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* AMS TROCKNUNG (FILAMENT DRYING) STEUERUNG */}
+            <div
+              className="p-3.5 rounded-2xl border space-y-3 transition-colors text-xs"
+              style={{
+                backgroundColor: 'var(--app-card-sub)',
+                borderColor: 'var(--app-border)'
+              }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Droplets className="w-4 h-4 text-sky-400" />
+                  <span className="font-bold" style={{ color: 'var(--app-text)' }}>
+                    AMS Filament-Trocknung (Bambu Lab X2D):
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      isDryingActive
+                        ? 'bg-sky-500/20 text-sky-300 border-sky-400/50 animate-pulse'
+                        : 'bg-white/5 text-slate-400 border-white/10'
+                    }`}
+                  >
+                    {isDryingActive ? '🔥 Trocknung aktiv' : 'Inaktiv (Standby)'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+                  {liveState.data.ams?.ams?.[0]?.temp && (
+                    <span>AMS-Temp: {liveState.data.ams.ams[0].temp}°C</span>
+                  )}
+                  <span>• Feuchte: {getHumidityDisplay()}</span>
+                  {isDryingActive && calcRemainingTime() && (
+                    <span className="text-sky-300 font-bold">• ⏳ Restzeit: {calcRemainingTime()}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
+                    Dauer:
+                  </span>
+                  {[2, 4, 8, 12].map(hrs => (
+                    <button
+                      key={hrs}
+                      onClick={() => setAmsDryHours(hrs)}
+                      className={`px-2 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
+                        amsDryHours === hrs ? 'bg-sky-500/25 border-sky-400 text-sky-300' : 'border-white/10 text-slate-400'
+                      }`}
+                    >
+                      {hrs} Std.
+                    </button>
+                  ))}
+
+                  <span className="text-[11px] ml-2" style={{ color: 'var(--app-text-muted)' }}>
+                    Temperatur:
+                  </span>
+                  {[
+                    { label: '50° PLA', val: 50 },
+                    { label: '65° PETG/ABS', val: 65 }
+                  ].map(t => (
+                    <button
+                      key={t.val}
+                      onClick={() => setAmsDryTemp(t.val)}
+                      className={`px-2 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
+                        amsDryTemp === t.val ? 'bg-amber-500/25 border-amber-400 text-amber-300' : 'border-white/10 text-slate-400'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleToggleAmsDrying(true)}
+                    disabled={dryLoading}
+                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md disabled:opacity-50 ${
+                      isDryingActive
+                        ? 'bg-sky-500 hover:bg-sky-400 text-white shadow-sky-500/30 ring-2 ring-sky-300 animate-pulse'
+                        : 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white'
+                    }`}
+                  >
+                    {dryLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sun className="w-3.5 h-3.5" />}
+                    <span>{isDryingActive ? `🔥 Trocknung läuft (${calcRemainingTime() || `${amsDryHours}h`})` : 'Trocknen starten'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleToggleAmsDrying(false)}
+                    disabled={dryLoading}
+                    className="px-3 py-1.5 rounded-xl border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <Square className="w-3.5 h-3.5" />
+                    <span>Stoppen</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+  );
+};
