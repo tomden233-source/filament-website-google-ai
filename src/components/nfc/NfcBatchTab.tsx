@@ -1,8 +1,12 @@
 import React from 'react';
+import { NfcFormatPicker } from './NfcFormatPicker';
+import type { NfcWriteFormat } from '../../utils/nfcManager';
 import { Tag, Sparkles, RotateCcw, CheckCircle2, AlertCircle, Zap, SkipForward, Check } from 'lucide-react';
 import type { NfcModalProps as ParentProps } from '../NfcModal';
 
 export interface NfcBatchTabProps {
+  writeFormat: NfcWriteFormat;
+  setWriteFormat: (format: NfcWriteFormat) => void;
   writtenCount: any;
   totalCount: any;
   progressPct: any;
@@ -19,6 +23,8 @@ export interface NfcBatchTabProps {
 }
 
 export const NfcBatchTab: React.FC<NfcBatchTabProps> = ({
+  writeFormat,
+  setWriteFormat,
   writtenCount,
   totalCount,
   progressPct,
@@ -35,6 +41,8 @@ export const NfcBatchTab: React.FC<NfcBatchTabProps> = ({
 }) => {
   return (
 <div className="space-y-4 text-xs">
+              <NfcFormatPicker writeFormat={writeFormat} setWriteFormat={setWriteFormat} />
+
               {/* Fortschritts-Header */}
               <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
                 <div className="flex justify-between items-center text-xs">

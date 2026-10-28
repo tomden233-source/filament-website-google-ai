@@ -1,4 +1,5 @@
 import { Spool } from '../types/filament';
+import { encodeOpenTag3d, decodeOpenTag3d, OPENTAG3D_MIME } from './openTag3d';
 
 export interface NfcPayload {
   app: 'FilamentHub';
@@ -109,10 +110,16 @@ export async function clearNfcTag(
 /**
  * Schreibt eine Spule auf einen physischen NFC-Tag (oder speichert die Zuordnung)
  */
+export type NfcWriteFormat = 'filamenthub' | 'opentag3d';
+
 export async function writeSpoolToNfcTag(
   spool: Spool,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  format: NfcWriteFormat = 'filamenthub'
 ): Promise<{ success: boolean; message: string; serialNumber?: string }> {
+  if (format === 'opentag3d') {
+    return writeOpenTag3dToNfcTag(spool, signal);
+  }
   const payload: NfcPayload = {
     app: 'FilamentHub',
     v: 1,
@@ -170,6 +177,64 @@ export async function writeSpoolToNfcTag(
     success: true,
     message: `NFC-Daten für „${spool.brand} ${spool.name}“ vorbereitet (Web NFC im aktuellen Browser nicht verfügbar).`
   };
+}
+
+/**
+ * Schreibt die Spule im offenen OpenTag3D-Format (NDEF-MIME application/opentag3d, 224 Byte).
+ * Dieses Format können auch andere Programme und Drucker-Software lesen, die OpenTag3D unterstützen.
+ */
+export async function writeOpenTag3dToNfcTag(
+  spool: Spool,
+  signal?: AbortSignal
+): Promise<{ success: boolean; message: string }> {
+  const payload = encodeOpenTag3d(spool);
+
+  if (!isWebNfcSupported()) {
+    return {
+      success: true,
+      message: `OpenTag3D-Daten für „${spool.brand} ${spool.name}“ vorbereitet (Web NFC im aktuellen Browser nicht verfügbar).`
+    };
+  }
+
+  try {
+    const NDEFReaderClass = (window as any).NDEFReader;
+    const ndef = new NDEFReaderClass();
+    await ndef.write(
+      { records: [{ recordType: 'mime', mediaType: OPENTAG3D_MIME, data: payload }] },
+      { signal }
+    );
+    return {
+      success: true,
+      message: `NFC-Tag im OpenTag3D-Format mit „${spool.brand} ${spool.name}“ beschrieben! (Tag muss mindestens ein NTAG215 sein.)`
+    };
+  } catch (err: any) {
+    if (err.name === 'AbortError') throw err;
+    return {
+      success: false,
+      message: `Fehler beim Schreiben des OpenTag3D-Tags: ${err.message || 'Tag nicht erkannt, zu klein (NTAG215 nötig) oder schreibgeschützt'}`
+    };
+  }
+}
+
+/**
+ * Wandelt einen gelesenen OpenTag3D-Payload in den JSON-Text, den parseNfcContent versteht.
+ * Die Seriennummer des Tags enthält (wenn von FilamentHub geschrieben) die Spulen-ID.
+ */
+export function openTag3dToJsonText(bytes: Uint8Array): string {
+  const d = decodeOpenTag3d(bytes);
+  return JSON.stringify({
+    app: 'FilamentHub',
+    v: 1,
+    spoolId: d.serial || undefined,
+    brand: d.manufacturer,
+    material: d.material,
+    name: `${d.baseMaterial}${d.modifier ? ' ' + d.modifier : ''} ${d.colorName}`.trim(),
+    colorName: d.colorName,
+    colorHex: d.colorHex,
+    initialWeight: d.targetWeight || undefined,
+    emptySpoolWeight: d.emptySpoolWeight || undefined,
+    source: 'opentag3d'
+  });
 }
 
 /**
@@ -317,6 +382,15 @@ export function parseNfcContent(
       // Zuerst nach exakter ID, sonst nach Marke + Name abgleichen
       const matchedSpool =
         (data.spoolId ? spools.find(s => s.id === data.spoolId) : undefined) ||
+        // OpenTag3D kennt keinen Spulennamen: dann über Marke, Material und Farbname zuordnen
+        (data.source === 'opentag3d'
+          ? spools.find(
+              s =>
+                s.brand?.toLowerCase() === data.brand?.toLowerCase() &&
+                s.material === data.material &&
+                s.colorName?.toLowerCase() === data.colorName?.toLowerCase()
+            )
+          : undefined) ||
         spools.find(s => s.brand?.toLowerCase() === data.brand?.toLowerCase() && s.name?.toLowerCase() === data.name?.toLowerCase());
 
       if (normalizedUid && matchedSpool) {

@@ -46,9 +46,13 @@ Alle Werte stehen als Vorlage in `.env.example`.
 
 ## Projektstruktur
 
-- `src/`: Frontend (Komponenten, Hilfsfunktionen, Typen, Daten)
-- `server.ts`: Express-Server (Drucker, Home Assistant, Git, Speicher)
-- `server/bambuMqtt.ts`: MQTT-Anbindung an den Bambu-Drucker
+- `src/`: Frontend
+  - `components/`: Hauptfenster; Unterordner `sidebar/`, `bambu/`, `nfc/`, `app/` enthalten die Tabs, Panels und Hooks der großen Fenster
+  - `hooks/`, `utils/`, `api/` (zentrale Server-Aufrufe), `types/`, `data/`
+  - `utils/openTag3d.ts`: Encoder und Decoder für OpenTag3D-NFC-Tags
+- `server.ts`: Einstieg des Express-Servers (Middleware, Routen einhängen, Vite/Static)
+- `server/routes/`: Routen nach Thema (Drucker, Kamera, Home Assistant, Git, Speicher, Erkennung, Projekt-Download)
+- `server/bambuMqtt.ts`: MQTT-Anbindung an den Bambu-Drucker, `server/bambuCloudApi.ts`: Bambu-Cloud-HTTP-Aufrufe
 - `addon/`, `config.yaml`, `repository.yaml`: Home-Assistant-Add-on
 - `scripts/`: Hilfsskripte (ZIP-Export, PWA-Icons)
 

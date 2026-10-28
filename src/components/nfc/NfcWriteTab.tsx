@@ -1,7 +1,11 @@
 import React from 'react';
+import { NfcFormatPicker } from './NfcFormatPicker';
+import type { NfcWriteFormat } from '../../utils/nfcManager';
 import { Tag, CheckCircle2, AlertCircle, PenTool } from 'lucide-react';
 
 export interface NfcWriteTabProps {
+  writeFormat: NfcWriteFormat;
+  setWriteFormat: (format: NfcWriteFormat) => void;
   renderSpoolPicker: (...args: any[]) => any;
   targetSpool: any;
   writeSuccessMessage: any;
@@ -11,6 +15,8 @@ export interface NfcWriteTabProps {
 }
 
 export const NfcWriteTab: React.FC<NfcWriteTabProps> = ({
+  writeFormat,
+  setWriteFormat,
   renderSpoolPicker,
   targetSpool,
   writeSuccessMessage,
@@ -29,6 +35,8 @@ export const NfcWriteTab: React.FC<NfcWriteTabProps> = ({
                   Wähle unten die Spule aus. Klicke dann auf <strong>„Spule auf NFC-Tag schreiben“</strong> und halte den Tag an dein Smartphone.
                 </p>
               </div>
+
+              <NfcFormatPicker writeFormat={writeFormat} setWriteFormat={setWriteFormat} />
 
               {renderSpoolPicker()}
 

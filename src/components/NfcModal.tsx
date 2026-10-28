@@ -20,11 +20,14 @@ import {
   NfcPayload,
   parseNfcContent,
   writeSpoolToNfcTag,
+  openTag3dToJsonText,
+  type NfcWriteFormat,
   eraseNfcTag,
   mapTagToSpool,
   playNfcSuccessChime,
   triggerNfcHaptic
 } from '../utils/nfcManager';
+import { OPENTAG3D_MIME } from '../utils/openTag3d';
 
 export interface NfcModalProps {
   isOpen: boolean;
@@ -71,6 +74,8 @@ export const NfcModal: React.FC<NfcModalProps> = ({
   const [spoolMaterialFilter, setSpoolMaterialFilter] = useState<string>('ALL');
 
   const [isWriting, setIsWriting] = useState<boolean>(false);
+  // Schreibformat: eigenes FilamentHub-JSON oder offener OpenTag3D-Standard (NTAG215 oder größer)
+  const [writeFormat, setWriteFormat] = useState<NfcWriteFormat>('filamenthub');
   const [writeSuccessMessage, setWriteSuccessMessage] = useState<string>('');
   const [writeErrorMessage, setWriteErrorMessage] = useState<string>('');
 
@@ -233,6 +238,10 @@ export const NfcModal: React.FC<NfcModalProps> = ({
               textContent = textDecoder.decode(record.data);
               break;
             }
+            if (record.recordType === 'mime' && record.mediaType === OPENTAG3D_MIME) {
+              textContent = openTag3dToJsonText(new Uint8Array(record.data.buffer, record.data.byteOffset, record.data.byteLength));
+              break;
+            }
           }
         }
 
@@ -317,7 +326,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
     setWriteErrorMessage('');
 
     try {
-      const res = await writeSpoolToNfcTag(spoolToSave);
+      const res = await writeSpoolToNfcTag(spoolToSave, undefined, writeFormat);
       if (detectedTagUid) {
         mapTagToSpool(detectedTagUid, spoolToSave.id);
       }
@@ -343,7 +352,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
     setWriteErrorMessage('');
 
     try {
-      const res = await writeSpoolToNfcTag(spool);
+      const res = await writeSpoolToNfcTag(spool, undefined, writeFormat);
       if (res.success) {
         playNfcSuccessChime();
         triggerNfcHaptic();
@@ -413,7 +422,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
     setBatchErrorMessage('');
 
     try {
-      const res = await writeSpoolToNfcTag(spool);
+      const res = await writeSpoolToNfcTag(spool, undefined, writeFormat);
       if (res.success) {
         playNfcSuccessChime();
         triggerNfcHaptic();
@@ -730,7 +739,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
           {/* =============================================================== */}
           {/* TAB 1: MODUS "ALLE SPULEN BESCHREIBEN"                          */}
           {/* =============================================================== */}
-          {activeTab === 'batch' && <NfcBatchTab writtenCount={writtenCount} totalCount={totalCount} progressPct={progressPct} allCompleted={allCompleted} onResetAllNfcWritten={onResetAllNfcWritten} currentBatchSpool={currentBatchSpool} batchLastSuccessMessage={batchLastSuccessMessage} batchErrorMessage={batchErrorMessage} handleSimulateBatchTagContact={handleSimulateBatchTagContact} isBatchWriting={isBatchWriting} handleSkipCurrentBatchSpool={handleSkipCurrentBatchSpool} spools={spools} setBatchTargetSpoolId={setBatchTargetSpoolId} />}
+          {activeTab === 'batch' && <NfcBatchTab writeFormat={writeFormat} setWriteFormat={setWriteFormat} writtenCount={writtenCount} totalCount={totalCount} progressPct={progressPct} allCompleted={allCompleted} onResetAllNfcWritten={onResetAllNfcWritten} currentBatchSpool={currentBatchSpool} batchLastSuccessMessage={batchLastSuccessMessage} batchErrorMessage={batchErrorMessage} handleSimulateBatchTagContact={handleSimulateBatchTagContact} isBatchWriting={isBatchWriting} handleSkipCurrentBatchSpool={handleSkipCurrentBatchSpool} spools={spools} setBatchTargetSpoolId={setBatchTargetSpoolId} />}
 
           {/* =============================================================== */}
           {/* TAB 2: NFC-TAG LESEN                                           */}
@@ -740,7 +749,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
           {/* =============================================================== */}
           {/* TAB 3: EINZEL-SPULE AUF NFC-TAG BESCHREIBEN                     */}
           {/* =============================================================== */}
-          {activeTab === 'write' && <NfcWriteTab renderSpoolPicker={renderSpoolPicker} targetSpool={targetSpool} writeSuccessMessage={writeSuccessMessage} writeErrorMessage={writeErrorMessage} handleManualWriteSubmit={handleManualWriteSubmit} isWriting={isWriting} />}
+          {activeTab === 'write' && <NfcWriteTab writeFormat={writeFormat} setWriteFormat={setWriteFormat} renderSpoolPicker={renderSpoolPicker} targetSpool={targetSpool} writeSuccessMessage={writeSuccessMessage} writeErrorMessage={writeErrorMessage} handleManualWriteSubmit={handleManualWriteSubmit} isWriting={isWriting} />}
 
           {/* =============================================================== */}
           {/* TAB 4: DIREKT-SCHREIBEN NUR FÜR DIESE SPULE                     */}
