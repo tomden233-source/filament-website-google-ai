@@ -648,6 +648,24 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.54',
+    label: '1.54 (GitHub-Pages-Fix, Sicherheits-Härtung & Revisionsmenü)',
+    releaseDate: '28.10.2026',
+    description: 'Die GitHub-Pages-Seite zeigt wieder die App statt einer leeren Seite (Build per GitHub Action, korrekter Basispfad). Dazu Sicherheits-Härtung am Server: Git-Push ohne Shell-Injection, keine Token-Ausgabe mehr, ZIP-Export ohne Zugangsdaten, optionaler API-Key.',
+    features: [
+      '🌐 GitHub Pages Fix: Die Seite wird automatisch mit Vite gebaut und aus dem dist-Ordner veröffentlicht, Basispfad /filament-website-google-ai/ – kein leerer dunkler Bildschirm mehr',
+      '🔒 Git-Push abgesichert: Branch und Repo-URL werden geprüft, kein Shell-Aufruf mehr, Token nicht mehr in .git/config oder in Fehlermeldungen',
+      '🙈 Keine Token-Ausgabe: Die Konfigurationsrouten liefern kein rawToken mehr, Zugangscodes stehen nicht mehr im Quellcode',
+      '📦 ZIP-Export ohne Zugangsdaten: .env, Token-Dateien und data/ werden nicht mehr mitgepackt',
+      '🔑 Optionaler API-Key (APP_API_KEY) und geschlossenes CORS für alle /api-Routen',
+      '🛠️ Bambu-Verbindung: Timer werden beim Trennen aufgeräumt, zentrale Fehlerbehandlung, optionale TLS-Prüfung (BAMBU_TLS_VERIFY)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 24.600+ Codezeilen, 2.900+ Prompt-Wörter, 2.45M Tokens und 54 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
 

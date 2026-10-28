@@ -1,35 +1,35 @@
 {
-  "id": "/",
+  "id": "./",
   "name": "FilamentHub Studio",
   "short_name": "FilamentHub",
   "description": "3D-Druck Filament-Manager mit Tara-Waage, Trocknungsbalken, G-Code-Abzug, Kostenrechner, Bambu Studio Parametern & Live-Drucker.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0b111e",
   "theme_color": "#f97316",
   "icons": [
     {
-      "src": "/pwa-192x192.png",
+      "src": "pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa-512x512.png",
+      "src": "pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa-maskable-512x512.png",
+      "src": "pwa-maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon.svg",
+      "src": "icon.svg",
       "sizes": "512x512 192x192 180x180",
       "type": "image/svg+xml",
       "purpose": "any"
@@ -41,15 +41,15 @@
       "name": "Neue Spule",
       "short_name": "Neu",
       "description": "Neue Filamentspule erfassen",
-      "url": "/?action=new",
-      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+      "url": "./?action=new",
+      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Foto-Scan",
       "short_name": "Kamera",
       "description": "Spulen-Etikett scannen",
-      "url": "/?action=camera",
-      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+      "url": "./?action=camera",
+      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
     }
   ]
 }
