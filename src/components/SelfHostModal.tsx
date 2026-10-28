@@ -31,9 +31,9 @@ interface SelfHostModalProps {
   currentVersion?: string;
 }
 
-export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, currentVersion = 'v1.56' }) => {
+export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, currentVersion = 'v1.57' }) => {
   const versionNum = currentVersion ? currentVersion.replace(/^v/, '') : '1.56';
-  const versionTag = currentVersion ? (currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`) : 'v1.56';
+  const versionTag = currentVersion ? (currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`) : 'v1.57';
 
   // Standardmäßig IMMER "Zu Git posten" als aktiver Tab
   const [activeTab, setActiveTab] = useState<'git' | 'haos' | 'docker' | 'pm2' | 'data'>('git');
@@ -44,7 +44,7 @@ export const SelfHostModal: React.FC<SelfHostModalProps> = ({ isOpen, onClose, c
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Git Push State
-  const [gitRepoUrl, setGitRepoUrl] = useState<string>(() => safeStorage.getItem('git_repo_url') || 'https://github.com/tomden233-source/filament-website-google-ai.git');
+  const [gitRepoUrl, setGitRepoUrl] = useState<string>(() => safeStorage.getItem('git_repo_url') || 'https://github.com/tomden234/filament-website-google-ai.git');
   const [gitToken, setGitToken] = useState<string>(() => safeStorage.getItem('git_pat_token') || '');
   const [showGitToken, setShowGitToken] = useState<boolean>(false);
   const [gitPushing, setGitPushing] = useState<boolean>(false);
@@ -196,7 +196,7 @@ environment:
 git add -A
 git commit -m "FilamentHub ${versionTag} Update"
 git branch -M main
-git remote add origin https://github.com/tomden233-source/filament-website-google-ai.git
+git remote add origin https://github.com/tomden234/filament-website-google-ai.git
 git push -u origin main --force`;
 
   const pm2Code = `# 1. Abhängigkeiten installieren & App bauen
@@ -242,7 +242,7 @@ pm2 startup`;
                 </span>
               </div>
               <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
-                Home Assistant OS auf dem Pi, 1-Klick ZIP-Download, Git Auto-Push &amp; Render.com – 100% ohne Credits!
+                Home Assistant OS auf dem Pi, 1-Klick ZIP-Download, Git Auto-Push &amp; GitHub Pages – 100% kostenlos!
               </p>
             </div>
           </div>

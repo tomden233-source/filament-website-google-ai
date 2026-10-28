@@ -4,7 +4,7 @@ import sys
 import zipfile
 
 # Nie in den Download aufnehmen: Zugangsdaten, lokale Laufzeitdaten und Build-/Cache-Ordner.
-EXCLUDE_DIRS = {'.git', 'node_modules', 'dist', '.aistudio', '.cache', 'data'}
+EXCLUDE_DIRS = {'.git', 'node_modules', 'dist', '.cache', 'data'}
 EXCLUDE_FILE_PATTERNS = [
     '.DS_Store',
     '.env', '.env.*',                # Umgebungsvariablen (die Vorlage .env.example bleibt erlaubt)

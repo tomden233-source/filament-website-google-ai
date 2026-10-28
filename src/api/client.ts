@@ -1,6 +1,8 @@
 // Gemeinsame API-Schicht: ein Ort für API-Key, JSON-Handling und Timeouts.
 // Alle Aufrufe an das eigene Backend (/api/...) laufen hier durch.
 
+import { IS_STATIC } from '../utils/env';
+
 const API_KEY_STORAGE = 'app_api_key';
 
 export interface ApiOptions {
@@ -44,6 +46,15 @@ function readApiKey(): string | null {
  * Externe URLs (z. B. Cloud-Sync) bekommen den Key nie.
  */
 export function apiFetch(path: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
+  // GitHub Pages hat keinen Server: /api-Aufrufe gar nicht erst senden
+  if (IS_STATIC && path.startsWith('/api')) {
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({ success: false, error: 'Nicht verfügbar auf GitHub Pages (kein Server). Dafür den Server auf dem Raspberry Pi oder Docker nutzen.' }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+  }
   const { timeoutMs, ...rest } = init;
   const headers = new Headers(rest.headers);
   const key = path.startsWith('/api') ? readApiKey() : null;

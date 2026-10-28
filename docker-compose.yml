@@ -11,7 +11,7 @@ services:
       - BAMBU_HOST=192.168.68.53
       - BAMBU_ACCESS_CODE=${BAMBU_ACCESS_CODE:-}
       - BAMBU_SERIAL=03909A511502473
-      # Optional: Falls KI-Bilderkennung gewünscht ist (kostenlos bei Google AI Studio):
+      # Optional: Falls KI-Bilderkennung gewünscht ist (Google-Gemini-Schlüssel):
       # - GEMINI_API_KEY=your_key_here
     volumes:
       # Dauerhafter Speicher für Spulen, Stats & Telemetrie-Pfade

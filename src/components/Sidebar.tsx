@@ -796,7 +796,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="button"
               onClick={() => setShowSelfHost(true)}
               className="px-2 py-1 rounded-lg text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer hover:opacity-90 active:scale-95 shadow-xs border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
-              title="FilamentHub 24/7 autark auf deinem Raspberry Pi oder Docker hosten (ohne AI Studio Credits!)"
+              title="FilamentHub 24/7 autark auf deinem Raspberry Pi oder Docker hosten"
             >
               <Server className="w-3 h-3 text-emerald-400" />
               <span>Pi Host</span>
@@ -1082,7 +1082,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span>Farbschemata & 5 Helligkeitsstufen</span>
                     </span>
                     <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
-                      Wähle aus 5 Helligkeiten (Weiß, Soft White, Neutral, Deep, Midnight OLED). Menü und alle Bereiche passen sich automatisch an.
+                      Wähle aus 5 Helligkeiten (Weiß, Soft, Grau, Dämmerung, Nacht). Standard ist Soft. Menü und alle Bereiche passen sich automatisch an.
                     </p>
                   </div>
 

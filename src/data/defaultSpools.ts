@@ -697,6 +697,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.57',
+    label: '1.57 (5 gleichmäßige Helligkeits-Themes, Soft als Standard, GitHub Pages & Aufräumen)',
+    releaseDate: '28.10.2026',
+    description: 'Die 5 Helligkeits-Themes sind jetzt gleichmäßig von hell nach dunkel verteilt (statt fast nur hell oder dunkel), Soft ist das Standard-Theme. Alle Reste der Google-AI-Studio-Zeit sind entfernt, die Seite ist komplett auf GitHub Pages ausgerichtet und überflüssige Dateien sind weg.',
+    features: [
+      '🎨 5 Helligkeitsstufen gleichmäßig verteilt: Weiß, Soft, Grau, Dämmerung und Nacht – von ganz hell bis fast schwarz in ähnlichen Abständen',
+      '☁️ Soft ist Standard: Soft ist das Standard-Theme (auch Startfarbe und Browser-Leiste), bisher gespeicherte Themes werden einmalig darauf zurückgesetzt',
+      '🧹 AI-Studio-Reste entfernt: Screenshot-Ordner, metadata.json, Studio-Kommentare, Studio-Header und Texte wie „ohne AI Studio Credits“; der Name ist jetzt einfach FilamentHub',
+      '🌐 GitHub Pages: Eigener Static-Modus ohne Server-Aufrufe (kein Dauer-Polling mehr), Service Worker kommt von der Vite-PWA mit richtigem Basispfad, Repo-Links zeigen auf tomden234',
+      '🗑️ Aufgeräumt: .continue, .roo, bun.lock, alter Service Worker, Test-G-Code und Studio-Screenshots entfernt, uploads/ und data/ stehen in der .gitignore',
+      '🔢 Aktualisierte Zahlen-FunFacts: 24.900+ Codezeilen, 3.050+ Prompt-Wörter, 2.54M Tokens und 57 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
 

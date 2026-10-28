@@ -1,12 +1,12 @@
 #!/bin/bash
 # ==============================================================================
-# FilamentHub Studio - Raspberry Pi 1-Click Installer
-# Hoste FilamentHub 24/7 autark auf deinem Raspberry Pi (ohne AI Studio Credits!)
+# FilamentHub - Raspberry Pi 1-Click Installer
+# Hoste FilamentHub 24/7 autark auf deinem Raspberry Pi
 # ==============================================================================
 
 set -e
 
-echo "🚀 Starte FilamentHub Studio Setup auf Raspberry Pi..."
+echo "🚀 Starte FilamentHub Setup auf Raspberry Pi..."
 
 # 1. Node.js & npm prüfen
 if ! command -v node &> /dev/null; then
@@ -35,7 +35,7 @@ if ! command -v pm2 &> /dev/null; then
     sudo npm install -g pm2
 fi
 
-echo "🚀 Starte FilamentHub Studio mit PM2..."
+echo "🚀 Starte FilamentHub mit PM2..."
 pm2 delete filamenthub 2>/dev/null || true
 pm2 start server.ts --name filamenthub --interpreter tsx
 
@@ -45,7 +45,7 @@ pm2 save
 IP_ADDR=$(hostname -I | awk '{print $1}')
 
 echo "=============================================================================="
-echo "🎉 FilamentHub Studio läuft jetzt dauerhaft auf deinem Raspberry Pi!"
+echo "🎉 FilamentHub läuft jetzt dauerhaft auf deinem Raspberry Pi!"
 echo "👉 Öffne im Browser: http://${IP_ADDR}:3000"
 echo "👉 Oder lokal:       http://localhost:3000"
 echo "=============================================================================="

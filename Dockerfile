@@ -1,4 +1,4 @@
-# FilamentHub Studio - Dockerfile für Raspberry Pi (ARM64) & x86_64
+# FilamentHub - Dockerfile für Raspberry Pi (ARM64) & x86_64
 FROM node:22-alpine
 
 WORKDIR /app

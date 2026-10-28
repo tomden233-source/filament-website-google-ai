@@ -44,6 +44,7 @@ import { BambuSettingsModal } from './BambuSettingsModal';
 import { safeStorage } from '../utils/safeStorage';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 import { addSystemLog } from '../utils/logService';
+import { IS_STATIC } from '../utils/env';
 import {
   getHaCredentials,
   fetchHaSwitchStatus,
@@ -512,6 +513,9 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
         }
       } catch {}
     };
+
+    // Auf GitHub Pages gibt es keinen Server: kein Polling, kein Stream
+    if (IS_STATIC) return;
 
     fetchStatus();
     connectSSE();

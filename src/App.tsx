@@ -30,7 +30,9 @@ import {
 } from './types/filament';
 import {
   ThemeBrightness,
-  ThemeAccent
+  ThemeAccent,
+  BRIGHTNESS_OPTIONS,
+  DEFAULT_BRIGHTNESS
 } from './types/theme';
 import {
   DEFAULT_21_SPOOLS,
@@ -65,6 +67,7 @@ const STORAGE_KEY_VIEW = 'filamenthub_view_mode';
 const STORAGE_KEY_CLOUD_URL = 'filamenthub_cloud_db_url';
 const STORAGE_KEY_THEME_BRIGHT = 'filamenthub_theme_brightness';
 const STORAGE_KEY_THEME_ACCENT = 'filamenthub_theme_accent';
+const STORAGE_KEY_THEME_MIGRATED = 'filamenthub_theme_migrated';
 
 const LEGACY_SPOOL_KEYS = [
   'filamenthub_spools_v123',
@@ -84,14 +87,16 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 5 Helligkeitsstufen & Akzente (Standard: Dunkelblau slate, kein versehentliches Weiß)
+  // 5 Helligkeitsstufen & Akzente (Standard: Soft). Alte Werte aus früheren Versionen werden einmalig auf Soft gesetzt.
   const [themeBrightness, setThemeBrightness] = useState<ThemeBrightness>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_THEME_BRIGHT) as ThemeBrightness;
-    if (saved === 'polar') {
-      safeStorage.setItem(STORAGE_KEY_THEME_BRIGHT, 'slate');
-      return 'slate';
+    const migrated = safeStorage.getItem(STORAGE_KEY_THEME_MIGRATED) === 'soft-default';
+    if (!migrated) {
+      safeStorage.setItem(STORAGE_KEY_THEME_MIGRATED, 'soft-default');
+      safeStorage.setItem(STORAGE_KEY_THEME_BRIGHT, DEFAULT_BRIGHTNESS);
+      return DEFAULT_BRIGHTNESS;
     }
-    return saved || 'slate';
+    return BRIGHTNESS_OPTIONS.some((b) => b.id === saved) ? saved : DEFAULT_BRIGHTNESS;
   });
   const [themeAccent, setThemeAccent] = useState<ThemeAccent>(() => {
     return (safeStorage.getItem(STORAGE_KEY_THEME_ACCENT) as ThemeAccent) || 'orange';
@@ -130,10 +135,10 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    // Veraltete Stände automatisch auf die neue v1.56 anheben
-    if (!saved || saved !== 'v1.56') {
-      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.56');
-      return 'v1.56';
+    // Veraltete Stände automatisch auf die neue v1.57 anheben
+    if (!saved || saved !== 'v1.57') {
+      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.57');
+      return 'v1.57';
     }
     return saved;
   });
