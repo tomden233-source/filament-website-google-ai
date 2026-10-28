@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { bambuService } from '../bambuMqtt.js';
 import { rootDir } from '../paths.js';
+import { bambuLogin } from '../../src/utils/bambuCloudLogin.js';
 
 const router = Router();
 
@@ -253,18 +254,19 @@ router.post('/api/printer/command', async (req, res) => {
   }
 });
 
-// 5. Bambu Cloud Login mit E-Mail & Passwort (inkl. 2FA)
+// 5. Bambu Cloud Login mit E-Mail & Passwort (inkl. E-Mail-Code und 2FA-App), gleiche Logik wie in der App
 router.post('/api/printer/login', async (req, res) => {
   try {
-    const { email, password, verifyCode } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: 'E-Mail und Passwort erforderlich.' });
+    const { email, password, code, tfaKey, tfaCode, resend } = req.body ?? {};
+    if (!email || (!password && !code && !resend)) {
+      return res.status(400).json({ status: 'error', message: 'E-Mail und Passwort erforderlich.' });
     }
-    const result = await bambuService.loginBambu(email, password, verifyCode);
-    return res.status(result.status || 200).json(result.data);
+    const result = await bambuLogin({ email, password: password || '', code, tfaKey, tfaCode, resend });
+    return res.json(result);
   } catch (error: any) {
     return res.status(500).json({
-      error: 'Fehler beim Bambu Cloud Login: ' + (error?.message || error)
+      status: 'error',
+      message: 'Fehler beim Bambu Cloud Login: ' + (error?.message || error)
     });
   }
 });

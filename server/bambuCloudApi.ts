@@ -195,30 +195,3 @@ export function parseConfiguration(rawText: string): {
     serialNumber: foundSerial ? foundSerial.toUpperCase() : undefined
   };
 }
-
-/**
- * Login über Bambu Cloud API mit Studio Client Headern
- */
-export async function loginBambu(account: string, pass: string, verifyCode?: string) {
-  const payload: any = {
-    account: account.trim(),
-    password: pass
-  };
-  if (verifyCode && verifyCode.trim()) {
-    payload.verifyCode = verifyCode.trim();
-  }
-
-  const res = await fetch('https://api.bambulab.com/v1/user-service/user/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': 'BambuStudio/01.09.05.51',
-      'X-BBL-Client-Type': 'BambuStudio',
-      'X-BBL-Client-Version': '01.09.05.51'
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-  return { ok: res.ok, status: res.status, data };
-}

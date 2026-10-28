@@ -750,6 +750,25 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.60',
+    label: '1.60 (E-Mail-Login ohne Server: direkt in der App, mit E-Mail-Code & 2FA)',
+    releaseDate: '28.10.2026',
+    description: 'Der E-Mail-Login im Bambu-Fenster funktioniert jetzt auch ohne eigenen Server: Die Android-App fragt direkt bei Bambu an. Dazu gibt es den richtigen Ablauf mit E-Mail-Bestätigungscode, Authenticator-App-Code und „Code erneut senden“. Die Meldung „Nicht verfügbar auf GitHub Pages“ erscheint dort nicht mehr.',
+    features: [
+      '🔑 Login direkt in der App: Die APK schickt die Anfrage per nativem HTTP (CapacitorHttp) direkt an Bambu, dadurch greift die Browser-Sperre (CORS) nicht und es wird kein Server gebraucht',
+      '📧 Richtiger Bambu-Ablauf: Passwort-Login, bei Bedarf automatisch Code per E-Mail anfordern und mit Konto + Code einloggen (vorher wurde das Feld falsch benannt und der Code nie gesendet)',
+      '🔐 2FA-App unterstützt: Ist eine Authenticator-App aktiv, fragt das Fenster den 6-stelligen App-Code ab',
+      '🔁 „Code erneut senden“ und Zifferneingabe mit Autofill für den Code',
+      '🆔 User-ID wird nach dem Login automatisch aus dem Token gelesen, „User-ID erkennen“ geht in der App ebenfalls ohne Server',
+      '🧩 Eine gemeinsame Login-Logik (src/utils/bambuCloudLogin.ts) für App und lokalen Server, die alte Server-Funktion ist entfernt',
+      '🌐 Im normalen Browser (GitHub Pages) blockiert Bambu den Login weiterhin; das Fenster zeigt dort eine klare Meldung mit dem Weg über App oder manuelles Token',
+      '🔢 Aktualisierte Zahlen-FunFacts: 22.800+ Codezeilen, 3.400+ Prompt-Wörter, 2,85M Tokens und 60 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
 

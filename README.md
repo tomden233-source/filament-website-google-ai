@@ -25,6 +25,7 @@ Der Workflow `.github/workflows/apk.yml` baut bei jedem Push auf `main` eine sig
 
 - Signiert wird mit `android-signing/filamenthub.keystore` (nur für diese Sideload-App). Eigenen Schlüssel nutzen: Passwort als Secret `ANDROID_KEYSTORE_PASSWORD` hinterlegen und die Keystore-Datei ersetzen.
 - Das Repository muss öffentlich sein, damit der Download ohne Login am Handy klappt.
+- Der E-Mail-Login im Bambu-Fenster läuft in der App direkt gegen Bambu (CapacitorHttp in `capacitor.config.json`, kein Server nötig). Im normalen Browser blockiert Bambu das (CORS), dort das Token manuell holen oder den lokalen Server nutzen. Die Live-Verbindung zum Drucker (MQTT) braucht weiterhin den Server.
 
 ## Umgebungsvariablen
 

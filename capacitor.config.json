@@ -2,6 +2,15 @@
   "appId": "com.filamenthub.app",
   "appName": "FilamentHub",
   "webDir": "dist",
-  "android": { "allowMixedContent": true },
-  "server": { "androidScheme": "https" }
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
 }

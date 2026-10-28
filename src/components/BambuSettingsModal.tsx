@@ -18,6 +18,8 @@ import {
   BookOpen
 } from 'lucide-react';
 import { safeStorage } from '../utils/safeStorage';
+import { IS_STATIC } from '../utils/env';
+import { bambuLogin, resolveBambuUserId, type BambuLoginInput, type BambuLoginResult } from '../utils/bambuCloudLogin';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 
 interface BambuSettingsModalProps {
@@ -56,7 +58,9 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [login2FACode, setLogin2FACode] = useState('');
-  const [show2FAInput, setShow2FAInput] = useState(false);
+  // Schritt: Zugangsdaten, Code aus der Bestätigungs-E-Mail oder Code der Authenticator-App
+  const [loginStep, setLoginStep] = useState<'credentials' | 'code' | 'tfa'>('credentials');
+  const [tfaKey, setTfaKey] = useState('');
 
   // Status & Lade-Zustände
   const [isConnecting, setIsConnecting] = useState(false);
@@ -85,8 +89,12 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
     setFeedback(null);
 
     try {
-      const res = await printerApi.extractUser(accessToken.trim(), userId.trim());
-      const data = res.data;
+      // In der App ohne Server direkt bei Bambu nachfragen
+      const data: any = IS_STATIC
+        ? await resolveBambuUserId(accessToken.trim()).then(uid =>
+            uid ? { success: true, userId: uid } : { success: false, error: 'User-ID konnte nicht ausgelesen werden.' }
+          )
+        : (await printerApi.extractUser(accessToken.trim(), userId.trim())).data;
       if (data.success && data.userId) {
         setUserId(data.userId);
         safeStorage.setItem('bambu_user_id', data.userId);
@@ -219,10 +227,23 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
   };
 
   // 3. Login über Bambu Cloud API
-  const handleBambuLogin = async (e: React.FormEvent) => {
+  // In der App (ohne Server) fragt die App direkt bei Bambu an, sonst läuft es über den lokalen Server.
+  const runLogin = async (input: BambuLoginInput): Promise<BambuLoginResult> => {
+    if (IS_STATIC) return bambuLogin(input);
+    const res = await printerApi.login(input);
+    const data: any = res.data;
+    if (data && typeof data.status === 'string') return data as BambuLoginResult;
+    return { status: 'error', message: data?.message || data?.error || 'Login-Dienst nicht erreichbar.' };
+  };
+
+  const handleBambuLogin = async (e: React.FormEvent, resend = false) => {
     e.preventDefault();
-    if (!loginEmail.trim() || !loginPassword) {
+    if (!loginEmail.trim() || (!loginPassword && loginStep === 'credentials')) {
       setFeedback({ type: 'error', message: 'Bitte E-Mail und Passwort eingeben.' });
+      return;
+    }
+    if (!resend && loginStep !== 'credentials' && login2FACode.trim().length < 6) {
+      setFeedback({ type: 'error', message: 'Bitte den 6-stelligen Code eingeben.' });
       return;
     }
 
@@ -230,55 +251,47 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
     setFeedback(null);
 
     try {
-      const res = await printerApi.login({
+      const result = await runLogin({
         email: loginEmail.trim(),
         password: loginPassword,
-        verifyCode: login2FACode.trim() || undefined
+        code: loginStep === 'code' && !resend ? login2FACode.trim() : undefined,
+        tfaKey: loginStep === 'tfa' ? tfaKey : undefined,
+        tfaCode: loginStep === 'tfa' ? login2FACode.trim() : undefined,
+        resend
       });
-      const data = res.data;
 
-      // Prüfen ob 2FA erforderlich ist
-      if (res.status === 401 && (data.message?.includes('verify') || data.code === 40110)) {
-        setShow2FAInput(true);
-        setFeedback({
-          type: 'info',
-          message: 'Bambu Lab hat einen 6-stelligen Bestätigungscode an deine E-Mail gesendet. Bitte unten eingeben.'
-        });
-        setIsLoggingIn(false);
-        return;
-      }
-
-      if (data.accessToken || data.token) {
-        const receivedToken = data.accessToken || data.token;
-        const receivedUid = data.uid || data.userId;
-
-        setAccessToken(receivedToken);
-        safeStorage.setItem('bambu_access_token', receivedToken);
-
-        if (receivedUid) {
-          setUserId(String(receivedUid));
-          safeStorage.setItem('bambu_user_id', String(receivedUid));
+      if (result.status === 'needCode') {
+        setLoginStep('code');
+        setLogin2FACode('');
+        setFeedback({ type: 'info', message: result.message });
+      } else if (result.status === 'needTfa') {
+        setLoginStep('tfa');
+        setTfaKey(result.tfaKey);
+        setLogin2FACode('');
+        setFeedback({ type: 'info', message: result.message });
+      } else if (result.status === 'ok') {
+        setAccessToken(result.accessToken);
+        safeStorage.setItem('bambu_access_token', result.accessToken);
+        if (result.userId) {
+          setUserId(result.userId);
+          safeStorage.setItem('bambu_user_id', result.userId);
         }
-
+        setLoginPassword('');
+        setLogin2FACode('');
+        setLoginStep('credentials');
+        setTfaKey('');
         setFeedback({
           type: 'success',
-          message: 'Login erfolgreich! Access Token und User ID wurden automatisch übernommen.'
+          message: result.userId
+            ? 'Login erfolgreich! Token und User-ID wurden übernommen.'
+            : 'Login erfolgreich! Token übernommen, die User-ID bitte mit „User-ID erkennen“ holen.'
         });
         setActiveTab('token');
       } else {
-        setFeedback({
-          type: 'error',
-          message:
-            data.message ||
-            data.error ||
-            'Login fehlgeschlagen. Tipp: Wenn du dich mit Google/Apple anmeldest, nutze den manuellen Token-Tab mit Anleitung!'
-        });
+        setFeedback({ type: 'error', message: result.message });
       }
     } catch {
-      setFeedback({
-        type: 'error',
-        message: 'Fehler bei der Verbindung zum Bambu Login-Dienst.'
-      });
+      setFeedback({ type: 'error', message: 'Fehler bei der Verbindung zum Bambu Login-Dienst.' });
     } finally {
       setIsLoggingIn(false);
     }
@@ -775,25 +788,41 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
               />
             </div>
 
-            {/* 2FA Eingabe wenn von Bambu angefordert */}
-            {show2FAInput && (
+            {/* Code-Eingabe (E-Mail-Code oder Authenticator-App), wenn Bambu ihn verlangt */}
+            {loginStep !== 'credentials' && (
               <div
                 className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-1.5"
               >
                 <label className="font-bold block text-amber-400">
-                  6-stelliger E-Mail Bestätigungscode (2FA):
+                  {loginStep === 'tfa' ? '6-stelliger Code deiner Authenticator-App:' : '6-stelliger Code aus der Bestätigungs-E-Mail:'}
                 </label>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   maxLength={6}
                   placeholder="123456"
                   value={login2FACode}
-                  onChange={e => setLogin2FACode(e.target.value.trim())}
+                  onChange={e => setLogin2FACode(e.target.value.replace(/\D/g, ''))}
                   className="w-full px-3 py-2 rounded-xl border border-amber-500/40 text-sm font-mono-num font-bold text-center outline-none bg-black/40 text-amber-300"
                 />
-                <span className="text-[10px] text-amber-400 block">
-                  Prüfe dein E-Mail-Postfach auf den Bestätigungscode von Bambu Lab.
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-amber-400 block">
+                    {loginStep === 'tfa'
+                      ? 'Den Code findest du in deiner Authenticator-App.'
+                      : 'Schau auch im Spam-Ordner nach der Mail von Bambu Lab.'}
+                  </span>
+                  {loginStep === 'code' && (
+                    <button
+                      type="button"
+                      disabled={isLoggingIn}
+                      onClick={e => handleBambuLogin(e as unknown as React.FormEvent, true)}
+                      className="text-[10px] font-bold underline text-amber-300 cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      Code erneut senden
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -804,7 +833,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
               style={{ backgroundColor: 'var(--app-accent)' }}
             >
               {isLoggingIn ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-              <span>{isLoggingIn ? 'Logge ein...' : show2FAInput ? 'Mit 2FA-Code bestätigen' : 'Token jetzt abrufen'}</span>
+              <span>{isLoggingIn ? 'Logge ein...' : loginStep !== 'credentials' ? 'Mit Code bestätigen' : 'Token jetzt abrufen'}</span>
             </button>
           </form>
         )}

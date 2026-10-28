@@ -350,13 +350,6 @@ class BambuMqttService {
     return bambuCloud.parseConfiguration(rawText);
   }
   /**
-   * Login über Bambu Cloud API mit Studio Client Headern
-   */
-  public async loginBambu(account: string, pass: string, verifyCode?: string) {
-    return await bambuCloud.loginBambu(account, pass, verifyCode);
-  }
-
-  /**
    * Verbindung zu Bambu Cloud MQTT aufbauen
    */
   public async connect(params: {

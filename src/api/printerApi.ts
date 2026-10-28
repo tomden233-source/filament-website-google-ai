@@ -1,5 +1,6 @@
 import { apiGet, apiPost, type ApiBase, type ApiResult } from './client';
 import type { BambuLiveState } from '../types/bambu';
+import type { BambuLoginInput, BambuLoginResult } from '../utils/bambuCloudLogin';
 
 // Alle /api/printer/* und /api/bambu/* Aufrufe an einem Ort.
 
@@ -74,8 +75,8 @@ export const printerApi = {
     adminPin?: string;
   }): Promise<ApiResult<ConnectResponse>> => apiPost<ConnectResponse>('/api/printer/connect', payload),
 
-  login: (payload: { email: string; password: string; verifyCode?: string }) =>
-    apiPost<any>('/api/printer/login', payload),
+  /** E-Mail-Login über den lokalen Server (in der App läuft der Login direkt, siehe utils/bambuCloudLogin.ts) */
+  login: (payload: BambuLoginInput) => apiPost<BambuLoginResult | { status?: undefined; error?: string; message?: string }>('/api/printer/login', payload),
 
   demo: () => apiPost<ApiBase>('/api/printer/demo'),
 
