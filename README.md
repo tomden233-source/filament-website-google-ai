@@ -73,3 +73,4 @@ npm run build   # Produktions-Build
 Beides läuft auch automatisch als GitHub Action bei jedem Pull Request.
 - Seit 1.62 verbindet sich die Android-App selbst mit dem Bambu-Drucker (natives MQTT, kein Server nötig) und liest/beschreibt NFC-Tags über eigene Plugins (`android-native/`).
 - Seit 1.63 aktualisiert sich die Android-App live (Plugin `FilamentLive`, Paket `live-bundle.zip` im Release `apk-latest`): neue Oberfläche ohne neue APK. Nur bei Änderungen am Java-Teil `NATIVE_API` (FilamentLivePlugin.java) und `nativeApi` (apk.yml) erhöhen, dann ist wieder eine neue APK nötig.
+- Seit 1.65 lädt die App neue APKs selbst und öffnet den Installer (Plugin `FilamentLive.installApk`, `NATIVE_API` = 2). Beim ersten Mal muss „Installieren erlauben“ bestätigt werden.

@@ -1,7 +1,12 @@
 package com.filamenthub.app;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
+import androidx.core.content.FileProvider;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -22,7 +27,7 @@ import java.util.zip.ZipInputStream;
 public class FilamentLivePlugin extends Plugin {
 
     /** Muss mit "nativeApi" in live-version.json (apk.yml) übereinstimmen. Erhöhen, wenn sich Java-Plugins ändern. */
-    public static final int NATIVE_API = 1;
+    public static final int NATIVE_API = 2;
 
     static final String PREFS = "filament_live";
 
@@ -83,6 +88,54 @@ public class FilamentLivePlugin extends Plugin {
         }
         getBridge().setServerBasePath(path);
         call.resolve();
+    }
+
+    /**
+     * Neue APK direkt in der App laden und den Android-Installer öffnen (kein Browser).
+     * Einmal "Installieren" bestätigen, die Daten bleiben erhalten.
+     */
+    @PluginMethod
+    public void installApk(final PluginCall call) {
+        final String url = call.getString("url");
+        if (url == null) {
+            call.reject("url erforderlich");
+            return;
+        }
+        final Context ctx = getContext();
+        if (Build.VERSION.SDK_INT >= 26 && !ctx.getPackageManager().canRequestPackageInstalls()) {
+            // Einmalig: dieser App das Installieren erlauben
+            Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + ctx.getPackageName()));
+            settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ctx.startActivity(settings);
+            call.reject("needPermission");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                File dir = new File(ctx.getCacheDir(), "apk");
+                deleteRecursive(dir);
+                dir.mkdirs();
+                File apk = new File(dir, "FilamentHub.apk");
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(60000);
+                conn.setInstanceFollowRedirects(true);
+                if (conn.getResponseCode() != 200) throw new Exception("HTTP " + conn.getResponseCode());
+                try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(apk)) {
+                    byte[] buf = new byte[65536];
+                    int n;
+                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                }
+                Uri uri = FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".fileprovider", apk);
+                Intent install = new Intent(Intent.ACTION_VIEW);
+                install.setDataAndType(uri, "application/vnd.android.package-archive");
+                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                ctx.startActivity(install);
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Download fehlgeschlagen: " + e.getMessage());
+            }
+        }).start();
     }
 
     @PluginMethod

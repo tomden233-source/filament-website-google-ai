@@ -44,7 +44,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           (cd dist && zip -qr ../live-bundle.zip .)
           # nativeApi muss zu NATIVE_API in android-native/FilamentLivePlugin.java passen
-          echo "{\"version\":\"$VERSION\",\"nativeApi\":1}" > live-version.json
+          echo "{\"version\":\"$VERSION\",\"nativeApi\":2}" > live-version.json
           cat live-version.json
 
       - name: Capacitor installieren (nur im Build, nicht im Projekt)
@@ -60,8 +60,12 @@ jobs:
           # Paho MQTT (Drucker ohne Server) und NFC-Berechtigung
           sed -i '/^dependencies {/a\    implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5"' android/app/build.gradle
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\    <uses-permission android:name="android.permission.NFC" />\n    <uses-feature android:name="android.hardware.nfc" android:required="false" />' "$MANIFEST"
-          grep -n "NFC" "$MANIFEST" || echo "Hinweis: NFC-Eintrag fehlt"
+          sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\    <uses-permission android:name="android.permission.NFC" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-feature android:name="android.hardware.nfc" android:required="false" />' "$MANIFEST"
+          # Dateifreigabe für den Installer (Cache-Ordner mit der geladenen APK)
+          mkdir -p android/app/src/main/res/xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<paths>\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n    <files-path name="my_files" path="." />\n</paths>\n' > android/app/src/main/res/xml/file_paths.xml
+          grep -n "fileprovider" "$MANIFEST" || echo "Hinweis: FileProvider fehlt im Manifest"
+          grep -n "NFC\|INSTALL_PACKAGES" "$MANIFEST" || echo "Hinweis: NFC-Eintrag fehlt"
           grep -n "paho" android/app/build.gradle || echo "Hinweis: Paho fehlt"
           # Inhalt nicht unter die Systemleisten zeichnen (Menü oben links bleibt sichtbar), Leistenfarben sind einstellbar
           for st in AppTheme AppTheme.NoActionBar AppTheme.NoActionBarLaunch; do

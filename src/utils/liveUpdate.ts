@@ -1,6 +1,6 @@
 // Live-Update der Android-App: neue Oberfläche kommt aus dem GitHub-Release, ohne neue APK (Plugin FilamentLive).
 // Nur wenn sich der Android-Teil ändert (nativeApi steigt), ist wieder eine neue APK nötig.
-import { APP_VERSION, IS_NATIVE, REPO } from './env';
+import { APK_URL, APP_VERSION, IS_NATIVE, REPO } from './env';
 import { getNativePlugin } from './nativeBridge';
 
 export interface LiveState {
@@ -81,4 +81,23 @@ export function startLiveUpdate() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkLiveUpdate();
   });
+}
+
+/**
+ * Neue APK direkt in der App laden und den Android-Installer öffnen (kein Browser).
+ * Gibt 'needPermission' zurück, wenn der App das Installieren erst erlaubt werden muss (Einstellungen öffnen sich),
+ * 'browser' wenn die installierte App das noch nicht kann.
+ */
+export async function installApkInApp(): Promise<'started' | 'needPermission' | 'browser' | 'error'> {
+  const plugin = getNativePlugin('FilamentLive');
+  if (!plugin) return 'browser';
+  try {
+    await plugin.call('installApk', { url: APK_URL });
+    return 'started';
+  } catch (err: any) {
+    const msg = String(err?.message || err);
+    if (msg.includes('needPermission')) return 'needPermission';
+    if (/not implemented|nicht|UNIMPLEMENTED|fehlt/i.test(msg) && !/Download fehlgeschlagen/.test(msg)) return 'browser';
+    return 'error';
+  }
 }

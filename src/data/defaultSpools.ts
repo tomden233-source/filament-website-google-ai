@@ -835,5 +835,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.65',
+    label: '1.65 (App-Update ohne Browser)',
+    releaseDate: '28.10.2026',
+    description: 'Wenn doch einmal eine neue APK nötig ist, lädt die App sie selbst und öffnet direkt den Android-Installer. Kein Browser, kein Suchen im Download-Ordner, nur einmal „Installieren“ bestätigen.',
+    features: [
+      '📥 Installieren in der App: Der Knopf „Installieren“ lädt die neue APK im Hintergrund und öffnet sofort den Installer, der Browser bleibt zu',
+      '🔐 Einmalige Erlaubnis: Beim ersten Mal öffnet sich die Android-Einstellung „Installieren erlauben“ für FilamentHub, danach geht es immer direkt',
+      '🔄 Live-Update bleibt die Regel: Normale Änderungen kommen weiter ohne neue APK, nur Änderungen am Android-Teil brauchen sie',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23.400+ Codezeilen, 3.900+ Prompt-Wörter, 3M Tokens und 65 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, X } from 'lucide-react';
 import { APK_URL, IS_NATIVE } from '../utils/env';
-import { applyLiveUpdate, subscribeLive, type LiveState } from '../utils/liveUpdate';
+import { applyLiveUpdate, installApkInApp, subscribeLive, type LiveState } from '../utils/liveUpdate';
 
 // Hinweis in der Android-App:
 //  - Neue Oberfläche geladen (Live-Update): ein Tipp auf "Neu laden" startet sie sofort, sonst beim nächsten Start.
@@ -10,6 +10,8 @@ import { applyLiveUpdate, subscribeLive, type LiveState } from '../utils/liveUpd
 export const UpdateBanner: React.FC = () => {
   const [live, setLive] = useState<LiveState>({ status: 'idle' });
   const [hidden, setHidden] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!IS_NATIVE) return;
@@ -28,16 +30,28 @@ export const UpdateBanner: React.FC = () => {
     >
       {needApk ? <Download className="w-4 h-4 shrink-0" /> : <RefreshCw className="w-4 h-4 shrink-0" />}
       <span className="flex-1 min-w-0">
-        {needApk ? `Große Neuerung v${live.version}: neue App nötig` : `Update v${live.version} ist geladen`}
+        {note ?? (needApk ? `Große Neuerung v${live.version}: neue App nötig` : `Update v${live.version} ist geladen`)}
       </span>
       <button
-        onClick={() => {
-          if (needApk) window.location.href = APK_URL;
-          else applyLiveUpdate().catch(() => setHidden(true));
+        disabled={busy}
+        onClick={async () => {
+          if (!needApk) {
+            applyLiveUpdate().catch(() => setHidden(true));
+            return;
+          }
+          // Direkt in der App laden und installieren, ohne Browser
+          setBusy(true);
+          setNote('Lade neue App …');
+          const r = await installApkInApp();
+          setBusy(false);
+          if (r === 'started') setNote('Bitte „Installieren“ bestätigen');
+          else if (r === 'needPermission') setNote('Erlaube „Installieren“ für FilamentHub, dann nochmal tippen');
+          else if (r === 'browser') window.location.href = APK_URL;
+          else setNote('Download fehlgeschlagen, bitte nochmal tippen');
         }}
         className="px-3 py-1 rounded-lg bg-white/25 hover:bg-white/35 transition cursor-pointer"
       >
-        {needApk ? 'Herunterladen' : 'Neu laden'}
+        {needApk ? (busy ? '…' : 'Installieren') : 'Neu laden'}
       </button>
       <button onClick={() => setHidden(true)} aria-label="Später" className="p-1 rounded-lg hover:bg-white/20 cursor-pointer">
         <X className="w-4 h-4" />
