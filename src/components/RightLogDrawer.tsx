@@ -58,9 +58,9 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
         const data = res.data;
         if (data && data.success) {
           const fileName = data.printName || data.subtask_name || '';
-          const grams = data.printGrams || 42;
-          // Slot 1 Spule ermitteln (Standard: Hellgrün sp-3 oder aus AMS-Zuordnung)
-          let targetSpool = spools?.find(s => s.id === 'sp-3') || spools?.[0];
+          const grams = Number(data.printGrams) || 0; // nur echte Werte, kein Schätzwert mehr
+          // Slot-1-Spule aus der AMS-Zuordnung
+          let targetSpool: Spool | undefined = undefined;
           try {
             const rawSlots = safeStorage.getItem('filamenthub_ams_slots_x2d');
             if (rawSlots) {
@@ -72,7 +72,7 @@ export const RightLogDrawer: React.FC<RightLogDrawerProps> = ({
             }
           } catch {}
 
-          if (fileName && targetSpool) {
+          if (fileName && targetSpool && grams > 0) {
             const lastDeducted = safeStorage.getItem('filamenthub_last_deducted_job');
             if (lastDeducted !== fileName) {
               setActiveJob({

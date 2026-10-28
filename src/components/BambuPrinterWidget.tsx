@@ -45,6 +45,8 @@ export interface BambuPrinterWidgetProps {
   onOpenNewSpool: () => void;
   onApplyDryingCredit?: (spoolId: string, driedHours: number, dryTemp?: number) => void;
   viewMode?: ViewMode;
+  /** Handy-Ansicht: ohne Druckauftrag-Kasten und Temperaturen */
+  compact?: boolean;
 }
 
 export type { BambuLiveState };
@@ -57,6 +59,8 @@ const DEFAULT_LIVE_STATE: BambuLiveState = {
   userId: '',
   brokerHost: 'us.mqtt.bambulab.com',
   hasAdminPin: true,
+  hasToken: false,
+  retryInSec: null,
   lastUpdated: null,
   data: {
     gcode_state: 'IDLE',
@@ -75,61 +79,7 @@ const DEFAULT_LIVE_STATE: BambuLiveState = {
     nozzle2_target_temper: 0,
     fan_gear: 0,
     spd_mag: 100,
-    ams: {
-      ams: [
-        {
-          id: '0',
-          humidity: 1,
-          temp: 24,
-          tray: [
-            {
-              id: '0',
-              tray_color: '057748FF',
-              tray_type: 'PLA',
-              tray_sub_brands: 'Bambu PLA Basic',
-              tray_info_idx: 'GFA00',
-              nozzle_temp_min: 190,
-              nozzle_temp_max: 230,
-              remain: 82,
-              state: 1
-            },
-            {
-              id: '1',
-              tray_color: 'E2E8F0FF',
-              tray_type: 'PLA',
-              tray_sub_brands: 'ELEGOO Color Marble PLA',
-              tray_info_idx: 'ELEGOO_MARBLE',
-              nozzle_temp_min: 190,
-              nozzle_temp_max: 230,
-              remain: 94,
-              state: 1
-            },
-            {
-              id: '2',
-              tray_color: '111111FF',
-              tray_type: 'PETG',
-              tray_sub_brands: 'Prusament PETG Galaxy Black',
-              tray_info_idx: 'PRUSA_PETG',
-              nozzle_temp_min: 230,
-              nozzle_temp_max: 250,
-              remain: 65,
-              state: 1
-            },
-            {
-              id: '3',
-              tray_color: 'FFFFFFFF',
-              tray_type: 'PLA',
-              tray_sub_brands: 'Bambu PLA Basic Weiß',
-              tray_info_idx: 'GFA01',
-              nozzle_temp_min: 190,
-              nozzle_temp_max: 230,
-              remain: 78,
-              state: 1
-            }
-          ]
-        }
-      ]
-    },
+    ams: null,
     vt_tray: null,
     lights_report: [{ node: 'chamber_light', mode: 'off' }]
   },
@@ -146,7 +96,8 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   onDeductWeight,
   onOpenNewSpool: _onOpenNewSpool,
   onApplyDryingCredit,
-  viewMode
+  viewMode,
+  compact = false
 }) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(() => viewMode !== 'simple');
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
@@ -199,7 +150,24 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
 
   // Home Assistant & Steckdosen State (Unified haClient)
-  useAutoDeduct({ spools, amsSlots, onDeductWeight, isConnected: Boolean(liveState.connected), gcodeState: liveState.data.gcode_state, notify: setActionToast });
+  // Auto-Abzug braucht nur den Cloud-Login (Aufträge kommen aus der Bambu Cloud), nicht die Live-Verbindung
+  useAutoDeduct({ spools, amsSlots, onDeductWeight, isConnected: Boolean(liveState.connected || liveState.hasToken), gcodeState: liveState.data.gcode_state, notify: setActionToast });
+
+  // „Neu verbinden"
+  const [reconnecting, setReconnecting] = useState(false);
+  const handleReconnect = async () => {
+    setReconnecting(true);
+    try {
+      const res = await printerApi.reconnect();
+      if (res.data?.status?.data) setLiveState(res.data.status);
+      const okConn = Boolean(res.data?.success);
+      setActionToast({ text: res.data?.message || (okConn ? 'Drucker verbunden.' : 'Verbindung fehlgeschlagen.'), ok: okConn });
+    } catch {
+      setActionToast({ text: 'Verbindung fehlgeschlagen.', ok: false });
+    } finally {
+      setReconnecting(false);
+    }
+  };
   const { setHaCameraBlobUrl, haCreds, haSwitchState, handleToggleSwitch, haSwitchLoading, handleFetchSwitchStatus, haCameraBlobUrl } = useHaSwitch({ setActionToast });
 
   // Kamera Quelle ('bambu' | 'ha')
@@ -442,7 +410,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       const res = await printerApi.temperature(target, temp);
       const data = res.data;
       if (res.ok && data.success) {
-        setActionToast({ text: data.message, ok: true });
+        setActionToast({ text: data.message || 'OK', ok: true });
         setTempModalTarget(null);
         addSystemLog('temp', `${targetLabel} Zieltemperatur auf ${temp}°C gestellt`, 'Bambu Lab X2D', 'info');
       } else {
@@ -473,7 +441,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       const res = await printerApi.light(nextMode);
       const data = res.data;
       if (res.ok && data.success) {
-        setActionToast({ text: data.message, ok: true });
+        setActionToast({ text: data.message || 'OK', ok: true });
         setCameraSnapshotKey(Date.now());
         addSystemLog('licht', `Bauraum-Licht ${nextMode === 'on' ? 'eingeschaltet' : 'ausgeschaltet'}`, 'Bambu Lab X2D', 'info');
       } else {
@@ -543,11 +511,14 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     effectiveStatusText = 'Ausgeschaltet (Stromlos)';
     effectiveStatusColor = '#64748b';
   } else if (!isPrinterConnected) {
-    if (haSwitchState.state === 'on' || liveState.connecting) {
-      effectiveStatusText = 'Offline (Startet / Verbindungsaufbau...)';
+    if (liveState.connecting || reconnecting) {
+      effectiveStatusText = 'Verbindet …';
       effectiveStatusColor = '#f59e0b';
+    } else if (!liveState.hasToken && IS_NATIVE) {
+      effectiveStatusText = 'Nicht angemeldet';
+      effectiveStatusColor = '#64748b';
     } else {
-      effectiveStatusText = 'Offline (Getrennt)';
+      effectiveStatusText = 'Offline';
       effectiveStatusColor = '#64748b';
     }
   }
@@ -633,7 +604,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
               </span>
 
               {/* Kompakter Fortschritt im eingeklappten Zustand */}
-              {!isExpanded && isPrinting && (
+              {(!isExpanded || compact) && isPrinting && (
                 <div
                   className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-mono-num text-[#00AE42] font-bold"
                   style={{
@@ -815,11 +786,66 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
         </div>
       </div>
 
+      {/* VERBINDUNGS-HINWEIS: warum offline + Knopf zum Neu-Verbinden */}
+      {!isPrinterConnected && !isSocketOff && (!IS_STATIC || IS_NATIVE) && (
+        <div
+          className="px-3 py-2.5 border-b flex items-start gap-2.5 text-[11px]"
+          style={{ borderColor: 'var(--app-border)', backgroundColor: 'var(--app-card-sub)' }}
+        >
+          <span className="mt-0.5 w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: effectiveStatusColor }} />
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <p className="font-bold break-words" style={{ color: 'var(--app-text)' }}>
+              {liveState.connecting || reconnecting
+                ? 'Verbinde mit der Bambu Cloud …'
+                : !liveState.hasToken
+                ? 'Noch nicht bei Bambu angemeldet.'
+                : 'Drucker nicht verbunden.'}
+            </p>
+            {!liveState.connecting && !reconnecting && (
+              <p className="break-words leading-snug" style={{ color: 'var(--app-text-muted)' }}>
+                {!liveState.hasToken
+                  ? 'Tippe auf das Zahnrad und melde dich mit deinem Bambu-Konto an. Danach verbindet die App selbst.'
+                  : liveState.error || 'Die App verbindet sich automatisch neu.'}
+                {liveState.hasToken && liveState.retryInSec != null && ` Nächster Versuch in ${liveState.retryInSec} s.`}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={!liveState.hasToken && IS_NATIVE ? () => setIsSettingsModalOpen(true) : handleReconnect}
+            disabled={reconnecting || liveState.connecting}
+            className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            style={{ backgroundColor: 'var(--app-accent)' }}
+          >
+            {!liveState.hasToken && IS_NATIVE ? (
+              <>
+                <Settings className="w-3.5 h-3.5" />
+                <span>Anmelden</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className={`w-3.5 h-3.5 ${reconnecting || liveState.connecting ? 'animate-spin' : ''}`} />
+                <span>Neu verbinden</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Verbunden, aber der Drucker schickt nichts (aus, kein WLAN oder Cloud hakt) */}
+      {isPrinterConnected && liveState.receivingData === false && (
+        <div className="px-3 py-2 border-b flex items-center gap-2 text-[11px]" style={{ borderColor: 'var(--app-border)', backgroundColor: 'var(--app-card-sub)' }}>
+          <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0 text-amber-400" />
+          <span className="flex-1 min-w-0 break-words" style={{ color: 'var(--app-text-muted)' }}>
+            Mit der Bambu Cloud verbunden, warte auf Daten vom Drucker … Ist er eingeschaltet und im WLAN?
+          </span>
+        </div>
+      )}
+
       {/* KLAPPE: REALE LIVE-KAMERA (HOME ASSISTANT & X2D SNAPSHOT) */}
       {isExpanded && isCameraOpen && <PrinterCameraPanel setCameraSnapshotKey={setCameraSnapshotKey} handleToggleLight={handleToggleLight} isLightOn={isLightOn} isSocketOff={isSocketOff} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} cameraSource={cameraSource} haCameraBlobUrl={haCameraBlobUrl} haCreds={haCreds} cameraSnapshotKey={cameraSnapshotKey} printerLocalIp={printerLocalIp} haSwitchState={haSwitchState} />}
 
       {/* AUSGEKLAPPTE VOLLANSICHT */}
-      {isExpanded && <PrinterExpandedPanel isSocketOff={isSocketOff} haCreds={haCreds} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} isPrinterPowerOff={isPrinterPowerOff} isPrinterConnected={isPrinterConnected} liveState={liveState} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} inlineNozzle1Temp={inlineNozzle1Temp} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} isPrinting={isPrinting} handleSendCommand={handleSendCommand} setShowStopPinModal={setShowStopPinModal} setAmsSlots={setAmsSlots} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />}
+      {isExpanded && <PrinterExpandedPanel compact={compact} isSocketOff={isSocketOff} haCreds={haCreds} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} isPrinterPowerOff={isPrinterPowerOff} isPrinterConnected={isPrinterConnected} liveState={liveState} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} inlineNozzle1Temp={inlineNozzle1Temp} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} isPrinting={isPrinting} handleSendCommand={handleSendCommand} setShowStopPinModal={setShowStopPinModal} setAmsSlots={setAmsSlots} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />}
 
       {/* MODAL 1: TEMPERATUR ANPASSEN BEI KLICK AUF HOTEND ODER BETT */}
       {tempModalTarget && <TemperatureModal setTempModalTarget={setTempModalTarget} tempModalTarget={tempModalTarget} setTempModalValue={setTempModalValue} tempModalValue={tempModalValue} handleSetTemperature={handleSetTemperature} actionLoading={actionLoading} />}

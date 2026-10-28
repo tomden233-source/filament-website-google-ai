@@ -903,5 +903,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.69',
+    label: '1.69 (Drucker-Verbindung & AMS-Farben)',
+    releaseDate: '28.10.2026',
+    description: 'Die App verbindet sich selbst mit dem Drucker (nach Login, beim Start, wenn sie wieder offen ist) und zeigt, warum er offline ist. AMS-Farben kommen echt vom Drucker, die Handy-Ansicht ist aufgeräumt.',
+    features: [
+      '🔌 Drucker verbindet sich selbst: direkt nach dem Login, beim App-Start und wenn die App wieder offen ist. Die Seriennummer sucht die App im Bambu-Konto',
+      '🔁 Automatisch neu verbinden (nach 5 s bis 2 min), Knopf „Neu verbinden“ und klare Meldung, warum der Drucker offline ist',
+      '🎨 AMS-Farben kommen echt vom Drucker, keine Demo-Spulen mehr. Teil-Meldungen des Druckers löschen die Slots nicht mehr',
+      '🔄 „Mit Drucker synchronisieren“ ordnet deine Spulen nach Material und Farbe den Slots zu, mit Warnung bei falscher Spule',
+      '📱 Handy-Ansicht: Druckauftrag-Kasten und Temperaturen raus, Drucksteuerung und Sync bleiben, abgeschnittene Offline-Zeile weg',
+      '⚖️ Auto-Abzug läuft schon mit dem Cloud-Login, der falsche 42-g-Vorschlag ist weg',
+      '🔢 Aktualisierte Zahlen-FunFacts: 26.800+ Codezeilen, 4.600+ Prompt-Wörter, 3M Tokens und 69 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

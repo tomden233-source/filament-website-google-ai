@@ -7,6 +7,12 @@ export interface BambuLiveState {
   userId: string;
   brokerHost: string;
   hasAdminPin: boolean;
+  /** Cloud-Login vorhanden */
+  hasToken?: boolean;
+  /** Sekunden bis zum nächsten automatischen Verbindungsversuch */
+  retryInSec?: number | null;
+  /** Verbunden und der Drucker schickt Daten */
+  receivingData?: boolean;
   lastUpdated: string | null;
   data: {
     gcode_state: string;

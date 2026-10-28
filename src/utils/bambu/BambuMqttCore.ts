@@ -63,6 +63,12 @@ export interface BambuPrinterStatusResponse {
   userId: string;
   brokerHost: string;
   hasAdminPin: boolean;
+  /** Cloud-Token vorhanden (Login ok), auch wenn MQTT gerade nicht verbunden ist */
+  hasToken: boolean;
+  /** Sekunden bis zum nächsten automatischen Verbindungsversuch (null = keiner geplant) */
+  retryInSec: number | null;
+  /** Verbunden und der Drucker hat schon Daten geschickt */
+  receivingData: boolean;
   lastUpdated: string | null;
   data: BambuPrinterData;
   formatted: {
@@ -84,8 +90,13 @@ export abstract class BambuMqttCore {
 
   private connected: boolean = false;
   private connecting: boolean = false;
+  private loadedPin = false;
+  /** Zähler der Verbindungsversuche: ein älterer, ersetzter Versuch darf den Zustand nicht mehr ändern */
+  private attempt = 0;
   private lastError: string | null = null;
   private lastUpdated: string | null = null;
+  /** Seit der letzten Verbindung schon Daten vom Drucker bekommen? (sonst: verbunden, aber Drucker schweigt) */
+  private gotData = false;
 
   // Akkumulierter Druckstatus (Delta-Updates werden hinein gemergt)
   private printData: BambuPrinterData = {
@@ -105,61 +116,8 @@ export abstract class BambuMqttCore {
     nozzle2_target_temper: 0,
     fan_gear: 0,
     spd_mag: 100,
-    ams: {
-      ams: [
-        {
-          id: '0',
-          humidity: 1,
-          temp: 24,
-          tray: [
-            {
-              id: '0',
-              tray_color: '057748FF',
-              tray_type: 'PLA',
-              tray_sub_brands: 'Bambu PLA Basic',
-              tray_info_idx: 'GFA00',
-              nozzle_temp_min: 190,
-              nozzle_temp_max: 230,
-              remain: 82,
-              state: 1
-            },
-            {
-              id: '1',
-              tray_color: 'E2E8F0FF',
-              tray_type: 'PLA',
-              tray_sub_brands: 'ELEGOO Color Marble PLA',
-              tray_info_idx: 'ELEGOO_MARBLE',
-              nozzle_temp_min: 190,
-              nozzle_temp_max: 230,
-              remain: 94,
-              state: 1
-            },
-            {
-              id: '2',
-              tray_color: '111111FF',
-              tray_type: 'PETG',
-              tray_sub_brands: 'Prusament PETG Galaxy Black',
-              tray_info_idx: 'PRUSA_PETG',
-              nozzle_temp_min: 230,
-              nozzle_temp_max: 250,
-              remain: 65,
-              state: 1
-            },
-            {
-              id: '3',
-              tray_color: 'FFFFFFFF',
-              tray_type: 'PLA',
-              tray_sub_brands: 'Bambu PLA Basic Weiß',
-              tray_info_idx: 'GFA01',
-              nozzle_temp_min: 190,
-              nozzle_temp_max: 230,
-              remain: 78,
-              state: 1
-            }
-          ]
-        }
-      ]
-    },
+    // Kein Demo-AMS: ohne Verbindung gibt es keine Slot-Daten (sonst falsche Farben)
+    ams: null,
     vt_tray: null,
     lights_report: null
   };
@@ -169,6 +127,13 @@ export abstract class BambuMqttCore {
   private static readonly PUSHALL_INTERVAL_MS = 15000;
 
   private keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Automatisch neu verbinden, wenn der erste Versuch scheitert (z. B. Handy kurz offline). Nicht bei abgelehnten Zugangsdaten.
+  private static readonly RETRY_DELAYS_MS = [5000, 15000, 30000, 60000, 120000];
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryAt: number | null = null;
+  private retryCount = 0;
+  private authRejected = false;
   private pendingPushallTimers = new Set<ReturnType<typeof setTimeout>>();
 
   /** Verzögertes pushall, das beim Trennen der Verbindung sicher abgebrochen wird. */
@@ -192,6 +157,10 @@ export abstract class BambuMqttCore {
   protected abstract saveConfig(config: Required<SavedBambuConfig>): void;
   /** Der Status hat sich geändert (Server: an SSE-Clients senden) */
   protected abstract notifyChange(): void;
+  /** Zweite Quelle für Zugangsdaten, falls noch nie verbunden wurde (App: Werte aus dem Login-Fenster) */
+  protected fallbackConfig(): SavedBambuConfig | null {
+    return null;
+  }
   /** Umgebungs-Vorgaben, die Vorrang vor gespeicherten Werten haben (Server: Umgebungsvariablen) */
   protected envOverrides(): SavedBambuConfig {
     return {};
@@ -213,10 +182,26 @@ export abstract class BambuMqttCore {
         if (parsed.brokerHost) {
           this.brokerHost = (parsed.brokerHost === 'eu.mqtt.bambulab.com') ? 'us.mqtt.bambulab.com' : parsed.brokerHost;
         }
-        if (parsed.adminPin) this.adminPin = parsed.adminPin;
+        if (parsed.adminPin) {
+          this.adminPin = parsed.adminPin;
+          this.loadedPin = true;
+        }
       }
     } catch (e) {
       console.warn('Konnte gespeicherte Bambu-Zugangsdaten nicht lesen:', e);
+    }
+
+    // 1b. Noch nie verbunden? Dann die Werte aus dem Login-Fenster nehmen (Token nach E-Mail-Login usw.)
+    try {
+      const fb = this.fallbackConfig();
+      if (fb) {
+        if (!this.serialNumber && fb.serialNumber) this.serialNumber = fb.serialNumber;
+        if (!this.userId && fb.userId) this.userId = fb.userId;
+        if (!this.accessToken && fb.accessToken) this.accessToken = fb.accessToken;
+        if (fb.adminPin && !this.loadedPin) this.adminPin = fb.adminPin;
+      }
+    } catch {
+      // ignorieren
     }
 
     // 2. Vorgaben der Umgebung haben Vorrang
@@ -226,21 +211,97 @@ export abstract class BambuMqttCore {
     if (env.accessToken) this.accessToken = env.accessToken;
     if (env.adminPin) this.adminPin = env.adminPin;
 
-    // 3. Wenn Zugangsdaten vorliegen, nach 1 Sekunde automatisch verbinden
-    if (this.serialNumber && this.accessToken) {
-      setTimeout(() => {
-        console.log(`[Bambu MQTTS] Starte automatischen Verbindungsaufbau zu ${this.brokerHost} für ${this.serialNumber}...`);
-        this.connect({
-          serialNumber: this.serialNumber,
-          userId: this.userId,
-          accessToken: this.accessToken,
-          brokerHost: this.brokerHost,
-          adminPin: this.adminPin
-        }).catch(err => {
-          console.warn('[Bambu MQTTS] Initialer Auto-Connect fehlgeschlagen:', err?.message || err);
-        });
-      }, 1000);
+    // 3. Wenn Zugangsdaten vorliegen, nach 1 Sekunde automatisch verbinden (ohne Seriennummer: Drucker im Konto suchen)
+    if (this.accessToken) {
+      setTimeout(() => this.ensureConnected(), 1000);
     }
+  }
+
+  /**
+   * Verbindet, falls Zugangsdaten da sind und gerade keine Verbindung steht (App-Start, App wieder im Vordergrund,
+   * Knopf „Neu verbinden"). Mit force=true auch nach abgelehnten Zugangsdaten noch einmal versuchen.
+   */
+  public async ensureConnected(force = false): Promise<{ success: boolean; message: string }> {
+    if (this.connected) return { success: true, message: 'Drucker ist verbunden.' };
+    if (this.connecting) return { success: false, message: 'Verbindung wird gerade aufgebaut …' };
+    if (!this.accessToken) {
+      return { success: false, message: 'Nicht bei Bambu angemeldet. Bitte im Drucker-Menü (Zahnrad) anmelden.' };
+    }
+    if (this.authRejected && !force) return { success: false, message: this.lastError || 'Zugangsdaten abgelehnt.' };
+    if (force) {
+      this.authRejected = false;
+      this.retryCount = 0;
+    }
+    this.clearRetry();
+    try {
+      if (!this.serialNumber) {
+        const r = await this.autoConnectByToken(this.accessToken);
+        return { success: r.success, message: r.success ? r.message : r.error || r.message };
+      }
+      const r = await this.connect({
+        serialNumber: this.serialNumber,
+        userId: this.userId,
+        accessToken: this.accessToken,
+        brokerHost: this.brokerHost,
+        adminPin: this.adminPin
+      });
+      return { success: r.success, message: r.message };
+    } catch (err: any) {
+      const message = err?.message || String(err);
+      this.lastError = message;
+      this.connecting = false;
+      // abgelaufener Token o. Ä.: nicht endlos wiederholen
+      if (/abgelaufen|ungültig|lehnt|User ID|User-ID/i.test(message)) this.authRejected = true;
+      else this.scheduleRetry();
+      this.notifyChange();
+      return { success: false, message };
+    }
+  }
+
+  private clearRetry() {
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.retryAt = null;
+  }
+
+  /** Nächsten Versuch mit wachsender Pause planen (5 s, 15 s, 30 s, 1 min, dann alle 2 min) */
+  private scheduleRetry() {
+    if (this.retryTimer || this.authRejected || !this.accessToken) return;
+    const delays = BambuMqttCore.RETRY_DELAYS_MS;
+    const delay = delays[Math.min(this.retryCount, delays.length - 1)];
+    this.retryCount++;
+    this.retryAt = Date.now() + delay;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      this.retryAt = null;
+      if (!this.connected && !this.connecting) this.ensureConnected();
+    }, delay);
+    this.notifyChange();
+  }
+
+  /** Verständliche Fehlermeldung zu MQTT-Fehlern (Paho-Codes in der App, Node-Codes im Server) */
+  private describeMqttError(err: any): { message: string; rejected: boolean } {
+    const code = err?.code;
+    const raw = String(err?.message || '').trim();
+    const rejected = code === 4 || code === 5 || /not authori[sz]ed|bad user ?name or password|Nicht autorisiert/i.test(raw);
+    if (rejected) {
+      return {
+        rejected,
+        message: 'Die Bambu Cloud lehnt die Zugangsdaten ab (Token abgelaufen oder falsche User-ID). Bitte im Zahnrad-Menü neu anmelden.'
+      };
+    }
+    let hint = 'Verbindung zur Bambu Cloud fehlgeschlagen.';
+    if (code === 32103 || /ECONNREFUSED|Unable to connect|UnknownHost|ENOTFOUND|EAI_AGAIN|resolve host/i.test(raw)) {
+      hint = 'Bambu Cloud nicht erreichbar. Hat das Handy Internet? (WLAN/mobile Daten prüfen)';
+    } else if (code === 32000 || /timed? ?out|Zeitlimit/i.test(raw)) {
+      hint = 'Die Bambu Cloud antwortet nicht (Zeitüberschreitung).';
+    } else if (/SSL|TLS|certificate|Zertifikat|handshake|trust/i.test(raw)) {
+      hint = 'Sichere Verbindung (TLS) zur Bambu Cloud fehlgeschlagen. Uhrzeit am Handy prüfen und die neueste App installieren.';
+    } else if (code === 32109 || /connection lost|reset/i.test(raw)) {
+      hint = 'Verbindung zur Bambu Cloud wurde getrennt.';
+    }
+    const tech = raw ? ` (${raw}${code != null && !raw.includes(String(code)) ? `, Code ${code}` : ''})` : code != null ? ` (Code ${code})` : '';
+    return { rejected: false, message: hint + tech };
   }
 
   public getStatus(): BambuPrinterStatusResponse {
@@ -252,6 +313,9 @@ export abstract class BambuMqttCore {
       userId: this.userId,
       brokerHost: this.brokerHost,
       hasAdminPin: Boolean(this.adminPin),
+      hasToken: Boolean(this.accessToken),
+      retryInSec: this.retryAt ? Math.max(0, Math.round((this.retryAt - Date.now()) / 1000)) : null,
+      receivingData: this.connected && this.gotData,
       lastUpdated: this.lastUpdated,
       data: { ...this.printData },
       formatted: this.getFormattedState()
@@ -409,9 +473,14 @@ export abstract class BambuMqttCore {
       );
     }
 
-    // User ID ermitteln
-    const resolvedUid = await this.resolveUserId(cleanToken, params.userId);
+    // User ID ermitteln: zuerst aus dem Token (immer passend), sonst die übergebene
+    const explicitUid = String(params.userId || '').trim().replace(/^u_/, '');
+    const resolvedUid = (await this.resolveUserId(cleanToken)) || (/^\d+$/.test(explicitUid) ? explicitUid : null);
     if (!resolvedUid) {
+      if (tokenState === 'unknown') {
+        // Kein Netz zur Bambu Cloud: kein Problem mit den Zugangsdaten, also später erneut versuchen
+        throw new Error('Bambu Cloud nicht erreichbar (Internet am Handy prüfen). Neuer Versuch folgt automatisch.');
+      }
       throw new Error(
         'Konnte die numerische Bambu Cloud User ID weder ermitteln noch aus dem Token extrahieren. Bitte trage die User ID manuell ein.'
       );
@@ -436,6 +505,7 @@ export abstract class BambuMqttCore {
       this.client = null;
     }
 
+    this.clearRetry();
     this.connecting = true;
     this.connected = false;
     this.lastError = null;
@@ -444,43 +514,66 @@ export abstract class BambuMqttCore {
     const username = `u_${this.userId}`;
     const brokerUrl = `mqtts://${this.brokerHost}:8883`;
 
+    const myAttempt = ++this.attempt;
     return new Promise(resolve => {
       let resolved = false;
+      let client: MqttLike | null = null;
 
-      const finishOnce = (success: boolean, message: string) => {
+      const finishOnce = (success: boolean, message: string, retry = true) => {
+        if (!resolved && myAttempt !== this.attempt) {
+          // Inzwischen läuft ein neuerer Versuch: diesen still beenden
+          resolved = true;
+          resolve({ success: false, message: 'Durch neuen Verbindungsversuch ersetzt.', status: this.getStatus() });
+          return;
+        }
         if (!resolved) {
           resolved = true;
           this.connecting = false;
           this.connected = success;
-          if (!success) this.lastError = message;
+          if (!success) {
+            this.lastError = message;
+            if (retry) this.scheduleRetry();
+          }
           this.notifyChange();
           resolve({ success, message, status: this.getStatus() });
         }
       };
 
-      // 10s Timeout für den ersten Connect
+      // 15 s Zeitlimit für den ersten Connect (mobiles Netz kann langsam sein)
       const timeout = setTimeout(() => {
+        if (client && this.client === client) {
+          try {
+            client.end(true);
+          } catch {}
+          this.client = null;
+        }
         finishOnce(
           false,
-          `Verbindung zu ${brokerUrl} hat das Zeitlimit überschritten. Bitte Token und Seriennummer prüfen.`
+          `Die Bambu Cloud hat nicht rechtzeitig geantwortet (${this.brokerHost}). Neuer Versuch folgt automatisch.`
         );
-      }, 10000);
+      }, 15000);
 
       try {
-        const client = this.createClient(brokerUrl, {
+        const c = this.createClient(brokerUrl, {
           username,
           password: this.accessToken,
           tlsVerify: this.tlsVerify(),
           clientId: `bbl_${this.userId}_${Math.random().toString(16).substring(2, 8)}`
         });
 
-        this.client = client;
+        client = c;
+        this.client = c;
 
-        client.on('connect', () => {
+        c.on('connect', () => {
           clearTimeout(timeout);
+          if (this.client !== c) return; // alte Verbindung, schon ersetzt
           this.connected = true;
           this.connecting = false;
           this.lastError = null;
+          this.retryCount = 0;
+          this.authRejected = false;
+          this.gotData = false;
+          this.clearRetry();
           this.lastUpdated = new Date().toISOString();
 
           // Zugangsdaten für den nächsten Start sichern
@@ -498,7 +591,7 @@ export abstract class BambuMqttCore {
 
           // Report-Topic für Live-Telemetrie abonnieren
           const reportTopic = `device/${this.serialNumber}/report`;
-          client.subscribe(reportTopic, { qos: 0 }, subErr => {
+          c.subscribe(reportTopic, { qos: 0 }, subErr => {
             if (subErr) {
               console.error(`Fehler beim Abonnieren von ${reportTopic}:`, subErr);
             }
@@ -506,8 +599,8 @@ export abstract class BambuMqttCore {
 
           // pushall senden (pushing Format ist die Bambu Cloud Spezifikation)
           const reqTopic = `device/${this.serialNumber}/request`;
-          const pushingMsg = JSON.stringify({ pushing: { sequence_id: String(Date.now()), command: 'pushall' } });
-          client.publish(reqTopic, pushingMsg);
+          const pushingMsg = JSON.stringify({ pushing: { sequence_id: String(Date.now()), command: 'pushall', version: 1, push_target: 1 } });
+          c.publish(reqTopic, pushingMsg);
 
           // Zyklischer pushall zum Auffrischen des vollen Zustands (Änderungen kommen zusätzlich als Deltas)
           if (this.keepaliveInterval) clearInterval(this.keepaliveInterval);
@@ -516,7 +609,7 @@ export abstract class BambuMqttCore {
               try {
                 this.client.publish(
                   `device/${this.serialNumber}/request`,
-                  JSON.stringify({ pushing: { sequence_id: String(Date.now()), command: 'pushall' } })
+                  JSON.stringify({ pushing: { sequence_id: String(Date.now()), command: 'pushall', version: 1, push_target: 1 } })
                 );
               } catch (e) {
                 console.warn('[Bambu MQTTS] Keepalive-Pushall fehlgeschlagen:', e instanceof Error ? e.message : e);
@@ -531,11 +624,13 @@ export abstract class BambuMqttCore {
           );
         });
 
-        client.on('message', (_topic, message) => {
+        c.on('message', (_topic, message) => {
+          if (this.client !== c) return;
           try {
             const raw = JSON.parse(message.toString());
             const delta = (raw && raw.print) ? raw.print : raw;
             if (delta && typeof delta === 'object' && Object.keys(delta).length > 0) {
+              this.gotData = true;
               this.mergeDelta(delta);
             }
           } catch (e) {
@@ -543,22 +638,27 @@ export abstract class BambuMqttCore {
           }
         });
 
-        client.on('error', (err: any) => {
+        c.on('error', (err: any) => {
+          if (this.client !== c) return;
           console.error('Bambu MQTT Fehler:', err);
           // Abgelehnte Zugangsdaten (MQTT-Code 4/5): nicht endlos neu versuchen, das hilft nie und kann die Cloud verärgern
-          const rejected = err?.code === 4 || err?.code === 5 || /not authorized|bad user ?name or password/i.test(err?.message || '');
-          const message = rejected
-            ? 'Die Bambu Cloud lehnt die Zugangsdaten ab (Token abgelaufen oder User-ID falsch). Bitte neu anmelden bzw. Token erneuern.'
-            : `MQTT Verbindungsfehler: ${err?.message || 'unbekannt'}`;
+          const { message, rejected } = this.describeMqttError(err);
+          clearTimeout(timeout);
           this.lastError = message;
           if (rejected) {
-            try { client.end(true); } catch {}
+            this.authRejected = true;
+            this.clearRetry();
+            try { c.end(true); } catch {}
+            this.client = null;
+            this.connected = false;
           }
           this.notifyChange();
-          finishOnce(false, message);
+          finishOnce(false, message, !rejected);
+          // Fehler nach bestehender Verbindung (Paho meldet dann close und verbindet selbst neu)
         });
 
-        client.on('close', () => {
+        c.on('close', () => {
+          if (this.client !== c) return;
           this.connected = false;
           this.clearPendingTimers();
           if (this.keepaliveInterval) {
@@ -664,11 +764,23 @@ export abstract class BambuMqttCore {
 
     if (delta.fan_gear !== undefined) this.printData.fan_gear = Number(delta.fan_gear);
     if (delta.spd_mag !== undefined) this.printData.spd_mag = Number(delta.spd_mag);
-    if (delta.ams !== undefined) this.printData.ams = delta.ams;
+    if (delta.ams !== undefined) this.mergeAms(delta.ams);
     if (delta.vt_tray !== undefined) this.printData.vt_tray = delta.vt_tray;
     if (delta.lights_report !== undefined) this.printData.lights_report = delta.lights_report;
 
     this.notifyChange();
+  }
+
+  /**
+   * AMS-Daten zusammenführen. Bambu schickt oft nur einen Teil (z. B. nur tray_now oder Feuchte) – früher wurde damit
+   * die ganze Slot-Liste samt Farben gelöscht. Kommt eine neue Slot-Liste, ersetzt sie die alte (leere Slots bleiben leer).
+   */
+  private mergeAms(incoming: any) {
+    if (!incoming || typeof incoming !== 'object') return;
+    const cur = this.printData.ams && typeof this.printData.ams === 'object' ? this.printData.ams : {};
+    const next: any = { ...cur, ...incoming };
+    if (!Array.isArray(incoming.ams) && Array.isArray(cur.ams)) next.ams = cur.ams;
+    this.printData.ams = next;
   }
 
   /**
@@ -716,7 +828,7 @@ export abstract class BambuMqttCore {
     }
 
     return new Promise<{ success: boolean; message: string }>((resolve, reject) => {
-      this.client!.publish(reqTopic, JSON.stringify(messageBody), { qos: 1 }, err => {
+      this.client!.publish(reqTopic, JSON.stringify(messageBody), { qos: 1 }, (err: any) => {
         if (err) {
           reject(new Error(`Fehler beim Senden des Befehls: ${err.message}`));
         } else {
@@ -767,7 +879,7 @@ export abstract class BambuMqttCore {
       try {
         const reqTopic = `device/${this.serialNumber}/request`;
         const pushall = JSON.stringify({ pushall: { sequence_id: '1', command: 'pushall' } });
-        const pushing = JSON.stringify({ pushing: { sequence_id: '2', command: 'pushall' } });
+        const pushing = JSON.stringify({ pushing: { sequence_id: '2', command: 'pushall', version: 1, push_target: 1 } });
         this.client.publish(reqTopic, pushall);
         this.client.publish(reqTopic, pushing);
         return true;
@@ -804,7 +916,10 @@ export abstract class BambuMqttCore {
 
     return {
       success: connRes.success,
-      message: `Erfolgreich mit ${devName} (${devSerial}) gekoppelt! Live-Telemetrie aktiv.`,
+      message: connRes.success
+        ? `Erfolgreich mit ${devName} (${devSerial}) gekoppelt! Live-Telemetrie aktiv.`
+        : `Drucker ${devName} (${devSerial}) gefunden, aber die Live-Verbindung klappt nicht: ${connRes.message}`,
+      error: connRes.success ? undefined : connRes.message,
       device: onlineDev,
       allDevices: devicesRes.devices,
       userId: devicesRes.userId,
@@ -854,7 +969,7 @@ export abstract class BambuMqttCore {
     this.notifyChange();
 
     return new Promise<{ success: boolean; message: string }>((resolve, reject) => {
-      this.client!.publish(reqTopic, JSON.stringify(payload), err => {
+      this.client!.publish(reqTopic, JSON.stringify(payload), (err: any) => {
         if (err) return reject(new Error(`Fehler beim Senden der Temperatur: ${err.message}`));
         this.requestPushall();
         resolve({
@@ -904,7 +1019,7 @@ export abstract class BambuMqttCore {
     this.notifyChange();
 
     return new Promise<{ success: boolean; message: string; gcode: string }>((resolve, reject) => {
-      this.client!.publish(reqTopic, JSON.stringify(payload), err => {
+      this.client!.publish(reqTopic, JSON.stringify(payload), (err: any) => {
         if (err) return reject(new Error(`Fehler beim Senden des G-Codes: ${err.message}`));
         this.requestPushall();
         resolve({

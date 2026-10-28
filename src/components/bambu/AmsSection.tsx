@@ -5,8 +5,10 @@ import { addSystemLog } from '../../utils/logService';
 import type { PrinterExpandedPanelProps as ParentProps } from './PrinterExpandedPanel';
 import { printerApi } from '../../api';
 import { getSpoolProfile } from '../../utils/spoolProfile';
+import { readTrays, activeSlotFromPrinter, syncSlots, mismatch } from '../../utils/amsMatch';
 
 export interface AmsSectionProps {
+  compact?: boolean;
   setAmsSlots: ParentProps['setAmsSlots'];
   setActionToast: ParentProps['setActionToast'];
   activeSlot: ParentProps['activeSlot'];
@@ -31,6 +33,7 @@ export interface AmsSectionProps {
 }
 
 export const AmsSection: React.FC<AmsSectionProps> = ({
+  compact = false,
   setAmsSlots,
   setActionToast,
   activeSlot,
@@ -53,66 +56,82 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
   handleToggleAmsDrying,
   dryLoading
 }) => {
+  const connected = Boolean(liveState.connected);
+  const trays = connected ? readTrays(liveState.data.ams) : [];
+  const hasHw = trays.length > 0;
+  const printerActive = connected ? activeSlotFromPrinter(liveState.data.ams) : null;
+  const shownActive = printerActive ?? activeSlot;
+
+  // Echter Abgleich: Slots laut Drucker (Material + Farbe) → passende eigene Spulen
+  const syncWithPrinter = () => {
+    if (!connected) {
+      setActionToast({ text: 'Drucker ist nicht verbunden. Erst verbinden, dann synchronisieren.', ok: false });
+      return;
+    }
+    if (!hasHw) {
+      setActionToast({ text: 'Der Drucker hat noch keine AMS-Daten geschickt. Kurz warten und nochmal tippen.', ok: false });
+      return;
+    }
+    const { slots, lines } = syncSlots(spools, trays, amsSlots);
+    setAmsSlots(slots);
+    safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(slots));
+    window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: { sync: true } }));
+    setActionToast({ text: 'Mit Drucker synchronisiert. ' + lines.join(' · '), ok: true });
+    addSystemLog('drucker', 'AMS-Slots mit dem Drucker synchronisiert', lines.join(', '), 'success');
+  };
+
   return (
 <div className="space-y-3 pt-1">
             <div className="flex justify-between items-center text-xs flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <span className="font-bold flex items-center gap-1.5" style={{ color: 'var(--app-text)' }}>
                   <Box className="w-4 h-4 text-[#00AE42]" />
-                  <span>AMS Slots (Bambu Lab X2D):</span>
+                  <span>{compact ? 'AMS:' : 'AMS Slots (Bambu Lab X2D):'}</span>
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    const printerSlots = { 1: 'sp-3', 2: 'sp-18', 3: 'sp-9', 4: 'sp-1' };
-                    setAmsSlots(printerSlots);
-                    safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(printerSlots));
-                    window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: { sync: true } }));
-                    setActionToast({ text: 'Spulen mit den 4 AMS-Slots synchronisiert!', ok: true });
-                    addSystemLog('drucker', 'Alle 4 AMS Slots mit aktuellen Drucker-Filamenten synchronisiert (Hellgrün, ELEGOO Marble, Galaxy Black, Basic Weiß)', 'AMS Sync', 'success');
-                  }}
+                  onClick={syncWithPrinter}
                   className="px-2 py-0.5 rounded-lg border border-[#00AE42]/40 bg-[#00AE42]/15 text-[#00AE42] hover:bg-[#00AE42]/25 text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
-                  title="Gleicht die 4 geladenen Spulen (Hellgrün, ELEGOO Marble, Galaxy Black, Basic Weiß) sofort mit den Slots ab"
+                  title="Liest Material und Farbe jedes Slots vom Drucker und ordnet deine passenden Spulen zu"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  <span>Mit Drucker abgleichen</span>
+                  <span>Mit Drucker synchronisieren</span>
                 </button>
               </div>
               <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                Aktiver Druck-Slot: <strong>Slot {activeSlot}</strong>
+                {printerActive ? 'Druckt aus' : 'Aktiver Slot'}: <strong>Slot {shownActive}</strong>
               </span>
             </div>
 
             {/* 4 AMS Slots mit physischer Telemetrie unter jedem Slot */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
               {[1, 2, 3, 4].map(slotIdx => {
-                // Standard-Zuweisung falls noch nicht manuell gespeichert:
-                // Slot 1: sp-3 (Bambu Lab Hellgrün)
-                // Slot 2: sp-18 (ELEGOO Color Marble PLA)
-                // Slot 3: sp-9 (Prusament PETG Galaxy Black)
-                // Slot 4: sp-1 (Bambu Lab PETG Basic Weiß)
-                const defaultSlotSpools: Record<number, string> = {
-                  1: 'sp-3',
-                  2: 'sp-18',
-                  3: 'sp-9',
-                  4: 'sp-1'
-                };
-                const assignedId = amsSlots[slotIdx];
-                const effectiveSpoolId = assignedId !== undefined ? assignedId : (defaultSlotSpools[slotIdx] || '');
+                const effectiveSpoolId = amsSlots[slotIdx] || '';
                 const spool = spools.find(s => s.id === effectiveSpoolId);
-                const isSlotEmpty = !effectiveSpoolId || !spool;
-                const isActive = activeSlot === slotIdx;
+                const isActive = shownActive === slotIdx;
 
-                const hwTray = liveState.data.ams?.ams?.[0]?.tray?.[slotIdx - 1];
-                const rawHwColor = hwTray?.tray_color ? hwTray.tray_color.slice(0, 6) : '';
-                const hwHex = rawHwColor ? `#${rawHwColor}` : null;
-                const hwType = hwTray?.tray_type || (hwTray?.state === 0 ? 'Leer' : (spool?.material || 'PLA'));
-                const isHwEmpty = !spool && (hwTray?.state === 0 || !hwTray?.tray_type);
+                // Daten laut Drucker (nur wenn verbunden). Die Farbe kommt dann immer vom Drucker, nicht aus der Zuweisung.
+                const hw = trays.find(t => t.slot === slotIdx);
+                const rawHwColor = hw?.colorHex ? hw.colorHex.slice(1) : '';
+                const hwType = hw && !hw.empty ? hw.type : '';
+                const isSlotEmpty = hw ? hw.empty : !spool;
+                const wrongSpool = mismatch(spool, hw);
 
-                // Ganzflächige leuchtende Hintergrundfarbe im Farbton der Spule
-                const slotColorHex = isSlotEmpty
-                  ? null
-                  : (spool?.colorHex || hwHex || (slotIdx === 1 ? '#4ade80' : slotIdx === 2 ? '#e2e8f0' : slotIdx === 3 ? '#18181b' : '#f8fafc'));
+                const slotColorHex = hw ? (hw.empty ? null : hw.colorHex || '#888888') : spool?.colorHex || null;
+                const slotTitle = hw
+                  ? hw.empty
+                    ? 'Leer (laut Drucker)'
+                    : `${hw.brand || hwType}`
+                  : spool
+                  ? `${spool.brand} ${spool.name}`
+                  : 'Keine Spule zugewiesen';
+                const slotSub = hw
+                  ? hw.empty
+                    ? 'Keine Spule im Slot'
+                    : `${hwType}${slotColorHex ? ' · ' + slotColorHex.toUpperCase() : ''}${hw.remain != null && hw.remain >= 0 ? ` · ${hw.remain}%` : ''}`
+                  : connected
+                  ? 'Warte auf Daten vom Drucker …'
+                  : 'Drucker offline · zeigt deine Zuweisung';
 
                 return (
                   <div
@@ -269,12 +288,12 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                       </div>
                     )}
 
-                    {/* TELEMETRIE DES ECHTEN DRUCKERS UNTER JEDEM SLOT */}
+                    {/* WAS DER DRUCKER IN DIESEM SLOT MELDET */}
                     <div className="p-2 rounded-xl border border-white/10 bg-black/20 space-y-1">
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="font-bold text-slate-400">Drucker-Telemetrie:</span>
+                        <span className="font-bold text-slate-400">{hw ? 'Laut Drucker:' : 'Drucker:'}</span>
                         <span className="font-mono text-[9.5px] text-slate-500">
-                          {hwTray?.nozzle_temp_min ? `${hwTray.nozzle_temp_min}-${hwTray.nozzle_temp_max}°` : ''}
+                          {hw && !hw.empty && hw.minTemp ? `${hw.minTemp}-${hw.maxTemp}°` : ''}
                         </span>
                       </div>
 
@@ -290,13 +309,16 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
 
                         <div className="min-w-0">
                           <span className="font-extrabold text-[11px] block truncate" style={{ color: 'var(--app-text)' }}>
-                            {isSlotEmpty ? 'Slot frei (Keine Spule)' : (spool ? `${spool.brand} ${spool.name}` : (isHwEmpty ? 'Keine Spule erkannt' : hwType))}
+                            {slotTitle}
                           </span>
-                          <span className="font-mono text-[9.5px] block text-slate-400">
-                            {slotColorHex ? `${slotColorHex.toUpperCase()}` : '—'}
-                          </span>
+                          <span className="font-mono text-[9.5px] block text-slate-400 truncate">{slotSub}</span>
                         </div>
                       </div>
+                      {wrongSpool && (
+                        <p className="text-[10px] font-bold text-amber-400">
+                          ⚠ Zugewiesene Spule passt nicht ({spool?.material}, {spool?.colorHex}). Tippe auf „Mit Drucker synchronisieren“.
+                        </p>
+                      )}
                     </div>
                   </div>
                 );

@@ -58,24 +58,22 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
     return () => clearInterval(interval);
   }, [localDrying.isDrying]);
 
+  // Slot-Zuweisung (Slot 1-4 → Spulen-ID). Früher waren hier Demo-Spulen fest eingetragen, die falsche Farben zeigten:
+  // steht noch genau diese Demo-Belegung drin, wird sie geleert. Richtig belegen: „Mit Drucker synchronisieren".
   const [amsSlots, setAmsSlots] = useState<Record<number, string>>(() => {
-    const defaultSlots: Record<number, string> = { 1: 'sp-3', 2: 'sp-18', 3: 'sp-9', 4: 'sp-1' };
+    const demo = JSON.stringify({ 1: 'sp-3', 2: 'sp-18', 3: 'sp-9', 4: 'sp-1' });
     try {
       const raw = safeStorage.getItem('filamenthub_ams_slots_x2d');
       if (raw) {
         const parsed = JSON.parse(raw);
-        const merged: Record<number, string> = {
-          1: parsed[1] || defaultSlots[1],
-          2: (parsed[2] && parsed[2] !== '') ? parsed[2] : defaultSlots[2],
-          3: parsed[3] || defaultSlots[3],
-          4: parsed[4] || defaultSlots[4]
-        };
-        safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(merged));
-        return merged;
+        if (JSON.stringify(parsed) === demo) {
+          safeStorage.setItem('filamenthub_ams_slots_x2d', '{}');
+          return {};
+        }
+        return parsed && typeof parsed === 'object' ? parsed : {};
       }
     } catch {}
-    safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(defaultSlots));
-    return defaultSlots;
+    return {};
   });
 
   const [activeSlot, setActiveSlot] = useState<number>(() => {
@@ -118,6 +116,11 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
   const handleRefreshLiveState = async () => {
     setIsRefreshing(true);
     try {
+      // Nicht verbunden: erst neu verbinden, sonst nur den vollen Stand anfordern
+      if (!liveState.connected) {
+        const r = await printerApi.reconnect();
+        if (r.data?.message) setActionToast({ text: r.data.message, ok: Boolean(r.data.success) });
+      }
       await printerApi.refresh();
       const res = await printerApi.status();
       if (res.ok && res.data?.data) {
@@ -184,7 +187,7 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
         if (start) {
           const credited: string[] = [];
           [1, 2, 3, 4].forEach(slotIdx => {
-            const sid = amsSlots[slotIdx] || (slotIdx === 1 ? 'sp-3' : slotIdx === 2 ? 'sp-18' : slotIdx === 3 ? 'sp-9' : 'sp-1');
+            const sid = amsSlots[slotIdx];
             if (sid) {
               const sp = spools.find(s => s.id === sid);
               if (sp) {

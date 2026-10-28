@@ -60,19 +60,13 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
   }>(() => {
     try {
       const slotsRaw = localStorage.getItem('filamenthub_ams_slots_x2d');
-      const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : { '1': 'sp-3', '2': 'sp-18', '3': 'sp-9', '4': 'sp-1' };
+      const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
       let assignedSlot: number | null = null;
       for (const [sKey, sVal] of Object.entries(slots)) {
         if (sVal === spool.id) {
           assignedSlot = parseInt(sKey, 10);
           break;
         }
-      }
-      if (assignedSlot === null) {
-        if (spool.id === 'sp-3') assignedSlot = 1;
-        else if (spool.id === 'sp-18') assignedSlot = 2;
-        else if (spool.id === 'sp-9') assignedSlot = 3;
-        else if (spool.id === 'sp-1') assignedSlot = 4;
       }
 
       const dryRaw = localStorage.getItem('filamenthub_ams_drying_state');
@@ -104,19 +98,13 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
     const handleUpdate = () => {
       try {
         const slotsRaw = localStorage.getItem('filamenthub_ams_slots_x2d');
-        const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : { '1': 'sp-3', '2': 'sp-18', '3': 'sp-9', '4': 'sp-1' };
+        const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
         let assignedSlot: number | null = null;
         for (const [sKey, sVal] of Object.entries(slots)) {
           if (sVal === spool.id) {
             assignedSlot = parseInt(sKey, 10);
             break;
           }
-        }
-        if (assignedSlot === null) {
-          if (spool.id === 'sp-3') assignedSlot = 1;
-          else if (spool.id === 'sp-18') assignedSlot = 2;
-          else if (spool.id === 'sp-9') assignedSlot = 3;
-          else if (spool.id === 'sp-1') assignedSlot = 4;
         }
 
         const dryRaw = localStorage.getItem('filamenthub_ams_drying_state');

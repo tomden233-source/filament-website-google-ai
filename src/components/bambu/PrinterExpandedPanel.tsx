@@ -14,6 +14,8 @@ import { AmsSection } from './AmsSection';
 import { TemperatureCards } from './TemperatureCards';
 
 export interface PrinterExpandedPanelProps {
+  /** Handy-Ansicht: Druckauftrag-Kasten und Temperaturen ausblenden */
+  compact?: boolean;
   isSocketOff: any;
   haCreds: any;
   handleToggleSwitch: (...args: any[]) => any;
@@ -57,6 +59,7 @@ export interface PrinterExpandedPanelProps {
 }
 
 export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
+  compact = false,
   isSocketOff,
   haCreds,
   handleToggleSwitch,
@@ -127,7 +130,8 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
             </div>
           )}
 
-          {/* SECTION 1: FORTSCHRITT & JOB-DETAILS */}
+          {/* SECTION 1: FORTSCHRITT & JOB-DETAILS (nicht in der Handy-Ansicht) */}
+          {!compact && (
           <div
             className="p-4 rounded-2xl border space-y-3 transition-colors"
             style={{
@@ -136,17 +140,17 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
             }}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
                 <span className="text-xs font-bold" style={{ color: 'var(--app-text)' }}>
                   Aktueller Druckauftrag:
                 </span>
-                <span className={`text-xs font-mono font-semibold truncate max-w-xs ${
+                <span className={`text-xs font-mono font-semibold break-all ${
                   isPrinterPowerOff ? 'text-slate-400' : 'text-[#00AE42]'
                 }`}>
                   {isSocketOff
                     ? 'Drucker ist ausgeschaltet (kein Strom)'
                     : !isPrinterConnected
-                    ? 'Drucker offline • Verbindungsaufbau...'
+                    ? 'Drucker offline'
                     : (liveState.data.subtask_name || liveState.data.gcode_file || 'Bereit für neuen Druckauftrag')}
                 </span>
               </div>
@@ -183,9 +187,10 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
               />
             </div>
           </div>
+          )}
 
-          {/* SECTION 2: TEMPERATUR-KACHELN MIT DIREKTEM KLICK ZUM ANPASSEN */}
-          <TemperatureCards isPrinterConnected={isPrinterConnected} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} liveState={liveState} inlineNozzle1Temp={inlineNozzle1Temp} isPrinterPowerOff={isPrinterPowerOff} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} />
+          {/* SECTION 2: TEMPERATUR-KACHELN MIT DIREKTEM KLICK ZUM ANPASSEN (nicht in der Handy-Ansicht) */}
+          {!compact && <TemperatureCards isPrinterConnected={isPrinterConnected} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} liveState={liveState} inlineNozzle1Temp={inlineNozzle1Temp} isPrinterPowerOff={isPrinterPowerOff} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} />}
 
           {/* SECTION 3: DRUCKSTEUERUNG (PAUSE, FORTSETZEN, STOPP) */}
           <div
@@ -200,7 +205,7 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
                 Drucksteuerung:
               </span>
               <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                {isPrinterConnected ? 'Direkte MQTTS-Befehle an Bambu Lab X2D' : 'Inaktiv (Drucker offline / stromlos)'}
+                {isPrinterConnected ? (compact ? 'Bereit' : 'Direkte MQTTS-Befehle an Bambu Lab X2D') : 'Inaktiv (Drucker offline)'}
               </span>
             </div>
 
@@ -231,13 +236,13 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
                 className="px-3 py-1.5 rounded-xl border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Square className="w-3.5 h-3.5" />
-                <span>Druck abbrechen (Stopp)</span>
+                <span>{compact ? 'Stopp' : 'Druck abbrechen (Stopp)'}</span>
               </button>
             </div>
           </div>
 
           {/* SECTION 4: AMS 1-4 SLOTS, TELEMETRIE & SPULEN-EDITOR */}
-          <AmsSection setAmsSlots={setAmsSlots} setActionToast={setActionToast} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} liveState={liveState} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />
+          <AmsSection compact={compact} setAmsSlots={setAmsSlots} setActionToast={setActionToast} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} liveState={liveState} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />
         </div>
   );
 };

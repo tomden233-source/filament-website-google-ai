@@ -30,6 +30,23 @@ class NativeBambuService extends BambuMqttCore {
     }
   }
 
+  /** Werte aus dem Login-Fenster (Token nach E-Mail-Login, Seriennummer, User-ID), falls noch nie verbunden wurde */
+  protected fallbackConfig(): SavedBambuConfig | null {
+    try {
+      const get = (k: string) => localStorage.getItem(k) || undefined;
+      const accessToken = get('bambu_access_token');
+      if (!accessToken) return null;
+      return {
+        accessToken,
+        serialNumber: get('bambu_serial_number'),
+        userId: get('bambu_user_id'),
+        adminPin: get('bambu_admin_pin')
+      };
+    } catch {
+      return null;
+    }
+  }
+
   protected tlsVerify(): boolean {
     return true;
   }
@@ -54,10 +71,23 @@ let service: NativeBambuService | null = null;
 
 function get(): NativeBambuService {
   if (!service) {
-    service = new NativeBambuService();
-    service.init();
+    const svc = new NativeBambuService();
+    service = svc;
+    svc.init();
+    // App wieder im Vordergrund oder Netz wieder da: Verbindung prüfen und ggf. neu aufbauen
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') svc.ensureConnected();
+      });
+    }
+    if (typeof window !== 'undefined') window.addEventListener('online', () => svc.ensureConnected());
   }
   return service;
+}
+
+/** Sofort (neu) verbinden, z. B. nach dem Login. Gibt Erfolg und Meldung zurück. */
+export function reconnectNativePrinter() {
+  return get().ensureConnected(true);
 }
 
 /** Live-Status abonnieren (ersetzt den Server-Stream). Gibt eine Abmelde-Funktion zurück. */

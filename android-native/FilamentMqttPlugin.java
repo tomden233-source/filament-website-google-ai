@@ -8,6 +8,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.net.ssl.SSLSocketFactory;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
@@ -34,6 +35,17 @@ public class FilamentMqttPlugin extends Plugin {
         if (code >= 0) o.put("code", code);
         if (message != null) o.put("message", message);
         notifyListeners("event", o);
+    }
+
+    /** Fehlertext mit der eigentlichen Ursache (Paho meldet sonst nur „Unable to connect to server") */
+    private static String describe(Throwable e) {
+        if (e == null) return "Verbindung fehlgeschlagen";
+        String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+        Throwable cause = e.getCause();
+        if (cause != null && cause != e) {
+            msg = msg + ": " + cause.getClass().getSimpleName() + (cause.getMessage() != null ? " " + cause.getMessage() : "");
+        }
+        return msg;
     }
 
     private void closeClient(String id) {
@@ -76,6 +88,8 @@ public class FilamentMqttPlugin extends Plugin {
             options.setKeepAliveInterval(30);
             options.setAutomaticReconnect(true);
             options.setMaxReconnectDelay(60000);
+            // TLS mit den Zertifikaten des Systems (Bambu Cloud hat ein öffentliches Zertifikat)
+            if (url.startsWith("ssl://")) options.setSocketFactory(SSLSocketFactory.getDefault());
 
             client.setCallback(new MqttCallbackExtended() {
                 @Override
@@ -85,7 +99,7 @@ public class FilamentMqttPlugin extends Plugin {
 
                 @Override
                 public void connectionLost(Throwable cause) {
-                    emit(id, "close", null, null, -1, cause != null ? cause.getMessage() : null);
+                    emit(id, "close", null, null, -1, describe(cause));
                 }
 
                 @Override
@@ -108,7 +122,7 @@ public class FilamentMqttPlugin extends Plugin {
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                     int code = exception instanceof MqttException ? ((MqttException) exception).getReasonCode() : -1;
-                    emit(id, "error", null, null, code, exception != null ? exception.getMessage() : "Verbindung fehlgeschlagen");
+                    emit(id, "error", null, null, code, describe(exception));
                     closeClient(id);
                 }
             });

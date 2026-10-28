@@ -52,13 +52,14 @@ function bambuStatusCompat(svc: BambuMqttCore, query: URLSearchParams): RouteRes
       bedTemp: current.data.bed_temper,
       targetBedTemp: current.data.bed_target_temper,
       fanSpeed: current.data.fan_gear,
-      printName: current.data.subtask_name || current.data.gcode_file || 'FilamentHub_X2D.gcode',
+      printName: current.data.subtask_name || current.data.gcode_file || undefined,
       currentLayer: current.data.layer_num,
       totalLayers: current.data.total_layer_num,
       progressPct: current.data.mc_percent,
       elapsedSeconds: 0,
       totalSeconds: current.data.mc_remaining_time * 60,
-      printGrams: 42,
+      // Echter Verbrauch kommt aus der Bambu Cloud (Auto-Abzug), hier kein Schätzwert
+      printGrams: 0,
       activeSlot: 1,
       timestamp: current.lastUpdated || new Date().toISOString()
     });
@@ -150,6 +151,11 @@ export async function handlePrinterRoute(
       } catch (error: any) {
         return fail(400, { success: false, error: errText(error) || 'Auto-Connect mit Bambu Cloud fehlgeschlagen' });
       }
+    }
+
+    case '/api/printer/reconnect': {
+      const r = await svc.ensureConnected(true);
+      return ok({ ...r, status: svc.getStatus() });
     }
 
     case '/api/printer/refresh': {

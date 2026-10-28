@@ -169,6 +169,7 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
 
             {/* Bambu Lab X2D Live-Dashboard im Smartphone-Modus */}
             <BambuPrinterWidget
+              compact
               spools={spools}
               viewMode={viewMode}
               onDeductWeight={handleDeductWeight}
@@ -235,7 +236,7 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
                   Keine Spulen gefunden.
                 </div>
               ) : (
-                filteredSpools.map(spool => {
+                filteredSpools.map((spool: any) => {
                   const maxW = spool.initialWeight || 1000;
                   const pct = Math.max(0, Math.min(100, Math.round((spool.remainingWeight / maxW) * 100)));
                   return (

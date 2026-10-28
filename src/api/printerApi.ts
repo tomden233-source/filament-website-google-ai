@@ -51,6 +51,9 @@ export const printerApi = {
 
   refresh: () => apiPost<ApiBase>('/api/printer/refresh'),
 
+  /** Verbindung sofort neu aufbauen (nutzt gespeicherte Zugangsdaten, sucht ggf. den Drucker im Konto) */
+  reconnect: () => apiPost<ApiBase & { status?: BambuLiveState }>('/api/printer/reconnect', undefined, { timeoutMs: 45000 }),
+
   command: (command: 'pause' | 'resume' | 'stop', pin?: string) =>
     apiPost<ApiBase>('/api/printer/command', { command, pin }),
 

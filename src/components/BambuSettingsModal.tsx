@@ -119,25 +119,30 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
   };
 
   // 1b. 1-Klick Auto-Erkennung aus Token (sucht Drucker & verbindet sofort)
-  const handleAutoDetect = async () => {
-    if (!accessToken.trim()) {
+  const handleAutoDetect = async (tokenOverride?: string) => {
+    const token = (typeof tokenOverride === 'string' ? tokenOverride : accessToken).trim();
+    if (!token) {
       setFeedback({ type: 'error', message: 'Bitte zuerst das Bambu Cloud Token oder Cookie einfügen.' });
       return;
     }
     setIsConnecting(true);
-    setFeedback(null);
+    setFeedback(typeof tokenOverride === 'string' ? { type: 'info', message: 'Login ok. Suche deinen Drucker und verbinde …' } : null);
 
     try {
-      const res = await printerApi.autoConnect(accessToken.trim());
+      const res = await printerApi.autoConnect(token);
       const data = res.data;
+      // Drucker gefunden: Seriennummer merken, auch wenn die Live-Verbindung (noch) nicht klappt
+      if (data.device?.dev_id) {
+        setSerialNumber(data.device.dev_id);
+        safeStorage.setItem('bambu_serial_number', data.device.dev_id);
+        safeStorage.setItem('bambu_access_token', token);
+      }
       if (data.success && data.device) {
         setSerialNumber(data.device.dev_id);
         if (data.userId) {
           setUserId(String(data.userId));
           safeStorage.setItem('bambu_user_id', String(data.userId));
         }
-        safeStorage.setItem('bambu_serial_number', data.device.dev_id);
-        safeStorage.setItem('bambu_access_token', accessToken.trim());
         safeStorage.setItem('bambu_broker_host', 'us.mqtt.bambulab.com');
         setBrokerHost('us.mqtt.bambulab.com');
 
@@ -152,8 +157,9 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
       } else {
         setFeedback({
           type: 'error',
-          message: data.error || 'Auto-Erkennung fehlgeschlagen. Bitte Token überprüfen.'
+          message: data.error || data.message || 'Auto-Erkennung fehlgeschlagen. Bitte Token überprüfen.'
         });
+        if (onConnected) onConnected();
       }
     } catch (err: any) {
       setFeedback({
@@ -213,7 +219,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
       } else {
         setFeedback({
           type: 'error',
-          message: data.error || 'Verbindung fehlgeschlagen. Bitte Seriennummer und Token überprüfen.'
+          message: data.error || data.message || 'Verbindung fehlgeschlagen. Bitte Seriennummer und Token überprüfen.'
         });
       }
     } catch {
@@ -280,13 +286,9 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
         setLogin2FACode('');
         setLoginStep('credentials');
         setTfaKey('');
-        setFeedback({
-          type: 'success',
-          message: result.userId
-            ? 'Login erfolgreich! Token und User-ID wurden übernommen.'
-            : 'Login erfolgreich! Token übernommen, die User-ID bitte mit „User-ID erkennen“ holen.'
-        });
         setActiveTab('token');
+        // Direkt weiter: Drucker im Konto suchen und verbinden (vorher musste man noch extra tippen)
+        await handleAutoDetect(result.accessToken);
       } else {
         setFeedback({ type: 'error', message: result.message });
       }
@@ -525,7 +527,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
                 </p>
                 <button
                   type="button"
-                  onClick={handleAutoDetect}
+                  onClick={() => handleAutoDetect()}
                   disabled={isConnecting || !accessToken.trim()}
                   className="px-3 py-1.5 rounded-lg border font-bold text-xs text-emerald-400 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
