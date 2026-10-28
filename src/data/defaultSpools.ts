@@ -666,6 +666,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.55',
+    label: '1.55 (Build-Fix für GitHub Pages: npm-Installation)',
+    releaseDate: '28.10.2026',
+    description: 'Der automatische Build für GitHub Pages brach bei der Paketinstallation ab (Konflikt zwischen vite 8 und esbuild 0.25). Mit .npmrc (legacy-peer-deps) läuft die Installation wie bisher lokal und im Docker-Build durch.',
+    features: [
+      '🧰 Build-Fix: Neue .npmrc mit legacy-peer-deps=true behebt den Abbruch bei npm ci und npm install auf GitHub Actions',
+      '🌐 Pages-Seite: Der Workflow kann die App jetzt bauen und unter /filament-website-google-ai/ veröffentlichen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 24.700+ Codezeilen, 2.950+ Prompt-Wörter, 2.48M Tokens und 55 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
 

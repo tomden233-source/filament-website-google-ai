@@ -129,10 +129,10 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    // Veraltete Stände automatisch auf die neue v1.54 anheben
-    if (!saved || saved !== 'v1.54') {
-      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.54');
-      return 'v1.54';
+    // Veraltete Stände automatisch auf die neue v1.55 anheben
+    if (!saved || saved !== 'v1.55') {
+      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, 'v1.55');
+      return 'v1.55';
     }
     return saved;
   });
