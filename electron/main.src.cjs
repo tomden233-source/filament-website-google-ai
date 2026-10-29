@@ -5,6 +5,8 @@ const { spawn } = require('child_process');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
+const tls = require('tls');
 
 const PORT = 38517; // fest, damit die gespeicherten Daten (Spulen, Einstellungen) immer im selben Speicher liegen
 const URL = `http://127.0.0.1:${PORT}`;
@@ -96,6 +98,49 @@ function trustedList() {
   }
 }
 
+// Electron-Fingerabdruck „sha256/BASE64“ → Node-Format „AA:BB:…“
+function fpToHex(fp) {
+  const b = Buffer.from(String(fp).replace(/^sha256\//, ''), 'base64');
+  return [...b].map(x => x.toString(16).padStart(2, '0').toUpperCase()).join(':');
+}
+
+function pinnedRequest(url, method, body) {
+  const allowed = trustedList().map(fpToHex);
+  const u = new URL(url);
+  const port = Number(u.port) || 443;
+  return new Promise((resolve, reject) => {
+    // Erst TLS aufbauen und Fingerabdruck prüfen, erst danach wird überhaupt etwas gesendet
+    const sock = tls.connect({ host: u.hostname, port, servername: u.hostname, rejectUnauthorized: false, timeout: 20000 });
+    sock.once('error', reject);
+    sock.once('timeout', () => sock.destroy(new Error('Zeitüberschreitung')));
+    sock.once('secureConnect', () => {
+      const fp = sock.getPeerCertificate() && sock.getPeerCertificate().fingerprint256;
+      if (!fp || !allowed.includes(String(fp).toUpperCase())) {
+        sock.destroy();
+        return reject(new Error('Zertifikat passt nicht zum bestätigten Fingerabdruck'));
+      }
+      const rq = https.request(
+        {
+          host: u.hostname,
+          port,
+          path: u.pathname,
+          method,
+          createConnection: () => sock,
+          headers: body !== undefined ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } : {}
+        },
+        resp => {
+          const chunks = [];
+          resp.on('data', c => chunks.push(c));
+          resp.on('end', () => resolve({ status: resp.statusCode || 502, text: Buffer.concat(chunks).toString('utf8') }));
+        }
+      );
+      rq.on('error', reject);
+      if (body !== undefined) rq.write(body);
+      rq.end();
+    });
+  });
+}
+
 function setupCloudBridge() {
   session.defaultSession.setCertificateVerifyProc((request, callback) => {
     if (request.hostname !== CLOUD_HOST || request.verificationResult === 'net::OK') return callback(-3);
@@ -132,7 +177,16 @@ function setupCloudBridge() {
       });
       return { status: r.status, text: await r.text() };
     } catch (e) {
-      return { status: 502, text: JSON.stringify({ error: 'Cloud nicht erreichbar: ' + String((e && e.message) || e) }) };
+      const msg = String((e && e.message) || e);
+      // Vom Nutzer bestätigtes Zertifikat (z. B. Firewall mit SSL-Prüfung): direkt verbinden und nur genau diesen Fingerabdruck akzeptieren
+      if (/CERT/i.test(msg) && trustedList().length) {
+        try {
+          return await pinnedRequest(url, method, method === 'POST' ? String(req.body || '') : undefined);
+        } catch (e2) {
+          return { status: 502, text: JSON.stringify({ error: 'Cloud nicht erreichbar: ' + String((e2 && e2.message) || e2) }) };
+        }
+      }
+      return { status: 502, text: JSON.stringify({ error: 'Cloud nicht erreichbar: ' + msg }) };
     }
   });
 }

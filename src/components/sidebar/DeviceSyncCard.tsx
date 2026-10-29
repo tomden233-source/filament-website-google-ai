@@ -96,10 +96,14 @@ export const DeviceSyncCard: React.FC<{ cloudDbUrl: string }> = ({ cloudDbUrl })
           <button
             type="button"
             onClick={async () => {
-              if (await bridge.cloudTrustCert(cert.fingerprint)) {
-                setCert(null);
-                await run();
+              const ok = await bridge.cloudTrustCert(cert.fingerprint);
+              if (!ok) {
+                setDetail('Zertifikat konnte nicht gespeichert werden. Bitte nochmal „Jetzt abgleichen“ und dann vertrauen.');
+                return;
               }
+              setCert(null);
+              setDetail('Zertifikat bestätigt. Gleiche ab …');
+              await run();
             }}
             className="w-full py-2 rounded-lg border text-xs font-bold cursor-pointer"
             style={{ borderColor: 'var(--app-accent)', color: 'var(--app-accent-text)' }}

@@ -55,6 +55,7 @@ export interface SidebarProps {
   onSetViewMode: (mode: ViewMode) => void;
   spools: Spool[];
   onDeductWeight: (spoolId: string, grams: number) => void;
+  onAddWeight?: (spoolId: string, grams: number) => void;
   onMarkDried: (spoolId: string) => void;
   onOpenNewSpool: (prefill?: Partial<Spool>) => void;
   onOpenQr: () => void;
@@ -91,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSetViewMode,
   spools,
   onDeductWeight,
+  onAddWeight,
   onMarkDried,
   onOpenNewSpool,
   onSyncCloud,
@@ -117,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   cloudDbUrl,
   syncStatus
 }) => {
-  const [activeTab, setActiveTab] = useState<SidebarTab>('settings');
+  const [activeTab, setActiveTab] = useState<SidebarTab>('ai'); // Standard: KI-Assistent
 
   // Kostenrechner State
   const {
@@ -312,7 +314,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setActiveTab,
     appSettings,
     onMarkDried,
-    onDeductWeight
+    onDeductWeight,
+    onAddWeight
   });
 
   if (!isOpen) return null;

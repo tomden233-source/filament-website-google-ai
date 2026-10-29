@@ -34,13 +34,16 @@ export const AiAgentTab: React.FC<AiAgentTabProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
-                  Befehle: „Kamera öffnen“, „Zieh 65g ab“, „Eibos Tara ändern“ oder „Markiere als getrocknet“.
+                  Läuft im Gerät, auch offline. Versteht freie Sätze, fragt nach, wenn mehrere Spulen passen. „Hilfe“ zeigt alles.
                 </p>
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {[
-                    '📷 Kamera öffnen',
-                    'Zieh 50g von Bambu Weiß ab',
-                    'Markiere Eryone als getrocknet'
+                    'Was ist fast leer?',
+                    'Was muss getrocknet werden?',
+                    'Wie viel PLA habe ich?',
+                    'Was ist mein Filament wert?',
+                    'Zieh 50 g von Bambu Weiß ab',
+                    'Hilfe'
                   ].map(chip => (
                     <button
                       key={chip}

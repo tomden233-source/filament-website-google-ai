@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { runAssistant, type AssistantMemory } from '../../utils/assistant';
+import { useWorkshopSettings } from '../../utils/workshopSettings';
 import type { SidebarProps as ParentProps } from '../Sidebar';
 
 export interface ChatMessage {
@@ -18,102 +20,50 @@ export interface useAgentChatParams {
   appSettings: ParentProps['appSettings'];
   onMarkDried: ParentProps['onMarkDried'];
   onDeductWeight: ParentProps['onDeductWeight'];
+  onAddWeight?: (spoolId: string, grams: number) => void;
 }
 
-export function useAgentChat({ spools, onOpenCamera, onSetViewMode, versionProfiles, onSelectVersion, setActiveTab, appSettings, onMarkDried, onDeductWeight }: useAgentChatParams) {
+export function useAgentChat({ spools, onOpenCamera, onSetViewMode, versionProfiles, onSelectVersion, setActiveTab, appSettings, onMarkDried, onDeductWeight, onAddWeight }: useAgentChatParams) {
   const [aiInput, setAiInput] = useState('');
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
-      text: `Hallo! Ich kenne alle deine ${spools.length} Spulen und Standardwerte. Sag mir einfach, was ich abziehen, eintragen, trocknen oder berechnen soll!`,
+      text: `Hallo! Ich kenne alle deine ${spools.length} Spulen und Standardwerte. Frag mich z. B. „Was ist fast leer?“, „Wie viel PLA habe ich?“ oder sag „Zieh 30 g von Bambu Weiß ab“. „Hilfe“ zeigt alles.`,
       isUser: false,
       timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
 
-  const handleAiSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const prompt = aiInput.trim();
-    if (!prompt) return;
+  const [settings] = useWorkshopSettings();
+  const memory = useRef<AssistantMemory>({});
 
-    const userMsg: ChatMessage = {
-      id: 'usr-' + Date.now(),
-      text: prompt,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-    };
-    setChatMessages(prev => [...prev, userMsg]);
+  const handleAiSubmit = (e?: React.FormEvent, direct?: string) => {
+    if (e) e.preventDefault();
+    const prompt = (direct ?? aiInput).trim();
+    if (!prompt) return;
+    const time = () => new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    setChatMessages(prev => [...prev, { id: 'usr-' + Date.now(), text: prompt, isUser: true, timestamp: time() }]);
     setAiInput('');
 
-    const lower = prompt.toLowerCase();
-    let botReply = '';
-
-    if (lower.includes('kamera') || lower.includes('foto') || lower.includes('scannen') || lower.includes('fotografieren')) {
-      onOpenCamera();
-      botReply = 'Ich habe den Kamera-Scanner für dich geöffnet!';
-    } else if (lower.includes('vereinfacht') || lower.includes('kompakt')) {
-      onSetViewMode('simple');
-      botReply = 'Ich habe auf die vereinfachte Ansicht umgeschaltet.';
-    } else if (lower.includes('vollständig') || lower.includes('trocknungsbalken')) {
-      onSetViewMode('full');
-      botReply = 'Ich habe auf die vollständige Ansicht umgeschaltet.';
-    } else if (lower.includes('wechsle zu') || lower.includes('version')) {
-      const targetV = versionProfiles.find(v => lower.includes(v.id.toLowerCase()));
-      if (targetV) {
-        onSelectVersion(targetV.id);
-        botReply = `Ich habe zu Profil ${targetV.label} gewechselt!`;
-      } else {
-        botReply = `Verfügbare Versionen: ${versionProfiles.map(v => v.id).join(', ')}.`;
-      }
-    } else if (lower.includes('einstellung') || lower.includes('tara') || lower.includes('eibos')) {
-      setActiveTab('settings');
-      botReply = `Einstellungs-Hub geöffnet! Eibos-Tara ist derzeit auf ${appSettings.eibosBagTara} g eingestellt.`;
-    } else if (lower.includes('trocknen') || lower.includes('getrocknet')) {
-      const match = spools.filter(s =>
-        lower.includes(s.brand.toLowerCase()) ||
-        lower.includes(s.name.toLowerCase()) ||
-        lower.includes(s.colorName.toLowerCase())
-      );
-      if (match.length > 0) {
-        match.forEach(m => onMarkDried(m.id));
-        botReply = `Ich habe ${match.length} Spule(n) als getrocknet markiert!`;
-      } else {
-        botReply = 'Nenne mir den Namen oder die Farbe der Spule.';
-      }
-    } else if (lower.includes('zieh') || lower.includes('minus') || lower.includes('abziehen')) {
-      const gramMatch = prompt.match(/(\d+)\s*(?:g|gramm)?/i);
-      if (gramMatch) {
-        const grams = parseInt(gramMatch[1]);
-        const target = spools.find(s =>
-          lower.includes(s.name.toLowerCase()) ||
-          (lower.includes(s.brand.toLowerCase()) && lower.includes(s.colorName.toLowerCase())) ||
-          lower.includes(s.colorName.toLowerCase())
-        );
-        if (target) {
-          onDeductWeight(target.id, grams);
-          botReply = `${grams} g wurden von „${target.brand} ${target.name}“ abgezogen.`;
-        } else {
-          botReply = `Ich konnte ${grams} g abziehen, aber von welcher Spule?`;
-        }
-      } else {
-        botReply = 'Wie viel Gramm soll ich abziehen? (z.B. „Zieh 45g von Bambu Weiß ab“)';
-      }
-    } else {
-      botReply = 'Befehle: Spule fotografieren („Kamera öffnen“), Gewicht abziehen („Zieh 50g ab“), Trocknung („Markiere Eryone als getrocknet“), Einstellungen anpassen oder Theme wechseln.';
+    const res = runAssistant(
+      prompt,
+      { spools, lowWeightG: settings.lowWeightG || 100, eibosTara: appSettings?.eibosBagTara, versions: versionProfiles.map(v => ({ id: v.id, label: v.label })) },
+      memory.current
+    );
+    memory.current = res.memory;
+    for (const a of res.actions) {
+      if (a.type === 'deduct') onDeductWeight(a.spoolId, a.grams);
+      else if (a.type === 'add') (onAddWeight ? onAddWeight(a.spoolId, a.grams) : undefined);
+      else if (a.type === 'dried') onMarkDried(a.spoolId);
+      else if (a.type === 'camera') onOpenCamera();
+      else if (a.type === 'view') onSetViewMode(a.mode);
+      else if (a.type === 'tab') setActiveTab(a.tab);
+      else if (a.type === 'version') onSelectVersion(a.id);
     }
-
     setTimeout(() => {
-      setChatMessages(prev => [
-        ...prev,
-        {
-          id: 'bot-' + Date.now(),
-          text: botReply,
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    }, 250);
+      setChatMessages(prev => [...prev, { id: 'bot-' + Date.now(), text: res.reply, isUser: false, timestamp: time() }]);
+    }, 150);
   };
 
   return { setAiInput, chatMessages, handleAiSubmit, aiInput };

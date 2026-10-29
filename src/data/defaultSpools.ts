@@ -1350,5 +1350,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.97',
+    label: '1.97 (Schlauere KI & Zertifikat-Fix)',
+    releaseDate: '29.10.2026',
+    description: 'Der KI-Assistent ist jetzt Standard im Menü und deutlich schlauer. Außerdem klappt „Diesem Zertifikat vertrauen“ in der Windows-App wirklich.',
+    features: [
+      '🤖 KI ist Standard: Menü öffnet direkt den Assistenten',
+      '🧠 Versteht freie Sätze: „25 g PETG schwarz verbraucht“, „Setz Eryone Rot auf 640 g“, „200 g zu Sunlu hinzufügen“, „zieh 10 g davon ab“',
+      '❓ Fragt nach, wenn mehrere Spulen passen, Antwort einfach mit Nummer',
+      '📊 Beantwortet Fragen: fast leer, was trocknen, wie viel PLA, Gesamtbestand, Filament-Wert, günstigste/teuerste, Spulen-Info, Lagerort',
+      '📴 Läuft komplett im Gerät, auch offline',
+      '🛡️ Windows: Bestätigtes Zertifikat (z. B. FortiGate-Firewall) wird jetzt per Fingerabdruck direkt geprüft. Vorher blinkte der Knopf nur, weil Windows das alte Ergebnis zwischengespeichert hatte',
+      '🔢 Aktualisierte Zahlen-FunFacts: 70 Commits und 97 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
