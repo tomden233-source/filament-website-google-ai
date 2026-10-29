@@ -484,7 +484,9 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // Intelligente Strom- und Verbindungszustände (Kopplung mit Home Assistant Steckdose & MQTT)
   const isSocketOff = haSwitchState.configured && haSwitchState.state === 'off';
   const isPrinterConnected = liveState.connected === true;
-  const isPrinterPowerOff = isSocketOff || (!isPrinterConnected && haSwitchState.state === 'off');
+  // Cloud verbunden heißt nicht, dass der Drucker an ist: nur wenn er gerade Daten schickt, gilt er als erreichbar
+  const isPrinterAlive = isPrinterConnected && liveState.receivingData !== false;
+  const isPrinterPowerOff = isSocketOff || (!isPrinterAlive && haSwitchState.state === 'off');
 
   // Effektiver Status & Farbe für Badge und Anzeigen
   let effectiveStatusText = liveState.formatted.statusText;
@@ -492,6 +494,9 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
   if (isSocketOff) {
     effectiveStatusText = 'Ausgeschaltet (Stromlos)';
+    effectiveStatusColor = '#64748b';
+  } else if (isPrinterConnected && !isPrinterAlive) {
+    effectiveStatusText = 'Drucker aus / nicht erreichbar';
     effectiveStatusColor = '#64748b';
   } else if (!isPrinterConnected) {
     if (liveState.connecting || reconnecting) {
@@ -510,8 +515,8 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const needsLogin =
     IS_NATIVE && (!liveState.hasToken || /abgelaufen|ung[üu]ltig|abgelehnt|neu anmelden/i.test(String(liveState.error || '')));
 
-  const isPrinting = isPrinterConnected && liveState.data.gcode_state === 'RUNNING';
-  const isPaused = isPrinterConnected && liveState.data.gcode_state === 'PAUSE';
+  const isPrinting = isPrinterAlive && liveState.data.gcode_state === 'RUNNING';
+  const isPaused = isPrinterAlive && liveState.data.gcode_state === 'PAUSE';
 
   return (
     <div
@@ -591,7 +596,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
             <p className="text-[11px] truncate flex items-center gap-2 mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
               <span>SN: {liveState.serialNumber || '–'}</span>
-              {liveState.data.subtask_name && isPrinterConnected && (
+              {liveState.data.subtask_name && isPrinterAlive && (
                 <>
                   <span>•</span>
                   <span className="font-medium text-[var(--app-text)] truncate">
@@ -826,7 +831,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {isExpanded && isCameraOpen && <PrinterCameraPanel setCameraSnapshotKey={setCameraSnapshotKey} handleToggleLight={handleToggleLight} isLightOn={isLightOn} isSocketOff={isSocketOff} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} cameraSource={cameraSource} haCameraBlobUrl={haCameraBlobUrl} haCreds={haCreds} cameraSnapshotKey={cameraSnapshotKey} printerLocalIp={printerLocalIp} haSwitchState={haSwitchState} />}
 
       {/* AUSGEKLAPPTE VOLLANSICHT */}
-      {isExpanded && <PrinterExpandedPanel compact={compact} isSocketOff={isSocketOff} haCreds={haCreds} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} isPrinterPowerOff={isPrinterPowerOff} isPrinterConnected={isPrinterConnected} liveState={liveState} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} inlineNozzle1Temp={inlineNozzle1Temp} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} isPrinting={isPrinting} handleSendCommand={handleSendCommand} setShowStopPinModal={setShowStopPinModal} setAmsSlots={setAmsSlots} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />}
+      {isExpanded && <PrinterExpandedPanel compact={compact} isSocketOff={isSocketOff} haCreds={haCreds} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} isPrinterPowerOff={isPrinterPowerOff} isPrinterConnected={isPrinterAlive} liveState={liveState} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} inlineNozzle1Temp={inlineNozzle1Temp} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} isPrinting={isPrinting} handleSendCommand={handleSendCommand} setShowStopPinModal={setShowStopPinModal} setAmsSlots={setAmsSlots} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />}
 
       {/* MODAL 1: TEMPERATUR ANPASSEN BEI KLICK AUF HOTEND ODER BETT */}
       {tempModalTarget && <TemperatureModal setTempModalTarget={setTempModalTarget} tempModalTarget={tempModalTarget} setTempModalValue={setTempModalValue} tempModalValue={tempModalValue} handleSetTemperature={handleSetTemperature} actionLoading={actionLoading} />}

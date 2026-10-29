@@ -993,5 +993,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+ },
+  {
+    id: 'v1.74',
+    label: '1.74 (Drucker-Status & Kachel-Regler)',
+    releaseDate: '29.10.2026',
+    description: 'Der Drucker zeigt nicht mehr „Bereit“, wenn er aus ist: Nur wenn er wirklich Daten schickt, gilt er als erreichbar. Die Einstellung für die Kachelgröße ist neu und sauber aufgebaut.',
+    features: [
+      '🔌 Ehrlicher Drucker-Status: Cloud verbunden, aber der Drucker ist aus? Dann steht „Drucker aus / nicht erreichbar“ statt „Bereit“. Nach 2,5 Minuten ohne Meldung gilt er als aus',
+      '🎛️ Steuerung (Pause, Stopp, Temperaturen) ist nur aktiv, wenn der Drucker wirklich antwortet',
+      '📐 Kachelgröße aufgeräumt: Regler, darunter klein/groß und Kacheln pro Reihe, nichts überlappt mehr. Vier klare Knöpfe Kompakt, Standard, Groß, Maxi',
+      '🔢 Aktualisierte Zahlen-FunFacts: 29.000+ Codezeilen, ca. 14.100 Wörter, 5 Chats, 47 Commits und 74 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

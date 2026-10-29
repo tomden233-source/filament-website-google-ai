@@ -97,6 +97,9 @@ export abstract class BambuMqttCore {
   private lastUpdated: string | null = null;
   /** Seit der letzten Verbindung schon Daten vom Drucker bekommen? (sonst: verbunden, aber Drucker schweigt) */
   private gotData = false;
+  /** Zeitpunkt der letzten echten Meldung vom Drucker (ms). Ohne frische Meldung gilt der Drucker als aus. */
+  private lastDataAt = 0;
+  private static readonly STALE_MS = 150_000;
   /** Nach einem Licht-Befehl kurz den gewünschten Zustand halten (sonst flackert die Anzeige durch alte Meldungen) */
   private lightHold: { mode: string; until: number } | null = null;
   /** Letzte Antwort des Druckers auf „ams_filament_setting" (zur Prüfung, ob der Slot wirklich gesetzt wurde) */
@@ -321,11 +324,16 @@ export abstract class BambuMqttCore {
       hasAdminPin: Boolean(this.adminPin),
       hasToken: Boolean(this.accessToken),
       retryInSec: this.retryAt ? Math.max(0, Math.round((this.retryAt - Date.now()) / 1000)) : null,
-      receivingData: this.connected && this.gotData,
+      receivingData: this.printerOnline(),
       lastUpdated: this.lastUpdated,
       data: { ...this.printData },
       formatted: this.getFormattedState()
     };
+  }
+
+  /** Drucker schickt gerade wirklich Daten (Cloud verbunden reicht nicht: ist der Drucker aus, kommt nichts) */
+  private printerOnline(): boolean {
+    return this.connected && this.gotData && Date.now() - this.lastDataAt < BambuMqttCore.STALE_MS;
   }
 
   private getFormattedState() {
@@ -342,6 +350,16 @@ export abstract class BambuMqttCore {
         remainingTimeStr: '--',
         etaClockStr: '--:-- Uhr',
         statusText: 'Getrennt (Offline)',
+        statusColor: '#64748b'
+      };
+    }
+
+    // Mit der Cloud verbunden, aber vom Drucker kommt nichts: nicht „Bereit“ anzeigen
+    if (!this.printerOnline()) {
+      return {
+        remainingTimeStr: '--',
+        etaClockStr: '--:-- Uhr',
+        statusText: this.gotData ? 'Drucker aus / nicht erreichbar' : 'Warte auf Drucker …',
         statusColor: '#64748b'
       };
     }
@@ -637,6 +655,7 @@ export abstract class BambuMqttCore {
             const delta = (raw && raw.print) ? raw.print : raw;
             if (delta && typeof delta === 'object' && Object.keys(delta).length > 0) {
               this.gotData = true;
+              this.lastDataAt = Date.now();
               this.mergeDelta(delta);
             }
           } catch (e) {

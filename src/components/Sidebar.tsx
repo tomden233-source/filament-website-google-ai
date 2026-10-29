@@ -690,7 +690,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                     </div>
                     <span
-                      className="text-xs font-mono font-black px-2.5 py-1 rounded-lg border transition-colors"
+                      className="text-xs font-mono font-black px-2.5 py-1 rounded-lg border transition-colors whitespace-nowrap shrink-0"
                       style={{
                         backgroundColor: 'var(--app-accent-sub)',
                         borderColor: 'var(--app-accent)',
@@ -701,25 +701,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
                   </div>
 
-                  {/* Slider Element mit dynamischer Spaltenberechnung */}
+                  {/* Regler: darunter klein/groß und wie viele Kacheln pro Reihe (eigene Zeile, nichts überlappt) */}
                   <div className="space-y-1.5">
-                    <div className="flex justify-between items-center text-[10.5px] font-bold" style={{ color: 'var(--app-text-muted)' }}>
-                      <span>Kompakt (200px)</span>
-                      <span className="font-extrabold px-2 py-0.5 rounded-md border" style={{
-                        backgroundColor: 'var(--app-accent-sub)',
-                        borderColor: 'var(--app-accent)',
-                        color: 'var(--app-accent-text)'
-                      }}>
-                        {(appSettings.cardSize || 340) <= 250
-                          ? '⚡ 4–5 Kacheln / Reihe'
-                          : (appSettings.cardSize || 340) <= 330
-                          ? '📐 3–4 Kacheln / Reihe'
-                          : (appSettings.cardSize || 340) <= 420
-                          ? '🔍 2–3 Kacheln / Reihe'
-                          : '🖼️ 1–2 Kacheln / Reihe'}
-                      </span>
-                      <span>Maximal (540px)</span>
-                    </div>
                     <input
                       type="range"
                       min={200}
@@ -727,16 +710,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       step={10}
                       value={appSettings.cardSize || 340}
                       onChange={e => onUpdateCardSize?.(Number(e.target.value))}
-                      className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                      style={{
-                        accentColor: 'var(--app-accent)',
-                        backgroundColor: 'var(--app-border)'
-                      }}
+                      aria-label="Kachelgröße"
+                      className="w-full cursor-pointer"
+                      style={{ accentColor: 'var(--app-accent)' }}
                     />
+                    <div className="flex justify-between items-center text-[10px] font-semibold" style={{ color: 'var(--app-text-muted)' }}>
+                      <span>klein</span>
+                      <span className="font-extrabold" style={{ color: 'var(--app-accent-text)' }}>
+                        {(appSettings.cardSize || 340) <= 250
+                          ? '4–5 Kacheln pro Reihe'
+                          : (appSettings.cardSize || 340) <= 330
+                          ? '3–4 Kacheln pro Reihe'
+                          : (appSettings.cardSize || 340) <= 420
+                          ? '2–3 Kacheln pro Reihe'
+                          : '1–2 Kacheln pro Reihe'}
+                      </span>
+                      <span>groß</span>
+                    </div>
                   </div>
 
                   {/* Schnellauswahl-Buttons: Jeder Button mit anderer Größe UND Spaltenmenge */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
                     {[
                       { count: '4–5 pro Reihe', label: 'Kompakt', size: 230 },
                       { count: '3–4 pro Reihe', label: 'Standard', size: 310 },
@@ -751,7 +745,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           onClick={() => onUpdateCardSize?.(preset.size)}
                           className={`py-1.5 px-1.5 rounded-xl text-center border transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                             isSelected
-                              ? 'text-white shadow-sm ring-2 ring-orange-500/50'
+                              ? 'text-white shadow-sm'
                               : 'hover:opacity-80'
                           }`}
                           style={{
@@ -760,8 +754,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             color: isSelected ? '#ffffff' : 'var(--app-text-muted)'
                           }}
                         >
-                          <span className="text-[10px] font-black">{preset.count}</span>
-                          <span className="text-[9px] opacity-80">{preset.label} ({preset.size}px)</span>
+                          <span className="text-[11px] font-extrabold">{preset.label}</span>
+                          <span className="text-[9.5px] opacity-80">{preset.count}</span>
                         </button>
                       );
                     })}
