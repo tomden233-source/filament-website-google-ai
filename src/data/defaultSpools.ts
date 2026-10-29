@@ -1259,5 +1259,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.91',
+    label: '1.91 (Windows Auto-Update)',
+    releaseDate: '29.10.2026',
+    description: 'Die Windows-App aktualisiert sich jetzt selbst: sie prüft beim Start und alle 30 Minuten, lädt neue Versionen im Hintergrund und installiert sie per Klick oder beim Beenden.',
+    features: [
+      '🔄 Auto-Update: Neue Version wird im Hintergrund geladen, ohne dass du etwas tust',
+      '🪟 Hinweis „Version X ist bereit“ mit Button „Jetzt neu starten“. Wer „Später“ wählt, bekommt das Update beim nächsten Beenden',
+      '⏱️ Prüfung beim Start und alle 30 Minuten, Daten (Spulen, Drucker-Zugang) bleiben erhalten',
+      '⚠️ Einmal manuell: Version 1.89/1.90 hat das noch nicht eingebaut, deshalb einmal den neuen Installer ausführen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 64 Commits und 91 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

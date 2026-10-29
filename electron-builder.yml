@@ -19,3 +19,6 @@ nsis:
   perMachine: false
   artifactName: FilamentHub-Setup.exe
   shortcutName: FilamentHub
+publish:
+  provider: generic
+  url: https://github.com/tomden234/filament-website-google-ai/releases/download/desktop-latest/

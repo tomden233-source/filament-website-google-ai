@@ -18,3 +18,4 @@ uploads/
 data/
 server-dist/
 release/
+electron/main.cjs

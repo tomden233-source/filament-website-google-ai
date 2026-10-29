@@ -1,5 +1,6 @@
 // FilamentHub für Windows: startet den eingebauten Server (spricht per LAN/MQTT mit dem Drucker) und zeigt die App im Fenster.
-const { app, BrowserWindow, Menu, shell, session } = require('electron');
+const { app, BrowserWindow, Menu, shell, session, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const { spawn } = require('child_process');
 const http = require('http');
 const path = require('path');
@@ -77,6 +78,36 @@ async function createWindow() {
   }
 }
 
+// Automatische Updates (wie bei der Handy-App): neue Version im Hintergrund laden, beim Beenden oder per Klick installieren
+function setupAutoUpdate() {
+  if (!app.isPackaged) return;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('update-downloaded', info => {
+    if (!win) return;
+    dialog
+      .showMessageBox(win, {
+        type: 'info',
+        buttons: ['Jetzt neu starten', 'Später'],
+        defaultId: 0,
+        title: 'FilamentHub Update',
+        message: `Version ${info.version} ist bereit.`,
+        detail: 'Neu starten, um zu aktualisieren. Sonst wird beim nächsten Beenden aktualisiert.'
+      })
+      .then(r => {
+        if (r.response === 0) {
+          app.isQuitting = true;
+          if (server) server.kill();
+          autoUpdater.quitAndInstall(true, true);
+        }
+      });
+  });
+  autoUpdater.on('error', e => console.error('Update-Fehler:', e && e.message));
+  const check = () => autoUpdater.checkForUpdates().catch(() => {});
+  setTimeout(check, 8000);
+  setInterval(check, 30 * 60 * 1000);
+}
+
 const lock = app.requestSingleInstanceLock();
 if (!lock) {
   app.quit();
@@ -92,6 +123,7 @@ if (!lock) {
     session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'notifications' || permission === 'clipboard-sanitized-write'));
     startServer();
     createWindow();
+    setupAutoUpdate();
   });
   app.on('before-quit', () => {
     app.isQuitting = true;
