@@ -7,7 +7,7 @@ export const IS_NATIVE = import.meta.env.VITE_NATIVE === 'true';
 // Fester Download-Link der APK (GitHub Release "apk-latest", wird bei jedem Push auf main neu gebaut)
 export const APK_URL =
   import.meta.env.VITE_APK_URL ||
-  'https://github.com/tomden234/filament-website-google-ai/releases/latest/download/FilamentHub.apk';
+  'https://github.com/tomden234/filament-website-google-ai/releases/download/apk-latest/FilamentHub.apk';
 
 /** Installierte Web-App (PWA im Standalone-Modus) oder Android-App: läuft ohne Browser-Leiste */
 export function isAppShell(): boolean {
@@ -24,3 +24,7 @@ export const APP_VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_V
 
 /** GitHub-Repository, aus dem Updates und die APK kommen */
 export const REPO = 'tomden234/filament-website-google-ai';
+
+// Windows-App (Electron, Release "desktop-latest")
+export const IS_DESKTOP = typeof navigator !== 'undefined' && /Electron\//.test(navigator.userAgent);
+export const DESKTOP_URL = 'https://github.com/tomden234/filament-website-google-ai/releases/download/desktop-latest/FilamentHub-Setup.exe';

@@ -371,6 +371,11 @@ export abstract class BambuMqttCore {
     return { rejected: false, message: hint + tech };
   }
 
+  /** Zugangsdaten für den LAN-Dateizugriff (FTPS), nur im LAN-Modus */
+  public getLanAccess(): { ip: string; code: string } | null {
+    return this.lanMode && this.lanIp && this.lanCode ? { ip: this.lanIp, code: this.lanCode } : null;
+  }
+
   public getStatus(): BambuPrinterStatusResponse {
     return {
       connected: this.connected,

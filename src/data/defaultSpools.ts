@@ -1210,5 +1210,22 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.88',
+    label: '1.88 (Windows-App & Gewicht aus Datei)',
+    releaseDate: '29.10.2026',
+    description: 'Neue Windows-App mit voller Druckersteuerung. Im LAN-Modus liest sie das Gewicht je Filament selbst aus der Druckdatei auf dem Drucker, nichts mehr eintragen.',
+    features: [
+      '💻 Windows-App (FilamentHub-Setup.exe): komplette App mit Drucker-Steuerung, AMS, Trocknung, Etiketten und Meldungen',
+      '⚖️ Gewicht automatisch: Die App holt die .3mf-Datei per FTPS vom Drucker und liest used_g je Filament. Bei mehreren Farben wird jede Spule einzeln abgezogen',
+      '🔁 Fallback bleibt: Auf dem Handy (kein FTPS) gilt weiter gemerktes Gewicht oder die kleine Abfrage',
+      '📲 Update-Knopf in der Windows-App lädt den neuesten Installer',
+      '🔧 Sicherer APK-Link: zeigt fest auf das APK-Release, auch mit zweitem Release für Windows',
+      '🔢 Aktualisierte Zahlen-FunFacts: 61 Commits und 88 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, ChevronRight } from 'lucide-react';
-import { APK_URL, IS_NATIVE, APP_VERSION } from '../../utils/env';
+import { APK_URL, IS_NATIVE, IS_DESKTOP, DESKTOP_URL, APP_VERSION } from '../../utils/env';
 import { installApkInApp } from '../../utils/liveUpdate';
 
 // Immer sichtbarer Knopf im Menü: neueste APK laden und installieren (z. B. für neues App-Symbol oder neue Android-Funktionen).
@@ -10,6 +10,11 @@ export const ApkUpdateRow: React.FC = () => {
   const [note, setNote] = useState('');
 
   const run = async () => {
+    if (IS_DESKTOP) {
+      window.open(DESKTOP_URL, '_blank');
+      setNote('Installer wird geladen. Danach ausführen, die App aktualisiert sich.');
+      return;
+    }
     if (!IS_NATIVE) {
       window.location.href = APK_URL;
       return;
@@ -42,7 +47,7 @@ export const ApkUpdateRow: React.FC = () => {
           <Download className={`w-5 h-5 ${busy ? 'animate-bounce' : ''}`} />
         </span>
         <span className="min-w-0 flex-1 leading-tight">
-          <span className="block text-xs font-extrabold">{busy ? 'Lade neueste App …' : 'App-Update holen'}</span>
+          <span className="block text-xs font-extrabold">{busy ? 'Lade neueste App …' : IS_DESKTOP ? 'Windows-App-Update holen' : 'App-Update holen'}</span>
           <span className="block text-[10px] truncate" style={{ color: 'var(--app-text-muted)' }}>
             {note || `Installiert: v${APP_VERSION} · Auto-Updates bleiben an`}
           </span>

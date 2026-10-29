@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Persistentes Speicherverzeichnis auf dem (lokalen) Server */
-export const dataDir = path.resolve(rootDir, 'data');
+export const dataDir = process.env.FILAMENT_DATA_DIR ? path.resolve(process.env.FILAMENT_DATA_DIR) : path.resolve(rootDir, 'data');
 if (!fs.existsSync(dataDir)) {
   try {
     fs.mkdirSync(dataDir, { recursive: true });

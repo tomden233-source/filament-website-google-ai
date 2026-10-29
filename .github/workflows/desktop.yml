@@ -1,0 +1,52 @@
+name: Build Windows App
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Oberfläche und Server bauen
+        run: |
+          npm run build
+          npm run build:server
+      - name: Electron und Builder dazuladen (nur für diesen Build)
+        run: npm install --no-save --no-package-lock electron@33.4.11 electron-builder@25.1.8
+      - name: Windows-Installer bauen
+        run: npx electron-builder --win nsis --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Installer als Artefakt speichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: FilamentHub-Setup
+          path: release/FilamentHub-Setup.exe
+      - name: Release "desktop-latest" aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          gh release delete desktop-latest --cleanup-tag --yes || true
+          gh release create desktop-latest release/FilamentHub-Setup.exe \
+            --title "FilamentHub Windows v$VERSION" \
+            --notes "Automatisch gebaut aus Commit ${GITHUB_SHA::7}. Installer ausführen (Windows meldet evtl. SmartScreen: Weitere Informationen, Trotzdem ausführen)." \
+            --latest=false

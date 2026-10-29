@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
@@ -62,6 +61,7 @@ async function startServer() {
   const httpServer = http.createServer(app);
 
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
@@ -90,7 +90,7 @@ async function startServer() {
     });
   });
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, process.env.HOST || '0.0.0.0', () => {
     console.log(`FilamentHub Server läuft auf http://localhost:${PORT}`);
   });
 }

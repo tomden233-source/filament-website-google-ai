@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { bambuService } from '../bambuMqtt.js';
 import { rootDir } from '../paths.js';
+import { fetchJobWeights } from '../bambuJobFile.js';
 import { handlePrinterRoute, testCloudToken } from '../../src/utils/bambu/printerRoutes.js';
 
 const router = Router();
@@ -155,6 +156,17 @@ router.get('/api/printer/stream', (req, res) => {
 });
 
 // 12. G-Code & .3MF Datei hochladen und optional direkt Druck starten
+// Gewicht je Filament des aktuellen/letzten Drucks direkt aus der Datei auf dem Drucker (nur LAN-Modus)
+router.post('/api/printer/job-weights', async (req, res) => {
+  const lan = bambuService.getLanAccess();
+  if (!lan) return res.status(400).json({ success: false, error: 'Nur im LAN-Modus verfügbar.' });
+  const jobName = String(req.body?.jobName || '');
+  const plate = Number(req.body?.plate) || 1;
+  const r = await fetchJobWeights({ ip: lan.ip, code: lan.code, jobName, plate });
+  if ('error' in r) return res.json({ success: false, error: r.error });
+  return res.json({ success: true, ...r });
+});
+
 router.post('/api/printer/upload-gcode', async (req, res) => {
   try {
     const { fileName, fileContent, startPrint } = req.body;

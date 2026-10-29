@@ -1,0 +1,21 @@
+appId: de.filamenthub.desktop
+productName: FilamentHub
+asar: false
+npmRebuild: false
+directories:
+  output: release
+files:
+  - electron/**
+  - server-dist/**
+  - dist/**
+  - public/pwa-512x512.png
+  - package.json
+  - "!**/node_modules/**"
+win:
+  target: nsis
+  icon: public/pwa-512x512.png
+nsis:
+  oneClick: true
+  perMachine: false
+  artifactName: FilamentHub-Setup.exe
+  shortcutName: FilamentHub

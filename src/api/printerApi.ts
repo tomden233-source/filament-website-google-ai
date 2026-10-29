@@ -87,6 +87,12 @@ export const printerApi = {
     maxTemp: number;
   }) => apiPost<AmsFilamentResponse>('/api/printer/ams-filament', payload, { timeoutMs: 25000 }),
 
+  /** Gewicht je Filament aus der Druckdatei auf dem Drucker (nur Windows-/Server-App im LAN-Modus) */
+  jobWeights: (payload: { jobName: string; plate?: number }) =>
+    apiPost<
+      ApiBase & { fileName?: string; plate?: number; totalGrams?: number; filaments?: Array<{ id: number; type: string; colorHex: string; grams: number }> }
+    >('/api/printer/job-weights', payload, { timeoutMs: 60000 }),
+
   amsDrying: (payload: { amsId: number; mode: number; duration: number; temp: number }) =>
     apiPost<ApiBase>('/api/printer/ams-drying', payload, { timeoutMs: 40000 }),
 

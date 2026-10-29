@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import type { Spool } from '../types/filament';
-import { readTrays, activeSlotFromPrinter, EXTERNAL_SLOT } from '../utils/amsMatch';
-import { bestSpool, isAutoDeductOn, jobKey, readJobGrams, PENDING_DEDUCT_KEY, type PendingDeduct } from '../utils/printUsage';
+import { readTrays, activeSlotFromPrinter, EXTERNAL_SLOT, baseMaterial, colorDistance } from '../utils/amsMatch';
+import { printerApi } from '../api/printerApi';
+import { bestSpool, isAutoDeductOn, jobKey, readJobGrams, rememberJobGrams, PENDING_DEDUCT_KEY, type PendingDeduct } from '../utils/printUsage';
 import { safeStorage } from '../utils/safeStorage';
 import { addSystemLog } from '../utils/logService';
 
 // Auto-Abzug im LAN-Modus (ohne Bambu Cloud):
+//  0) Windows-/Server-App: Gewicht je Filament direkt aus der Druckdatei auf dem Drucker (FTPS), komplett automatisch
 //  1) Auftragsname schon bekannt (Gewicht früher eingegeben/hochgeladen) → sofort automatisch abziehen
 //  2) sonst: Frage „Wie viele Gramm?" mit vorgewählter Spule (bleibt gespeichert, bis du bestätigst oder überspringst)
 // Spule: der AMS-Slot, der beim Druck aktiv war (zugewiesene Spule), sonst Material und Farbe.
@@ -78,16 +80,60 @@ export function useLanDeduct(p: Params) {
     const assigned = slot ? amsSlots[slot] : '';
     const spoolId = assigned && spools.some(s => s.id === assigned) ? assigned : material ? bestSpool(spools, material, colorHex) : '';
 
-    const known = readJobGrams()[jobKey(name)];
-    if (known > 0 && spoolId) {
-      onDeductWeight(spoolId, known);
-      const s = spools.find(x => x.id === spoolId);
-      notify({ text: `Auto-Abzug „${name}“: ${known} g von ${s ? `${s.brand} ${s.name}` : 'Spule'}`, ok: true });
-      addSystemLog('spule', `Auto-Abzug (LAN) ${known} g`, name, 'success');
-      return;
-    }
-    const pending: PendingDeduct = { jobName: name, slot, spoolId, material, colorHex, at: new Date().toISOString() };
-    safeStorage.setItem(PENDING_DEDUCT_KEY, JSON.stringify(pending));
-    onPending(pending);
+    const fallback = () => {
+      const known = readJobGrams()[jobKey(name)];
+      if (known > 0 && spoolId) {
+        onDeductWeight(spoolId, known);
+        const s = spools.find(x => x.id === spoolId);
+        notify({ text: `Auto-Abzug „${name}“: ${known} g von ${s ? `${s.brand} ${s.name}` : 'Spule'}`, ok: true });
+        addSystemLog('spule', `Auto-Abzug (LAN) ${known} g`, name, 'success');
+        return;
+      }
+      const pending: PendingDeduct = { jobName: name, slot, spoolId, material, colorHex, at: new Date().toISOString() };
+      safeStorage.setItem(PENDING_DEDUCT_KEY, JSON.stringify(pending));
+      onPending(pending);
+    };
+
+    // Datei vom Drucker holen (klappt in der Windows-/Server-App). Der Drucker braucht kurz nach Druckende, bis alles bereit ist.
+    void (async () => {
+      try {
+        const res = await printerApi.jobWeights({ jobName: name });
+        const fil = res.ok && res.data?.success ? res.data.filaments : undefined;
+        if (!fil || fil.length === 0) return fallback();
+        const candidates = [...trays.filter(t => !t.empty), ...(vtTray?.tray_type ? [{ slot: EXTERNAL_SLOT, type: String(vtTray.tray_type), colorHex: '#' + String(vtTray.tray_color || '888888').slice(0, 6) }] : [])];
+        const perSpool = new Map<string, number>();
+        for (const f of fil) {
+          let target = '';
+          let bestD = Infinity;
+          for (const t of candidates) {
+            if (baseMaterial(t.type) !== baseMaterial(f.type)) continue;
+            const d = colorDistance(t.colorHex || '#888888', f.colorHex);
+            if (d < bestD) {
+              bestD = d;
+              const a = amsSlots[t.slot];
+              target = a && spools.some(x => x.id === a) ? a : '';
+            }
+          }
+          if (!target && fil.length === 1) target = spoolId; // einzige Farbe: aktiver Slot
+          if (!target) target = bestSpool(spools, f.type, f.colorHex);
+          if (target) perSpool.set(target, (perSpool.get(target) || 0) + f.grams);
+        }
+        if (perSpool.size === 0) return fallback();
+        const parts: string[] = [];
+        let n = 0;
+        perSpool.forEach((g, id) => {
+          const grams = Math.round(g * 10) / 10;
+          setTimeout(() => onDeductWeight(id, grams), n * 300);
+          n++;
+          const sp = spools.find(x => x.id === id);
+          parts.push(`${grams} g von ${sp ? `${sp.brand} ${sp.name}` : 'Spule'}`);
+        });
+        rememberJobGrams(name, res.data!.totalGrams || fil.reduce((a, f) => a + f.grams, 0));
+        notify({ text: `Auto-Abzug „${name}“ (aus Druckdatei): ${parts.join(', ')}`, ok: true });
+        addSystemLog('spule', 'Auto-Abzug aus Druckdatei (LAN)', `${name}: ${parts.join(', ')}`, 'success');
+      } catch {
+        fallback();
+      }
+    })();
   }, [p.gcodeState, p.jobName]);
 }

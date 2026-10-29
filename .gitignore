@@ -16,3 +16,5 @@ data/.ha-config.json
 app/applet/.bambu-config.json
 uploads/
 data/
+server-dist/
+release/
