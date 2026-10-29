@@ -1494,5 +1494,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.104',
+    label: '1.104 (ESP32-Gehäuse zum Drucken)',
+    releaseDate: '29.10.2026',
+    description: 'Neues zweiteiliges Gehäuse für den ESP32 des NFC-Lesers: USB-Öffnung, Kabelausgang mit Kabelbinder-Entlastung, Deckel mit Lüftung, Ohren zum Anschrauben. Maße parametrisch, Passprobe im Build-Skript.',
+    features: [
+      '🧰 Ordner hardware/ams-nfc/case: Unterteil und Deckel als STL, parametrische SCAD-Datei, Vorschau und Anleitung',
+      '📐 Maße für 38-Pin-DevKit (28,5 × 55 mm), anpassbar für 30-Pin; Passprobe prüft Board, Dupont-Stecker und USB-Stecker auf Kollisionen',
+      '🔌 USB-Öffnung, oben offener Kabelausgang, Kabelbinder-Schlitze, 4 Schraubdome (M3), 2 Befestigungsohren',
+      '📝 NFC-Leser-Anleitung um das Gehäuse ergänzt',
+      '🔢 Aktualisierte Zahlen-FunFacts: 77 Commits und 104 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

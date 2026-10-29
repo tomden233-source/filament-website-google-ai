@@ -34,6 +34,7 @@ Gilt für ESP32-Boards mit 30 und mit 38 Pins (WROOM-32, DevKitC / NodeMCU).
 - Innen nur die flachen RC522-Platinen, in gedruckten Haltern aus **PETG oder ASA** (kein PLA). Isolierband und normales Doppelklebeband lösen sich bei Hitze.
 - Leser auf Höhe der **Spulen-Nabe**, Abstand zum Tag höchstens 2–3 cm.
 - Den NFC-Tag mittig auf die Spulen-Seite kleben, nahe der Nabe. So bleibt er beim Drehen vor dem Leser.
+- Gehäuse für den ESP32 zum Drucken: Ordner `case/` (Unterteil, Deckel, Anleitung).
 - Halter zum Drucken: Ordner `holder/` (flache Platte zum Kleben mit doppelseitigem Klebeband: STL, SCAD und Zeichnung, Anleitung dort).
 - Nicht bohren, lieber klemmen oder kleben (Garantie).
 
