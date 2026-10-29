@@ -15,7 +15,7 @@ import {
   ViewMode
 } from './types/filament';
 
-import { DEFAULT_21_SPOOLS, INITIAL_VERSION_PROFILES } from './data/defaultSpools';
+import { DEFAULT_21_SPOOLS, INITIAL_VERSION_PROFILES, LEGACY_REVISION_IDS, isOfficialRevision } from './data/defaultSpools';
 import {
   getBrandInfo,
   getDryingStatus,
@@ -25,6 +25,7 @@ import { safeStorage } from './utils/safeStorage';
 import { spoolIdFromHash } from './utils/spoolLink';
 import { decodeRecords } from './utils/nfcRead';
 import { parseNfcContent, triggerNfcHaptic, playNfcSuccessChime } from './utils/nfcManager';
+import { MobileAppBar } from './components/app/MobileAppBar';
 import { OpenInAppBanner } from './components/OpenInAppBanner';
 import { Navbar, DeviceMode } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -55,7 +56,7 @@ import type { WorkshopTab } from './components/workshop/WorkshopModal';
 import { getLocationStats } from './utils/spoolAlerts';
 import { getWorkshopSettings } from './utils/workshopSettings';
 import { raiseAlert } from './utils/alerts';
-import { OPEN_WORKSHOP_EVENT, type OpenWorkshopDetail } from './utils/uiEvents';
+import { OPEN_WORKSHOP_EVENT, openSlotAssign, type OpenWorkshopDetail } from './utils/uiEvents';
 import { listenNotificationTaps } from './utils/notify';
 import { useDeviceSync } from './hooks/useDeviceSync';
 import { gistUrlOf, parseGistPair, setGistToken } from './utils/gistStore';
@@ -112,7 +113,7 @@ export default function App() {
         if (Array.isArray(parsed) && parsed.length > 0) {
           // Offizielle Profile immer aktuell halten (inkl. v1.23 & v1.24) und eigene Snapshots beibehalten
           const officialIds = new Set(INITIAL_VERSION_PROFILES.map(p => p.id));
-          const customProfiles = parsed.filter((p: VersionProfile) => !officialIds.has(p.id));
+          const customProfiles = parsed.filter((p: VersionProfile) => !officialIds.has(p.id) && !LEGACY_REVISION_IDS.includes(p.id));
           const merged = [...INITIAL_VERSION_PROFILES, ...customProfiles];
           safeStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(merged));
           return merged;
@@ -125,11 +126,11 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.102';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.103';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
-    if (!saved || seen !== latestId || !versionProfiles.some(p => p.id === saved)) {
+    if (!saved || seen !== latestId || !versionProfiles.some(p => p.id === saved) || (isOfficialRevision(saved) && saved !== latestId)) {
       safeStorage.setItem('filamenthub_latest_seen_version', latestId);
       safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, latestId);
       return latestId;
@@ -327,6 +328,11 @@ export default function App() {
   const [isNfcModalOpen, setIsNfcModalOpen] = useState<boolean>(false);
   const [nfcModalMode, setNfcModalMode] = useState<'read' | 'write' | 'batch' | 'write-direct' | 'inspect'>('batch');
   const [nfcSpoolId, setNfcSpoolId] = useState<string | undefined>(undefined);
+  // Tag wurde schon gelesen (Halten am Handy / App-Start durch Tag): Tag-Fenster zeigt direkt diese Spule
+  const [nfcScannedId, setNfcScannedId] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!isNfcModalOpen) setNfcScannedId(undefined);
+  }, [isNfcModalOpen]);
 
   // Manuell überschreibbarer Wert für verdrucktes Filament
   const [manualUsedGrams, setManualUsedGrams] = useState<number | null>(() => {
@@ -517,8 +523,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spools]);
 
-  // NFC-Tag gehalten (auch beim Start der App durch den Tag): gehört er zu einer Spule, geht die Spule direkt auf.
-  // Unbekannte oder leere Tags öffnen das NFC-Fenster, damit man sie beschreiben kann.
+  // NFC-Tag gehalten (auch beim Start der App durch den Tag).
+  // Der Tag öffnet das Tag-Fenster (Schnellaktionen, „Spule ändern“). Unbekannte oder leere Tags öffnen es zum Beschreiben.
   const spoolsLive = useRef(spools);
   spoolsLive.current = spools;
   useEffect(() => {
@@ -530,14 +536,16 @@ export default function App() {
         if (parsed.matchedSpool) {
           triggerNfcHaptic();
           playNfcSuccessChime();
-          setSpoolToEdit(parsed.matchedSpool);
-          setSpoolPrefill(null);
-          setIsSpoolModalOpen(true);
+          setNfcScannedId(parsed.matchedSpool.id);
+          setNfcSpoolId(undefined);
+          setNfcModalMode('read');
+          setIsNfcModalOpen(true);
           return;
         }
       } catch {
         /* Tag nicht lesbar: unten NFC-Fenster */
       }
+      setNfcScannedId(undefined);
       setNfcSpoolId(undefined);
       setNfcModalMode('read');
       setIsNfcModalOpen(true);
@@ -645,11 +653,10 @@ export default function App() {
 
     // Offizielle Revisionen sind Stände der App, keine Datensätze: Spulen, Verlauf und Ansicht bleiben unverändert.
     // Nur eigene, selbst gesicherte Profile tauschen ihren Spulen-Snapshot ein.
-    const isOfficial = INITIAL_VERSION_PROFILES.some(p => p.id === versionId);
-    if (isOfficial) {
-      setActiveVersionId(versionId);
-      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, versionId);
-      showToast(`Umschaltung auf ${profile.label} erfolgreich! Deine Spulen bleiben unverändert.`);
+    // Ehrlich: Die App läuft immer mit dem neuesten Code. Ältere Stände sind nur das Änderungsprotokoll,
+    // dort wird nichts umgeschaltet (im Revisionsmenü öffnet ein Tipp darauf die Beschreibung).
+    if (isOfficialRevision(versionId)) {
+      showToast(`${profile.label} ist ein alter Stand (nur Protokoll). Die App läuft auf dem neuesten Code.`);
       return;
     }
 
@@ -1249,7 +1256,7 @@ export default function App() {
       />
 
       {/* Hauptbereich */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 pb-10 space-y-4 sm:space-y-5">
+      <main className={`flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 ${deviceMode === 'app' ? 'pb-28' : 'pb-10'} space-y-4 sm:space-y-5`}>
         {/* Rest-Warnung: fast leere Spulen */}
         <LowStockBanner
           spools={spools}
@@ -1349,10 +1356,14 @@ export default function App() {
         <Suspense fallback={null}>
         <NfcModal
           isOpen={isNfcModalOpen}
-          onClose={() => setIsNfcModalOpen(false)}
+          onClose={() => {
+            setIsNfcModalOpen(false);
+            setNfcScannedId(undefined);
+          }}
           spools={spools}
           initialMode={nfcModalMode}
           preselectedSpoolId={nfcSpoolId}
+          scannedSpoolId={nfcScannedId}
           onDeductWeight={handleDeductWeight}
           onAddWeight={handleAddWeight}
           onMarkSpoolWritten={handleMarkSpoolNfcWritten}
@@ -1362,6 +1373,10 @@ export default function App() {
             setSpoolToEdit(null);
             setSpoolPrefill(prefill);
             setIsSpoolModalOpen(true);
+          }}
+          onAssignToSlot={spool => {
+            setIsNfcModalOpen(false);
+            openSlotAssign(spool.id);
           }}
           onSelectSpoolForEdit={spool => {
             setIsNfcModalOpen(false);
@@ -1376,11 +1391,28 @@ export default function App() {
       {/* MODAL: VERDRUCKTES FILAMENT MANUELL ANPASSEN ODER AUF 0 SETZEN */}
       {isEditUsedModalOpen && <EditUsedModal setIsEditUsedModalOpen={setIsEditUsedModalOpen} editUsedInputValue={editUsedInputValue} setEditUsedInputValue={setEditUsedInputValue} handleSaveUsedGrams={handleSaveUsedGrams} />}
 
+      {deviceMode === 'app' && (
+        <MobileAppBar
+          onCamera={() => setIsCameraModalOpen(true)}
+          onNfc={() => {
+            setNfcScannedId(undefined);
+            setNfcSpoolId(undefined);
+            setNfcModalMode('read');
+            setIsNfcModalOpen(true);
+          }}
+          onNewSpool={() => {
+            setSpoolToEdit(null);
+            setSpoolPrefill(null);
+            setIsSpoolModalOpen(true);
+          }}
+        />
+      )}
+
       {/* Toast Notifications */}
       {/* Meldungen: am Handy über der Daumen-Leiste, am PC unten rechts. Antippen schließt sie. */}
       <div
         className={`fixed z-[60] flex flex-col gap-2 pointer-events-none ${
-          deviceMode === 'app' ? 'left-3 right-3 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] items-center' : 'right-4 bottom-6 items-end'
+          deviceMode === 'app' ? 'left-3 right-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] items-center' : 'right-4 bottom-6 items-end'
         }`}
       >
         {toasts.map(t => (

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { X, Nfc, Check, Loader2, Search, Minus, Plus, Thermometer } from 'lucide-react';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { getSpoolProfile } from '../../utils/spoolProfile';
@@ -19,6 +19,8 @@ interface Props {
   trays?: HwTray[];
   /** Zuweisung in der App merken: Slot 1-4 → Spulen-ID */
   onAssign?: (slot: number, spoolId: string) => void;
+  /** Spule schon beim Öffnen gewählt (aus dem Tag-Fenster) */
+  initialSpoolId?: string;
 }
 
 interface Picked {
@@ -84,7 +86,7 @@ const Stepper: React.FC<{ label: string; value: number; onChange: (v: number) =>
   </div>
 );
 
-export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onAssign }) => {
+export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onAssign, initialSpoolId }) => {
   useEscapeClose(onClose);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -119,6 +121,12 @@ export const NfcSlotModal: React.FC<Props> = ({ spools, onClose, trays = [], onA
     },
     [choose]
   );
+
+  useEffect(() => {
+    const sp = initialSpoolId ? spools.find(s => s.id === initialSpoolId) : undefined;
+    if (sp) fromSpool(sp, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSpoolId]);
 
   // NFC lauscht die ganze Zeit, solange das Fenster offen ist (ein Scan, nicht bei jeder Änderung neu)
   const { supported, error: nfcError } = useNfcTags(spools, parsed => {

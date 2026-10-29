@@ -35,10 +35,14 @@ export interface NfcModalProps {
   spools: Spool[];
   initialMode?: 'read' | 'write' | 'batch' | 'write-direct' | 'inspect';
   preselectedSpoolId?: string;
+  /** Tag wurde schon außerhalb gelesen (App-Start/Halten am Handy): Tag-Fenster zeigt direkt diese Spule */
+  scannedSpoolId?: string;
   onDeductWeight: (spoolId: string, grams: number) => void;
   onAddWeight?: (spoolId: string, grams: number) => void;
   onOpenNewSpoolWithPrefill?: (prefill: Partial<Spool>) => void;
   onSelectSpoolForEdit?: (spool: Spool) => void;
+  /** „Einem AMS-Slot zuweisen“ im Tag-Fenster */
+  onAssignToSlot?: (spool: Spool) => void;
   onMarkSpoolWritten?: (spoolId: string, written: boolean) => void;
   onResetAllNfcWritten?: () => void;
 }
@@ -49,9 +53,11 @@ export const NfcModal: React.FC<NfcModalProps> = ({
   spools,
   initialMode = 'read',
   preselectedSpoolId,
+  scannedSpoolId,
   onDeductWeight,
   onAddWeight,
   onSelectSpoolForEdit,
+  onAssignToSlot,
   onMarkSpoolWritten,
   onResetAllNfcWritten
 }) => {
@@ -158,6 +164,17 @@ export const NfcModal: React.FC<NfcModalProps> = ({
     const isFirstOpen = !prevIsOpenRef.current;
     prevIsOpenRef.current = true;
 
+    const scanned = scannedSpoolId ? spools.find(s => s.id === scannedSpoolId) : undefined;
+    if (scanned) {
+      if (isFirstOpen) {
+        setActiveTab('read');
+        setLoadedSpool(scanned);
+        setUnwrittenTagDetected(false);
+        setScanStatusMessage('Tag erkannt');
+      }
+      return;
+    }
+
     if (isFirstOpen || initialMode) {
       if (preselectedSpoolId) {
         setSelectedSpoolId(preselectedSpoolId);
@@ -178,7 +195,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
         startNfcScan();
       }
     }
-  }, [isOpen, initialMode, preselectedSpoolId]);
+  }, [isOpen, initialMode, preselectedSpoolId, scannedSpoolId]);
 
   // Gefilterte Spulenliste für die Einzel-Auswahl
   const filteredSpools = useMemo(() => {
@@ -768,7 +785,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
           {/* =============================================================== */}
           {/* TAB 2: NFC-TAG LESEN                                           */}
           {/* =============================================================== */}
-          {activeTab === 'read' && <NfcReadTab unwrittenTagDetected={unwrittenTagDetected} setUnwrittenTagDetected={setUnwrittenTagDetected} startNfcScan={startNfcScan} detectedTagUid={detectedTagUid} renderSpoolPicker={renderSpoolPicker} targetSpool={targetSpool} handleWriteSpoolToCurrentTag={handleWriteSpoolToCurrentTag} isWriting={isWriting} loadedSpool={loadedSpool} activeLoadedSpool={activeLoadedSpool} adjustFeedbackMessage={adjustFeedbackMessage} handleAdjustLoadedSpoolWeight={handleAdjustLoadedSpoolWeight} adjustGramsInput={adjustGramsInput} setAdjustGramsInput={setAdjustGramsInput} handleDeleteLoadedTag={handleDeleteLoadedTag} onSelectSpoolForEdit={onSelectSpoolForEdit} onClose={onClose} scanStatusMessage={scanStatusMessage} handleSimulateUnwrittenTag={handleSimulateUnwrittenTag} handleSimulateLoadedTag={handleSimulateLoadedTag} />}
+          {activeTab === 'read' && <NfcReadTab unwrittenTagDetected={unwrittenTagDetected} setUnwrittenTagDetected={setUnwrittenTagDetected} startNfcScan={startNfcScan} detectedTagUid={detectedTagUid} renderSpoolPicker={renderSpoolPicker} targetSpool={targetSpool} handleWriteSpoolToCurrentTag={handleWriteSpoolToCurrentTag} isWriting={isWriting} loadedSpool={loadedSpool} activeLoadedSpool={activeLoadedSpool} adjustFeedbackMessage={adjustFeedbackMessage} handleAdjustLoadedSpoolWeight={handleAdjustLoadedSpoolWeight} adjustGramsInput={adjustGramsInput} setAdjustGramsInput={setAdjustGramsInput} handleDeleteLoadedTag={handleDeleteLoadedTag} onSelectSpoolForEdit={onSelectSpoolForEdit} onAssignToSlot={onAssignToSlot} onClose={onClose} scanStatusMessage={scanStatusMessage} handleSimulateUnwrittenTag={handleSimulateUnwrittenTag} handleSimulateLoadedTag={handleSimulateLoadedTag} />}
 
           {/* =============================================================== */}
           {/* TAB 3: EINZEL-SPULE AUF NFC-TAG BESCHREIBEN                     */}

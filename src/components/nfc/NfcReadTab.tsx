@@ -20,6 +20,7 @@ export interface NfcReadTabProps {
   setAdjustGramsInput: any;
   handleDeleteLoadedTag: (...args: any[]) => any;
   onSelectSpoolForEdit: ParentProps['onSelectSpoolForEdit'];
+  onAssignToSlot?: ParentProps['onAssignToSlot'];
   onClose: ParentProps['onClose'];
   scanStatusMessage: any;
   handleSimulateUnwrittenTag: (...args: any[]) => any;
@@ -43,6 +44,7 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
   setAdjustGramsInput,
   handleDeleteLoadedTag,
   onSelectSpoolForEdit,
+  onAssignToSlot,
   onClose,
   scanStatusMessage,
   handleSimulateUnwrittenTag,
@@ -282,6 +284,18 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
                       <span>Weiteren Tag scannen</span>
                     </button>
 
+                    {onAssignToSlot && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onAssignToSlot(loadedSpool);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-emerald-400 font-bold text-xs border border-[var(--app-border)] transition cursor-pointer flex items-center gap-1"
+                      >
+                        <Tag className="w-3.5 h-3.5" />
+                        <span>Einem AMS-Slot zuweisen</span>
+                      </button>
+                    )}
                     {onSelectSpoolForEdit && (
                       <button
                         onClick={() => {
@@ -291,7 +305,7 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
                         className="px-3 py-1.5 rounded-xl bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-orange-400 font-bold text-xs border border-[var(--app-border)] transition cursor-pointer flex items-center gap-1"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        <span>Spule bearbeiten</span>
+                        <span>Spule ändern</span>
                       </button>
                     )}
                   </div>

@@ -37,6 +37,7 @@ import { useHaSwitch } from './bambu/useHaSwitch';
 import { useGcodeUpload } from './bambu/useGcodeUpload';
 import { PrintUsageModal } from './bambu/PrintUsageModal';
 import { NfcSlotModal } from './bambu/NfcSlotModal';
+import { OPEN_SLOT_ASSIGN_EVENT } from '../utils/uiEvents';
 import { useAutoDeduct } from './bambu/useAutoDeduct';
 import { readTrays } from '../utils/amsMatch';
 import { usePrinterAlerts } from '../hooks/usePrinterAlerts';
@@ -488,6 +489,16 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // 7. G-Code Datei übertragen / starten
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [showNfcSlotModal, setShowNfcSlotModal] = useState(false);
+  const [slotModalSpoolId, setSlotModalSpoolId] = useState<string | undefined>(undefined);
+  // Von außen öffnen (z. B. aus dem Tag-Fenster: „Einem AMS-Slot zuweisen“)
+  useEffect(() => {
+    const h = (e: Event) => {
+      setSlotModalSpoolId((e as CustomEvent<{ spoolId?: string }>).detail?.spoolId);
+      setShowNfcSlotModal(true);
+    };
+    window.addEventListener(OPEN_SLOT_ASSIGN_EVENT, h);
+    return () => window.removeEventListener(OPEN_SLOT_ASSIGN_EVENT, h);
+  }, []);
   const { setShowGcodeModal, showGcodeModal, fileInputRef, handleGcodeFileSelect, selectedGcodeFile, gcodeFileInfo, setSelectedGcodeFile, setGcodeFileInfo, handleUploadGcode, isUploadingGcode, gcodeGrams } = useGcodeUpload({ setActionToast, handleRefreshLiveState });
 
   // 8. AMS Spuleneinstellungen direkt am Drucker ändern
@@ -743,7 +754,10 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
           {/* 3c. NFC-Tag → AMS-Slot */}
           <button
-            onClick={() => setShowNfcSlotModal(true)}
+            onClick={() => {
+              setSlotModalSpoolId(undefined);
+              setShowNfcSlotModal(true);
+            }}
             title="Spule per NFC lesen und in einen AMS-Slot eintragen"
             className="px-2.5 py-1.5 rounded-xl border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 text-violet-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
           >
@@ -902,9 +916,13 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {showNfcSlotModal && (
         <NfcSlotModal
           spools={spools}
+          initialSpoolId={slotModalSpoolId}
           trays={liveState.connected ? readTrays(liveState.data.ams) : []}
           onAssign={(slotNo, spoolId) => handleSetAmsSlot(slotNo, spoolId)}
-          onClose={() => setShowNfcSlotModal(false)}
+          onClose={() => {
+            setShowNfcSlotModal(false);
+            setSlotModalSpoolId(undefined);
+          }}
         />
       )}
       {showUsageModal && <PrintUsageModal spools={spools} onDeductWeight={onDeductWeight} onClose={() => setShowUsageModal(false)} />}

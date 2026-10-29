@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.102 (App & Desktop getrennt, Seitenleiste, neues Design)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.102 im Paket 2.0.102, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.103 (Neue Spulen-Kacheln, Tag-Fenster & Leiste zurück)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.103 im Paket 2.0.103, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Inhalt
 
@@ -21,7 +21,7 @@ Aktuelle Version: **1.102 (App & Desktop getrennt, Seitenleiste, neues Design)**
 
 ## App und Desktop
 
-- **Android-App** zeigt nur App-Dinge: Spulen (Kacheln), KI, Tools, Einstellungen, Logs, NFC, Foto. Ohne Backups, G-Code-Rechner, Material-Einstellungen, Schnellaktionen, Abzug und untere Menüleiste.
+- **Android-App** zeigt nur App-Dinge: Spulen (Kacheln), KI, Tools, Einstellungen, Logs, NFC, Foto. Unten eine Schnellleiste (Foto, NFC-Tag, Neue Spule). Ohne Backups, G-Code-Rechner, Material-Einstellungen, Schnellaktionen und Abzug.
 - **Desktop/Browser** behält alles inkl. Umschalter App/Desktop. Auf breiten Bildschirmen (ab 1100 px) steht das Menü dauerhaft an der Seite (einklappbar, wird gemerkt).
 - **Dunkelmodus:** „4. Graphit“ (Blaugrau) und „5. Nacht“.
 
@@ -110,7 +110,7 @@ Die Glocke oben öffnet das Postfach. Dort stehen alle Mitteilungen mit Details:
 
 ## QR und NFC öffnen die Spule
 
-Scan von NFC-Tag oder QR-Code öffnet die App direkt bei dieser Spule (`filamenthub://spool/ID`). Im Android-Browser erscheint oben „In der App öffnen“. Ist die App offen und der Leser meldet einen Tag, springt sie ebenfalls zur Spule.
+QR-Code öffnet die App direkt bei der Spule (`filamenthub://spool/ID`). Ein NFC-Tag öffnet das Tag-Fenster (Gramm ±, „Spule ändern“). Im Android-Browser erscheint oben „In der App öffnen“. Ist die App offen und der Leser meldet einen Tag, springt sie ebenfalls zur Spule.
 
 ## Verbindungen
 

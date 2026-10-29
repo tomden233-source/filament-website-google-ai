@@ -178,6 +178,14 @@ export const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ cloudDbUrl, 
 
       <Row id="nfc" open={open} setOpen={setOpen} icon={Nfc} tone="text-teal-400 bg-teal-500/15 border-teal-500/30" title="NFC-Leser im AMS" status={settings.amsNfcOn ? (haOk ? 'An · über Home Assistant' : 'An · braucht Home Assistant') : 'Aus'} level={settings.amsNfcOn && haOk ? 'ok' : settings.amsNfcOn ? 'warn' : 'off'}>
         <Toggle on={settings.amsNfcOn} onChange={v => update({ amsNfcOn: v })} label="Spulen per Leser im AMS zuordnen" hint="Braucht die ESPHome-Leser (Ordner hardware/ams-nfc) und die Home-Assistant-Verbindung." />
+        <Steps
+          items={[
+            'ESP32 mit zwei RC522-Lesern bauen und in Home Assistant über ESPHome einbinden (Ordner hardware/ams-nfc, README dort).',
+            'Oben bei Home Assistant Adresse und Token eintragen und „Testen“ drücken.',
+            'Schalter hier an lassen. Dann jeder Spule einen NFC-Tag geben (Spule öffnen → NFC) und sie ins AMS legen.',
+            'Beim ersten Mal „Unbekannter Tag in Slot X“ antippen und die Spule wählen. Danach erkennt der Leser sie selbst.'
+          ]}
+        />
         <Toggle on={settings.amsNfcToPrinter} onChange={v => update({ amsNfcToPrinter: v })} label="Material und Farbe an den Drucker senden" hint="Nur wenn der Slot im Drucker nicht passt. Entwickler-Modus nötig." />
       </Row>
 
@@ -185,13 +193,13 @@ export const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ cloudDbUrl, 
         <p className="text-[11px] leading-relaxed" style={muted}>
           Trocknen fertig, Druck fertig, Spule fast leer: alles landet im Postfach. Ein Tipp auf die Benachrichtigung öffnet die Mitteilung.
         </p>
-        <ActionButton primary onClick={() => { onClose(); openWorkshop('inbox'); }}>
+        <ActionButton primary onClick={() => { onClose(); openWorkshop('notices'); }}>
+          <Settings2 className="w-4 h-4" />
+          Einstellungen und Test-Mitteilung
+        </ActionButton>
+        <ActionButton onClick={() => { onClose(); openWorkshop('inbox'); }}>
           <Inbox className="w-4 h-4" />
           Postfach öffnen
-        </ActionButton>
-        <ActionButton onClick={() => { onClose(); openWorkshop('notices'); }}>
-          <Settings2 className="w-4 h-4" />
-          Welche Mitteilungen? (Einstellungen)
         </ActionButton>
       </Row>
 

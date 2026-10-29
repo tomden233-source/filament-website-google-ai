@@ -47,6 +47,7 @@ import { usePresetSettings } from './sidebar/usePresetSettings';
 import { useGcodeImport } from './sidebar/useGcodeImport';
 import { useAgentChat } from './sidebar/useAgentChat';
 import { pairUrlFor } from '../utils/gistStore';
+import { isOfficialRevision } from '../data/defaultSpools';
 
 const FunFactsModal = lazy(() => import('./FunFactsModal').then(m => ({ default: m.FunFactsModal })));
 const BambuSettingsModal = lazy(() => import('./BambuSettingsModal').then(m => ({ default: m.BambuSettingsModal })));
@@ -240,6 +241,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Nabu Casa & Home Assistant Vault State (Dauerhaft gespeichert)
 
   // Neueste Versionen immer an oberster Stelle anzeigen (umgekehrte Reihenfolge)
+  // Alte Revision angetippt: nur Beschreibung zeigen (die App läuft immer auf dem neuesten Stand)
+  const [infoRevId, setInfoRevId] = useState<string | null>(null);
+  const infoRev = infoRevId ? versionProfiles.find(v => v.id === infoRevId) : undefined;
+
   const sortedVersionProfiles = useMemo(() => {
     return [...versionProfiles].slice().reverse();
   }, [versionProfiles]);
@@ -459,7 +464,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-[11px] font-bold" style={{ color: 'var(--app-text-muted)' }}>
               <Layers className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-              <span>Profil:</span>
+              <span>Stand:</span>
             </div>
 
             {/* Ausklappbarer Profil-Button */}
@@ -473,7 +478,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   borderColor: isProfileDropdownOpen ? 'var(--app-accent)' : 'var(--app-border)',
                   color: 'var(--app-text)'
                 }}
-                title="Profil-Auswahl öffnen (5 Zeilen scrollbar)"
+                title="Revisionen und eigene Sicherungen"
               >
                 <span className="truncate">
                   {versionProfiles.find(v => v.id === activeVersionId)?.label || activeVersionId}
@@ -501,7 +506,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         key={v.id}
                         type="button"
                         onClick={() => {
-                          onSelectVersion(v.id);
+                          if (isOfficialRevision(v.id) && !isActive) setInfoRevId(v.id);
+                          else onSelectVersion(v.id);
                           setIsProfileDropdownOpen(false);
                         }}
                         className={`w-full px-3 py-2 text-left text-xs font-medium flex items-center justify-between gap-2 transition cursor-pointer min-h-[38px] ${
@@ -539,6 +545,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
         </div>
+
+        {infoRev && (
+          <div
+            className="px-3.5 py-2.5 border-b shrink-0 text-[11px] space-y-1.5"
+            style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-bold">{infoRev.label} · {infoRev.releaseDate}</div>
+              <button type="button" onClick={() => setInfoRevId(null)} className="p-0.5 cursor-pointer" style={{ color: 'var(--app-text-muted)' }} aria-label="Schließen">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <p style={{ color: 'var(--app-text-muted)' }}>{infoRev.description}</p>
+            <ul className="space-y-0.5 max-h-28 overflow-y-auto scrollbar-thin">
+              {infoRev.features.slice(0, 8).map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ul>
+            <p className="rounded-lg px-2 py-1.5" style={{ backgroundColor: 'var(--app-input-bg)', color: 'var(--app-text-muted)' }}>
+              Alter Stand, nur zum Nachlesen. Die App läuft immer auf dem neuesten Code. Eigene Daten sicherst du mit „+ Neu“ und lädst sie hier wieder.
+            </p>
+          </div>
+        )}
 
         {showNewVersionInput && (
           <form

@@ -139,6 +139,12 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   cardSize: 340
 };
 
+/** Ist das ein fester App-Stand (Änderungsprotokoll) und kein eigener Snapshot? */
+export const isOfficialRevision = (id: string): boolean => INITIAL_VERSION_PROFILES.some(p => p.id === id);
+
+/** Alte Namen aus den Tagen vor der 1.100-Zählung: werden aus dem gespeicherten Profil-Menü entfernt */
+export const LEGACY_REVISION_IDS = ['v2.00', 'v2.01'];
+
 export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
   {
     id: 'v1.19',
@@ -1465,6 +1471,25 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
       '🌙 Dunkelmodus: „4. Graphit“ (lesbares Blaugrau statt dunklem Grün), „5. Nacht“ heller beschriftet',
       '🤖 KI: neue Sparfunktion „Wo kann ich sparen?“ (Reste zuerst, doppelte Farben, Vorrat, Preise, gebundenes Geld)',
       '🔢 Aktualisierte Zahlen-FunFacts: 75 Commits und 102 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.103',
+    label: '1.103 (Neue Spulen-Kacheln, Tag-Fenster & Leiste zurück)',
+    releaseDate: '29.10.2026',
+    description: 'Spulen ohne Kreis: Farbstreifen, großes Gewicht, Segment-Anzeige. NFC-Scan öffnet erst das Tag-Fenster mit „Spule ändern“. Die untere Leiste ist zurück. Alte Versionsnamen 2.00/2.01 sind weg, ältere Stände im Menü sind ehrlich nur Protokoll.',
+    features: [
+      '🧵 Spulen-Kachel neu: Farbstreifen links, großes Gewicht, 10-Segment-Füllstand, Chips für AMS, Trocknen und fast leer',
+      '📲 NFC-Scan in der App öffnet erst das Tag-Fenster (Schnellaktionen ± Gramm, Tag löschen) mit Punkt „Spule ändern“',
+      '🔌 Im Tag-Fenster: „Einem AMS-Slot zuweisen“ öffnet das bekannte Fenster Spule → AMS-Slot mit der Spule schon gewählt',
+      '⬇️ Untere Leiste in der App zurück: Foto, NFC-Tag, Neue Spule (ohne Menü, ohne Abzug)',
+      '🗂️ Versionsmenü: alte Einträge 2.00 und 2.01 entfernt. Ältere Stände zeigen ihre Beschreibung, es wird nichts vorgetäuscht umgeschaltet. Eigene Sicherungen laden weiter ihre Daten',
+      '🔔 Verbindungen → Mitteilungen öffnet direkt die Einstellungen mit Test-Mitteilung',
+      '🪪 Verbindungen → NFC-Leser: Schritt-für-Schritt-Anleitung',
+      '🔢 Aktualisierte Zahlen-FunFacts: 76 Commits und 103 Revisionsstufen'
     ],
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
