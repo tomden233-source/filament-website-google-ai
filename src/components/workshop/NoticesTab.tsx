@@ -82,14 +82,14 @@ export const NoticesTab: React.FC = () => {
           </div>
         </div>
         <label className="flex items-center justify-between gap-2 text-xs font-bold">
-          <span>Grenze</span>
+          <span>Melden ab</span>
           <span className="flex items-center gap-1">
             <input
               type="number"
               min={10}
               max={90}
               value={s.humidityMax}
-              onChange={e => update({ humidityMax: parseInt(e.target.value, 10) || 40 })}
+              onChange={e => update({ humidityMax: parseInt(e.target.value, 10) || 25 })}
               className="w-16 px-2 py-1 rounded-lg border text-xs font-mono-num outline-none text-right"
               style={inputStyle}
               aria-label="Grenze Luftfeuchte in Prozent"
@@ -97,6 +97,30 @@ export const NoticesTab: React.FC = () => {
             <span>%</span>
           </span>
         </label>
+        <Toggle
+          on={s.autoDryOn}
+          onChange={v => update({ autoDryOn: v })}
+          label="AMS automatisch trocknen"
+          hint="Liegt die AMS-Feuchte 10 Minuten auf oder über der Grenze, startet die Trocknung (läuft ein Druck: danach). Höchstens einmal am Tag."
+        />
+        {s.autoDryOn && (
+          <label className="flex items-center justify-between gap-2 text-xs font-bold">
+            <span>Trocknen ab</span>
+            <span className="flex items-center gap-1">
+              <input
+                type="number"
+                min={10}
+                max={90}
+                value={s.autoDryAt}
+                onChange={e => update({ autoDryAt: parseInt(e.target.value, 10) || 30 })}
+                className="w-16 px-2 py-1 rounded-lg border text-xs font-mono-num outline-none text-right"
+                style={inputStyle}
+                aria-label="Automatisch trocknen ab Prozent"
+              />
+              <span>%</span>
+            </span>
+          </label>
+        )}
         <label className="block text-xs font-bold space-y-1">
           <span>Externer Sensor (Home Assistant)</span>
           <input
@@ -108,7 +132,7 @@ export const NoticesTab: React.FC = () => {
             style={inputStyle}
           />
           <span className="block text-[11px] font-normal leading-snug" style={{ color: 'var(--app-text-muted)' }}>
-            Der AHT20 am ESP32 des NFC-Lesers heißt so von selbst. Leer lassen = kein externer Sensor.
+            Der SHT40 am ESP32 des NFC-Lesers heißt so von selbst. Leer lassen = kein externer Sensor.
           </span>
         </label>
       </Card>

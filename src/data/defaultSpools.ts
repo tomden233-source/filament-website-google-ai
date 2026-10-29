@@ -1548,5 +1548,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.107',
+    label: '1.107 (Auto-Trocknen & Übersicht)',
+    releaseDate: '29.10.2026',
+    description: 'Feuchte-Alarm ab 25 %, das AMS trocknet ab 30 % von selbst (läuft ein Druck: danach). Feuchte-Sensor jetzt SHT40. README mit Kurzüberblick aller Funktionen.',
+    features: [
+      '💧 Feuchte-Alarm meldet ab 25 % (vorher 40 %)',
+      '☀️ Automatisch trocknen ab 30 % AMS-Feuchte: 10 Minuten darüber, höchstens einmal am Tag, während eines Drucks erst danach',
+      '🌡️ ESPHome: SHT40 als Feuchte-Sensor (AHT20 als Alternative), geprüft mit ESPHome 2026.10.1',
+      '📋 README: Kurzüberblick aller Funktionen (fertig, vorbereitet, offen)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 80 Commits und 107 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

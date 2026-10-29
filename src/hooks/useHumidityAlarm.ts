@@ -6,19 +6,32 @@ import { amsHumidityPercent, setHumidity } from '../utils/humidity';
 import { spoolInSlot } from '../utils/printAlerts';
 import { safeStorage } from '../utils/safeStorage';
 import { useWorkshopSettings } from '../utils/workshopSettings';
+import { armDryPlan, dryPlanFor, getDryPlan } from '../utils/dryAfterPrint';
+import { addSystemLog } from '../utils/logService';
 
 // Feuchte-Alarm: AMS (Messwert vom Drucker) und optional ein externer Sensor über Home Assistant
-// (z. B. AHT20 am ESP32 des NFC-Lesers, siehe hardware/ams-nfc). Über der Grenze → Mitteilung.
+// (z. B. SHT40 am ESP32 des NFC-Lesers, siehe hardware/ams-nfc). Über der Grenze → Mitteilung.
 //  - Wert muss 5 Minuten über der Grenze liegen (kurze Spitzen zählen nicht)
 //  - danach erst wieder, wenn er 3 % unter die Grenze fiel, oder nach 12 Stunden
 //  - während die AMS-Trocknung läuft, kein Alarm fürs AMS
+//  - Automatisch trocknen ab autoDryAt (Standard 30 %), Alarm schon ab humidityMax (Standard 25 %)
 
 interface Params {
   amsUnit: any;
   printerConnected: boolean;
   drying: boolean;
   spools: Spool[];
+  /** Spulen, die gerade im AMS liegen */
+  amsSpools: Spool[];
+  /** Druck läuft (dann wird nach dem Druck getrocknet) */
+  printActive: boolean;
+  startDrying: (o: { hours: number; temp: number }) => Promise<boolean>;
+  notify: (t: { text: string; ok: boolean }) => void;
 }
+
+const AUTO_DRY_KEY = 'filamenthub_auto_dry_last';
+const AUTO_DRY_HOLD_MS = 10 * 60_000;
+const AUTO_DRY_PAUSE_MS = 24 * 3600_000;
 
 type Source = 'ams' | 'external';
 interface AlarmState {
@@ -116,6 +129,51 @@ export function useHumidityAlarm(p: Params) {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.alertHumidity, settings.humidityMax]);
+
+  // Automatisch trocknen: AMS-Feuchte 10 Minuten auf oder über „autoDryAt“ (Standard 30 %) → Trocknung starten.
+  // Läuft ein Druck, wird „nach dem Druck trocknen“ gesetzt. Höchstens einmal in 24 Stunden.
+  const autoHighSince = useRef<number | null>(null);
+  const autoBusy = useRef(false);
+  useEffect(() => {
+    if (!settings.autoDryOn) return;
+    const tick = async () => {
+      const cur = latest.current;
+      const v = amsRef.current;
+      if (!cur.printerConnected || v === null || cur.drying || v < settings.autoDryAt) {
+        autoHighSince.current = null;
+        return;
+      }
+      if (autoHighSince.current === null) autoHighSince.current = Date.now();
+      if (Date.now() - autoHighSince.current < AUTO_DRY_HOLD_MS || autoBusy.current) return;
+      const last = Number(safeStorage.getItem(AUTO_DRY_KEY)) || 0;
+      if (Date.now() - last < AUTO_DRY_PAUSE_MS || !cur.amsSpools.length) return;
+      if (getDryPlan().armed) return; // schon geplant
+      autoBusy.current = true;
+      try {
+        const plan = dryPlanFor(cur.amsSpools, cur.amsSpools);
+        const names = cur.amsSpools.map(s => `${s.brand} ${s.name}`).join(', ');
+        if (cur.printActive) {
+          armDryPlan({ ...plan, spoolIds: cur.amsSpools.map(s => s.id) }, true);
+          safeStorage.setItem(AUTO_DRY_KEY, String(Date.now()));
+          const text = `AMS-Feuchte ${Math.round(v)} % (ab ${settings.autoDryAt} % wird getrocknet). Trocknung startet nach dem Druck (${plan.temp} °C, ${plan.hours} h).`;
+          addSystemLog('drucker', 'Auto-Trocknen nach Druck geplant', text, 'info');
+          void raiseAlert({ kind: 'humidity', key: `auto-dry-${Date.now()}`, title: 'Trocknung geplant', text, toast: `☀️ ${text}`, facts: [{ label: 'Spulen', value: names }] }, t => cur.notify({ text: t, ok: true }));
+        } else if (await cur.startDrying(plan)) {
+          safeStorage.setItem(AUTO_DRY_KEY, String(Date.now()));
+          const text = `AMS-Feuchte ${Math.round(v)} % (ab ${settings.autoDryAt} %). Trocknung automatisch gestartet (${plan.temp} °C, ${plan.hours} h).`;
+          addSystemLog('drucker', 'Auto-Trocknen gestartet', text, 'success');
+          void raiseAlert({ kind: 'humidity', key: `auto-dry-${Date.now()}`, title: 'Trocknung gestartet', text, toast: `☀️ ${text}`, facts: [{ label: 'Spulen', value: names }] }, t => cur.notify({ text: t, ok: true }));
+        }
+      } finally {
+        autoHighSince.current = null;
+        autoBusy.current = false;
+      }
+    };
+    void tick();
+    const id = setInterval(() => void tick(), 60_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.autoDryOn, settings.autoDryAt]);
 
   // Externer Sensor über Home Assistant (alle 2 Minuten)
   useEffect(() => {

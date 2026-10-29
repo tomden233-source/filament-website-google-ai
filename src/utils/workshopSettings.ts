@@ -23,6 +23,12 @@ export interface WorkshopSettings {
   humidityEntity: string;
   /** Beim Einlegen einer Spule, die trocknen sollte, fragen */
   drySuggest: boolean;
+  /** AMS automatisch trocknen, wenn die Feuchte im AMS die Grenze erreicht */
+  autoDryOn: boolean;
+  /** Ab dieser AMS-Feuchte (%) automatisch trocknen */
+  autoDryAt: number;
+  /** Stand der Feuchte-Voreinstellung (für einmalige Umstellung auf neue Standardwerte) */
+  humidityPresetV: number;
   alertPrintDone: boolean;
   alertPrintFail: boolean;
   alertDryDue: boolean;
@@ -49,9 +55,12 @@ export const DEFAULT_WORKSHOP_SETTINGS: WorkshopSettings = {
   alertPrintCheck: true,
   alertErrors: true,
   alertHumidity: true,
-  humidityMax: 40,
+  humidityMax: 25,
   humidityEntity: 'sensor.filament_ams_box_feuchte',
   drySuggest: true,
+  autoDryOn: true,
+  autoDryAt: 30,
+  humidityPresetV: 2,
   alertPrintDone: true,
   alertPrintFail: true,
   alertDryDue: true,
@@ -80,6 +89,12 @@ function sanitize(raw: (Partial<WorkshopSettings> & Record<string, unknown>) | n
     if (r.alertDryStop === undefined) r.alertDryStop = false;
   }
   if (r.lowWarning === false && r.alertLow === undefined) r.alertLow = false;
+  // 1.107: neue Standardwerte Feuchte-Alarm 25 %, automatisch trocknen ab 30 % (einmalig übernehmen)
+  if (Number(r.humidityPresetV || 0) < 2) {
+    r.humidityMax = 25;
+    r.autoDryAt = 30;
+    r.humidityPresetV = 2;
+  }
   const s: WorkshopSettings = { ...DEFAULT_WORKSHOP_SETTINGS };
   (Object.keys(DEFAULT_WORKSHOP_SETTINGS) as (keyof WorkshopSettings)[]).forEach(k => {
     if (typeof r[k] === typeof DEFAULT_WORKSHOP_SETTINGS[k]) (s as unknown as Record<string, unknown>)[k] = r[k];
@@ -89,6 +104,8 @@ function sanitize(raw: (Partial<WorkshopSettings> & Record<string, unknown>) | n
   const h = Number(s.humidityMax);
   s.humidityMax = Number.isFinite(h) ? Math.max(10, Math.min(90, Math.round(h))) : DEFAULT_WORKSHOP_SETTINGS.humidityMax;
   s.humidityEntity = String(s.humidityEntity || '').trim();
+  const ad = Number(s.autoDryAt);
+  s.autoDryAt = Number.isFinite(ad) ? Math.max(10, Math.min(90, Math.round(ad))) : DEFAULT_WORKSHOP_SETTINGS.autoDryAt;
   return s;
 }
 

@@ -112,8 +112,8 @@ function sample(kind: InboxKind): Pick<InboxItem, 'title' | 'text' | 'facts' | '
     case 'humidity':
       return {
         title: 'Test: Feuchte zu hoch',
-        text: 'AMS: 48 % Luftfeuchte (Grenze 40 %). Trocknen empfohlen.',
-        facts: [{ label: 'Gemessen', value: '48 %' }, { label: 'Grenze', value: '40 %' }],
+        text: 'AMS: 28 % Luftfeuchte (Grenze 25 %). Trocknen empfohlen.',
+        facts: [{ label: 'Gemessen', value: '28 %' }, { label: 'Grenze', value: '25 %' }],
         items: spools
       };
     case 'print-start':

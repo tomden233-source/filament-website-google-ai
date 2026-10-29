@@ -354,7 +354,11 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     amsUnit: liveState.data.ams?.ams?.[0],
     printerConnected: Boolean(liveState.connected && liveState.receivingData !== false),
     drying: dryLeftNow > 0,
-    spools
+    spools,
+    amsSpools: amsSpools(),
+    printActive,
+    startDrying: o => handleToggleAmsDrying(true, o),
+    notify: setActionToast
   });
 
   // Strom während eines Drucks nur mit Rückfrage ausschalten
