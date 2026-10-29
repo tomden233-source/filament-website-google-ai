@@ -1194,5 +1194,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.87',
+    label: '1.87 (Auto-Abzug im LAN)',
+    releaseDate: '29.10.2026',
+    description: 'Auto-Abzug nach dem Druck klappt jetzt auch im LAN-Modus, ganz ohne Bambu Cloud: bekannte Aufträge ziehen automatisch ab, neue fragen einmal nach den Gramm.',
+    features: [
+      '⚖️ Auto-Abzug im LAN: Im Nur-LAN-Betrieb meldet der Drucker keine Gewichte an die Cloud, darum gab es vorher keinen Abzug',
+      '🧠 Lernt mit: Gewicht je Auftragsname wird gemerkt. Gleicher Auftrag nochmal drucken = automatischer Abzug ohne Frage',
+      '🧾 Neue Aufträge: Nach „Druck fertig“ kommt eine kleine Karte mit vorgewählter Spule (aus dem aktiven AMS-Slot) und Feld für die Gramm',
+      '📤 Hochladen mit bekanntem Gewicht merkt sich das Gewicht gleich mit',
+      '🔢 Aktualisierte Zahlen-FunFacts: 60 Commits und 87 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

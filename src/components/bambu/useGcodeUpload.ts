@@ -1,3 +1,4 @@
+import { rememberJobGrams } from '../../utils/printUsage';
 import React, { useState, useRef } from 'react';
 import { printerApi } from '../../api';
 import { findGcodeWeight } from '../../utils/gcodeParser';
@@ -88,6 +89,7 @@ export function useGcodeUpload({ setActionToast, handleRefreshLiveState }: useGc
           });
           const data = res.data;
           if (res.ok && data.success) {
+            if (gcodeGrams && gcodeGrams > 0) rememberJobGrams(selectedGcodeFile.name, gcodeGrams); // für Auto-Abzug im LAN-Modus
             setActionToast({
               text: data.message || `Datei "${selectedGcodeFile.name}" erfolgreich übertragen!`,
               ok: true

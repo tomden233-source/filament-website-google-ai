@@ -40,6 +40,9 @@ import { NfcSlotModal } from './bambu/NfcSlotModal';
 import { useAutoDeduct } from './bambu/useAutoDeduct';
 import { readTrays } from '../utils/amsMatch';
 import { usePrinterAlerts } from '../hooks/usePrinterAlerts';
+import { useLanDeduct } from '../hooks/useLanDeduct';
+import { LanDeductPrompt } from './bambu/LanDeductPrompt';
+import type { PendingDeduct } from '../utils/printUsage';
 
 const BambuSettingsModal = lazy(() => import('./BambuSettingsModal').then(m => ({ default: m.BambuSettingsModal })));
 
@@ -148,6 +151,21 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // Home Assistant & Steckdosen State (Unified haClient)
   // Auto-Abzug braucht nur den Cloud-Login (Aufträge kommen aus der Bambu Cloud), nicht die Live-Verbindung
   useAutoDeduct({ spools, amsSlots, onDeductWeight, isConnected: Boolean(liveState.connected || liveState.hasToken), gcodeState: liveState.data.gcode_state, notify: setActionToast });
+
+  // LAN-Modus: kein Cloud-Auftrag mit Gewicht → gemerktes Gewicht je Auftrag oder kurze Frage nach dem Druck
+  const [pendingDeduct, setPendingDeduct] = useState<PendingDeduct | null>(null);
+  useLanDeduct({
+    enabled: Boolean(liveState.lanMode),
+    gcodeState: liveState.data.gcode_state,
+    jobName: liveState.data.subtask_name,
+    ams: liveState.data.ams,
+    vtTray: liveState.data.vt_tray,
+    amsSlots,
+    spools,
+    onDeductWeight,
+    notify: setActionToast,
+    onPending: setPendingDeduct
+  });
 
   // „Neu verbinden"
   const [reconnecting, setReconnecting] = useState(false);
@@ -937,6 +955,9 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       )}
 
       {/* ZERO LAYOUT SHIFT: Floating Fixed Toast am Bildschirmrand */}
+      {pendingDeduct && (
+        <LanDeductPrompt pending={pendingDeduct} spools={spools} onDeduct={onDeductWeight} onClose={() => setPendingDeduct(null)} />
+      )}
       {actionToast && (
         <div
           className="fixed bottom-5 right-5 z-[100] max-w-sm p-3 rounded-2xl shadow-2xl border backdrop-blur-md flex items-center justify-between gap-3 text-xs font-bold animate-fadeIn pointer-events-auto"

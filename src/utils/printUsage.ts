@@ -55,3 +55,44 @@ export function autoDeductSince(): number {
   }
   return new Date(v).getTime();
 }
+
+// --- LAN-Modus: Der Drucker meldet im Nur-LAN-Betrieb keine Aufträge an die Cloud, darum fehlt das Gewicht je Druck. ---
+// Wir merken uns das Gewicht je Auftragsname (aus einem Hochladen mit bekanntem Gewicht oder deiner einmaligen Eingabe).
+// Beim nächsten Druck mit demselben Namen wird automatisch abgezogen.
+export const JOB_GRAMS_KEY = 'bambu_job_grams';
+export const PENDING_DEDUCT_KEY = 'bambu_lan_pending_deduct';
+
+export function jobKey(name: string): string {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/\.(gcode|3mf|gcode\.3mf)$/g, '')
+    .replace(/\.(gcode|3mf)$/g, '')
+    .trim();
+}
+
+export function readJobGrams(): Record<string, number> {
+  try {
+    return JSON.parse(safeStorage.getItem(JOB_GRAMS_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+export function rememberJobGrams(name: string, grams: number): void {
+  const k = jobKey(name);
+  if (!k || !(grams > 0)) return;
+  const all = readJobGrams();
+  all[k] = Math.round(grams * 10) / 10;
+  const keys = Object.keys(all);
+  if (keys.length > 200) delete all[keys[0]];
+  safeStorage.setItem(JOB_GRAMS_KEY, JSON.stringify(all));
+}
+
+export interface PendingDeduct {
+  jobName: string;
+  slot: number | null;
+  spoolId: string;
+  material: string;
+  colorHex: string;
+  at: string;
+}
