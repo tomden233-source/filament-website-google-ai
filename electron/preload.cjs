@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('desktop', {
   checkUpdate: () => ipcRenderer.invoke('update:check'),
+  cloudFetch: req => ipcRenderer.invoke('cloud:fetch', req),
   installNow: () => ipcRenderer.invoke('update:install'),
   onStatus: cb => {
     const h = (_e, s) => cb(s);

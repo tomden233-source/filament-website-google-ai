@@ -4,6 +4,12 @@ import { IS_DESKTOP } from './env';
 
 export async function cloudFetch(url: string, init: { method?: string; body?: string; cache?: RequestCache; headers?: Record<string, string> } = {}): Promise<Response> {
   if (!IS_DESKTOP) return fetch(url, init);
+  // Windows-App ab 1.95: über das Hauptprogramm (Windows-Zertifikate, kein CORS)
+  const bridge = (window as any).desktop;
+  if (bridge?.cloudFetch) {
+    const r: { status: number; text: string } = await bridge.cloudFetch({ url, method: init.method || 'GET', body: init.body });
+    return new Response(r.text, { status: r.status, headers: { 'Content-Type': 'application/json' } });
+  }
   return fetch('/api/cloud-proxy', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

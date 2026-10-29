@@ -1,5 +1,5 @@
 // FilamentHub für Windows: startet den eingebauten Server (spricht per LAN/MQTT mit dem Drucker) und zeigt die App im Fenster.
-const { app, BrowserWindow, Menu, shell, session, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, shell, session, dialog, ipcMain, net } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const { spawn } = require('child_process');
 const http = require('http');
@@ -79,6 +79,27 @@ async function createWindow() {
 }
 
 // Automatische Updates (wie bei der Handy-App): neue Version im Hintergrund laden, beim Beenden oder per Klick installieren
+// Cloud-Datenbank über den Netzwerk-Stack von Windows/Chromium abrufen. Der nutzt die Windows-Zertifikate
+// (wichtig, wenn ein Virenscanner HTTPS prüft: Node kennt dessen Zertifikat nicht → UNABLE_TO_VERIFY_LEAF_SIGNATURE).
+function setupCloudBridge() {
+  ipcMain.handle('cloud:fetch', async (_e, req) => {
+    const url = String((req && req.url) || '');
+    if (!/^https:\/\/api\.npoint\.io\/[A-Za-z0-9_-]+$/.test(url)) return { status: 400, text: JSON.stringify({ error: 'Nur api.npoint.io erlaubt.' }) };
+    const method = req.method === 'POST' ? 'POST' : 'GET';
+    try {
+      const r = await net.fetch(url, {
+        method,
+        headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+        body: method === 'POST' ? String(req.body || '') : undefined,
+        cache: 'no-store'
+      });
+      return { status: r.status, text: await r.text() };
+    } catch (e) {
+      return { status: 502, text: JSON.stringify({ error: 'Cloud nicht erreichbar: ' + String((e && e.message) || e) }) };
+    }
+  });
+}
+
 function sendStatus(s) {
   if (win && !win.isDestroyed()) win.webContents.send('update:status', s);
 }
@@ -157,6 +178,7 @@ if (!lock) {
   app.whenReady().then(() => {
     // Meldungen (Druck fertig, Trocknung fertig) erlauben
     session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'notifications' || permission === 'clipboard-sanitized-write'));
+    setupCloudBridge();
     startServer();
     createWindow();
     setupAutoUpdate();

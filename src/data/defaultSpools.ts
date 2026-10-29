@@ -1320,5 +1320,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.95',
+    label: '1.95 (Sync über Windows-Netz)',
+    releaseDate: '29.10.2026',
+    description: 'Geräte-Sync der Windows-App nutzt jetzt den Netzwerk-Zugang und die Zertifikate von Windows. Damit klappt es auch, wenn ein Virenscanner HTTPS prüft (Fehler UNABLE_TO_VERIFY_LEAF_SIGNATURE).',
+    features: [
+      '🛡️ Ursache: Ein Virenscanner oder Firmen-Proxy prüft HTTPS mit eigenem Zertifikat. Windows kennt es, der eingebaute Server nicht',
+      '🪟 Lösung: Cloud-Abgleich läuft über das Windows-Netz (Chromium net.fetch) mit den Windows-Zertifikaten, ohne Sicherheit abzuschalten',
+      '🔒 Weiterhin nur api.npoint.io erlaubt',
+      '🔢 Aktualisierte Zahlen-FunFacts: 68 Commits und 95 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
