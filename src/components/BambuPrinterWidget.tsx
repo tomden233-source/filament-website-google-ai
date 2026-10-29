@@ -58,6 +58,7 @@ import { armDryPlan, disarmDryPlan, dryPlanFor, needsDryingNow } from '../utils/
 import { setHaAutoOff } from '../utils/haAutoOff';
 import { addPrintRecord, addPrintUsage, capturePrintPhoto } from '../utils/printLog';
 import { useAmsNfcReaders } from '../hooks/useAmsNfcReaders';
+import { useBambuRfid } from '../hooks/useBambuRfid';
 import { LanDeductPrompt } from './bambu/LanDeductPrompt';
 import type { PendingDeduct } from '../utils/printUsage';
 
@@ -176,8 +177,18 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     printerConnected: Boolean(liveState.connected),
     notify: setActionToast
   });
+  // Bambu-Spulen über den RFID-Chip, den das AMS selbst liest (kein eigener Tag nötig)
+  const bambuRfid = useBambuRfid({
+    ams: liveState.data.ams,
+    connected: Boolean(liveState.connected && liveState.receivingData !== false),
+    spools,
+    amsSlots,
+    handleSetAmsSlot,
+    notify: setActionToast
+  });
   const handleSetAmsSlotNfc = (slot: number, spoolId: string) => {
     nfcReaders.learn(slot, spoolId); // unbekannten Tag in diesem Slot mit der gewählten Spule verknüpfen
+    bambuRfid.learn(slot, spoolId); // Bambu-Spule (RFID vom AMS) ebenso
     handleSetAmsSlot(slot, spoolId);
   };
   const nfcInfo = { readers: Object.keys(nfcReaders.entities).length, unknown: Object.keys(nfcReaders.unknown).map(Number) };

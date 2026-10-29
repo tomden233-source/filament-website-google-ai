@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.109 (Neue Kacheln & Sensor-Box)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.109 im Paket 2.0.109, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.110 (Bambu-Chips erkennen)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.110 im Paket 2.0.110, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -21,7 +21,7 @@ Aktuelle Version: **1.109 (Neue Kacheln & Sensor-Box)**. Die Zählung läuft ab 
 
 **Drucker (Bambu X2D, LAN)**
 - 🟢 **Live-Status** · Fortschritt, Restzeit, Temperaturen, Kamera, Licht, Pause/Stopp
-- 🟢 **AMS-Slots** · Spule ↔ Slot, Material/Farbe an den Drucker senden, externe Spule
+- 🟢 **AMS-Slots** · Spule ↔ Slot, Material/Farbe an den Drucker senden, externe Spule, Bambu-Spulen per RFID erkennen
 - 🟢 **Druck-Wächter** · erkennt jeden Druck, auch aus Studio, Handy oder Display
 - 🟢 **Auto-Abzug** · zieht Gramm nach dem Druck ab, sonst Frage „Spule abziehen?“
 - 🟢 **Spulen-Check** · reicht das Filament, passt das Material
@@ -53,7 +53,7 @@ Aktuelle Version: **1.109 (Neue Kacheln & Sensor-Box)**. Die Zählung läuft ab 
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29.10.2026 (1.105 bis 1.109)
+## Neu am 29.10.2026 (1.105 bis 1.110)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -64,6 +64,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.107 | Feuchte-Alarm ab 25 %, AMS trocknet ab 30 % von selbst, Kurzüberblick im README |
 | 1.108 | Feuchte-Sensor SHT31-D in der ESPHome-Datei |
 | 1.109 | Neue Spulen-Kacheln (Spulen-Symbol in Filamentfarbe, durchgehender Balken), zweiter Sensor im Raum zum Vergleich, Mini-Box für den Sensor, Abzug mehrerer Spulen repariert |
+| 1.110 | Bambu-Chips: eigene NFC-Leser ignorieren sie, die App erkennt Bambu-Spulen über den RFID-Chip, den das AMS selbst liest |
 
 ### Druck-Wächter (1.105)
 
@@ -97,6 +98,10 @@ Während ein Druck läuft, steht bei der Drucksteuerung **„Nach Druck aus“**
 - **Kabel:** bis ca. 1 m problemlos, bis ca. 2 m meist auch (Bus läuft mit 50 kHz).
 - **Mini-Box zum Drucken:** `hardware/ams-nfc/sensor-box/` (ca. 16 × 19 × 8 mm, Lüftungsschlitze, Kabel-Zugentlastung, Lasche).
 
+### Bambu-Spulen ohne eigenen Tag (1.110)
+
+Die NFC-Leser im AMS zählen nur deine eigenen NTAG-Aufkleber (7-Byte-Nummer). Bambu-Chips (4-Byte-Nummer) werden ignoriert, es gibt also keine Verwechslung. Bambu-Spulen erkennt die App stattdessen über den Chip, den das AMS selbst liest (`src/hooks/useBambuRfid.ts`): einmal zugeordnet, landet die Spule beim nächsten Einlegen von selbst im richtigen Slot. Eigene Tags außen auf den Spulenrand kleben, Leser dorthin (Details: `hardware/ams-nfc/README.md`).
+
 ### Spulen-Kacheln (1.109)
 
 Links ein Spulen-Symbol in der Filamentfarbe; wie dick das Filament darauf ist, zeigt den Rest. Darunter wieder ein durchgehender Balken statt 10 Segmenten.
@@ -112,7 +117,7 @@ Links ein Spulen-Symbol in der Filamentfarbe; wie dick das Filament darauf ist, 
 ## Inhalt
 
 1. [Was die App kann](#was-die-app-kann-kurzüberblick)
-1. [Neu am 29.10.2026](#neu-am-29102026-1105-bis-1109)
+1. [Neu am 29.10.2026](#neu-am-29102026-1105-bis-1110)
 1. [App und Desktop](#app-und-desktop)
 2. [Starten](#starten)
 3. [Spulen verwalten](#spulen-verwalten)

@@ -15,6 +15,17 @@ export interface HwTray {
   maxTemp?: number;
   /** Restmenge in % (nur Bambu-Spulen mit RFID, sonst -1) */
   remain?: number;
+  /** Kennung der Bambu-Spule (RFID, vom AMS selbst gelesen). Leer = keine Bambu-Spule */
+  rfid?: string;
+}
+
+/** Bambu-RFID einer Spule: tray_uuid (gleich für beide Tags einer Spule), sonst tag_uid. Nur Nullen = keine. */
+export function bambuRfidOf(t: any): string {
+  const ok = (v: unknown) => {
+    const s = String(v || '').trim();
+    return /^[0-9a-fA-F]{8,}$/.test(s) && /[1-9a-fA-F]/.test(s) ? s.toUpperCase() : '';
+  };
+  return ok(t?.tray_uuid) || ok(t?.tag_uid);
 }
 
 function hexOf(raw: unknown): string | null {
@@ -40,7 +51,8 @@ export function readTrays(ams: any): HwTray[] {
       brand: String(t?.tray_sub_brands || '').trim(),
       minTemp: t?.nozzle_temp_min != null ? Number(t.nozzle_temp_min) : undefined,
       maxTemp: t?.nozzle_temp_max != null ? Number(t.nozzle_temp_max) : undefined,
-      remain: t?.remain != null ? Number(t.remain) : undefined
+      remain: t?.remain != null ? Number(t.remain) : undefined,
+      rfid: type ? bambuRfidOf(t) : ''
     };
   });
 }

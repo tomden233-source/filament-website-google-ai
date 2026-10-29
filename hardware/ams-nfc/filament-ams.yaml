@@ -16,6 +16,10 @@ substitutions:
   # Wie lange ein Tag „weg“ sein darf, bevor der Slot als leer gilt.
   # Die Spule dreht sich beim Drucken, der Tag ist dann kurz nicht vor dem Leser.
   remove_after: 10min
+  # Nur eigene NTAG-Tags (7-Byte-Nummer, Text „04-A1-B2-C3-D4-E5-F6“ = 20 Zeichen) zählen.
+  # Bambu-Spulen haben MIFARE-Classic-Chips mit 4-Byte-Nummer (11 Zeichen): die werden ignoriert,
+  # die liest das AMS selbst und meldet sie an die App.
+  own_uid_min: "20"
 
 esphome:
   name: ${name}
@@ -74,51 +78,111 @@ rc522_spi:
     update_interval: 1s
     on_tag:
       then:
-        - script.stop: clear_1
-        - text_sensor.template.publish: { id: slot_1_tag, state: !lambda "return x;" }
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.stop: clear_1
+              - text_sensor.template.publish: { id: slot_1_tag, state: !lambda "return x;" }
+            else:
+              - logger.log:
+                  format: "Slot 1: fremder Tag %s ignoriert (Bambu-RFID?)"
+                  args: ["x.c_str()"]
     on_tag_removed:
       then:
-        - script.execute: clear_1
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.execute: clear_1
   - id: reader_2
     cs_pin: GPIO17
     update_interval: 1s
     on_tag:
       then:
-        - script.stop: clear_2
-        - text_sensor.template.publish: { id: slot_2_tag, state: !lambda "return x;" }
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.stop: clear_2
+              - text_sensor.template.publish: { id: slot_2_tag, state: !lambda "return x;" }
+            else:
+              - logger.log:
+                  format: "Slot 2: fremder Tag %s ignoriert (Bambu-RFID?)"
+                  args: ["x.c_str()"]
     on_tag_removed:
       then:
-        - script.execute: clear_2
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.execute: clear_2
   - id: reader_3
     cs_pin: GPIO16
     update_interval: 1s
     on_tag:
       then:
-        - script.stop: clear_3
-        - text_sensor.template.publish: { id: slot_3_tag, state: !lambda "return x;" }
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.stop: clear_3
+              - text_sensor.template.publish: { id: slot_3_tag, state: !lambda "return x;" }
+            else:
+              - logger.log:
+                  format: "Slot 3: fremder Tag %s ignoriert (Bambu-RFID?)"
+                  args: ["x.c_str()"]
     on_tag_removed:
       then:
-        - script.execute: clear_3
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.execute: clear_3
   - id: reader_4
     cs_pin: GPIO4
     update_interval: 1s
     on_tag:
       then:
-        - script.stop: clear_4
-        - text_sensor.template.publish: { id: slot_4_tag, state: !lambda "return x;" }
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.stop: clear_4
+              - text_sensor.template.publish: { id: slot_4_tag, state: !lambda "return x;" }
+            else:
+              - logger.log:
+                  format: "Slot 4: fremder Tag %s ignoriert (Bambu-RFID?)"
+                  args: ["x.c_str()"]
     on_tag_removed:
       then:
-        - script.execute: clear_4
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.execute: clear_4
   - id: reader_5
     cs_pin: GPIO13
     update_interval: 1s
     on_tag:
       then:
-        - script.stop: clear_5
-        - text_sensor.template.publish: { id: slot_5_tag, state: !lambda "return x;" }
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.stop: clear_5
+              - text_sensor.template.publish: { id: slot_5_tag, state: !lambda "return x;" }
+            else:
+              - logger.log:
+                  format: "Slot 5: fremder Tag %s ignoriert (Bambu-RFID?)"
+                  args: ["x.c_str()"]
     on_tag_removed:
       then:
-        - script.execute: clear_5
+        - if:
+            condition:
+              lambda: "return x.size() >= ${own_uid_min};"
+            then:
+              - script.execute: clear_5
 
 # Slot erst nach "remove_after" als leer melden (Spule dreht sich beim Drucken)
 script:

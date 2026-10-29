@@ -1596,5 +1596,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.110',
+    label: '1.110 (Bambu-Chips erkennen)',
+    releaseDate: '29.10.2026',
+    description: 'Die eigenen NFC-Leser ignorieren Bambu-RFID-Chips, damit nichts verwechselt wird. Bambu-Spulen erkennt die App stattdessen über den Chip, den das AMS selbst liest.',
+    features: [
+      '🚫 ESPHome: nur eigene NTAG-Tags (7-Byte-Nummer) zählen, Bambu-Chips (4-Byte) werden ignoriert und löschen nie einen Slot',
+      '🏷️ Bambu-Spulen ohne eigenen Tag: Kennung vom AMS (tray_uuid) wird mit der Spule verknüpft, beim nächsten Einlegen automatisch im Slot',
+      '🧠 Erstes Mal automatisch, wenn nur eine Bambu-Spule mit Material und Farbe passt, sonst nach einmal Auswählen',
+      '📝 Anleitung: wo die eigenen Tags hinkommen (außen am Rand, weg vom Bambu-Chip an der Nabe)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 83 Commits und 110 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
