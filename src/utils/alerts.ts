@@ -7,6 +7,9 @@ import { getWorkshopSettings, type WorkshopSettings } from './workshopSettings';
 
 const KIND_SETTING: Record<InboxKind, keyof WorkshopSettings | null> = {
   'print-start': 'alertPrintStart',
+  'print-check': 'alertPrintCheck',
+  'printer-error': 'alertErrors',
+  humidity: 'alertHumidity',
   'print-done': 'alertPrintDone',
   'print-fail': 'alertPrintFail',
   'dry-due': 'alertDryDue',
@@ -51,6 +54,9 @@ export const TEST_KINDS: { kind: InboxKind; label: string }[] = [
   { kind: 'dry-stop', label: 'Trocknung gestoppt' },
   { kind: 'dry-due', label: 'Trocknen fällig' },
   { kind: 'print-start', label: 'Druck gestartet' },
+  { kind: 'print-check', label: 'Spulen-Check' },
+  { kind: 'printer-error', label: 'Druckerfehler' },
+  { kind: 'humidity', label: 'Feuchte zu hoch' },
   { kind: 'print-done', label: 'Druck fertig' },
   { kind: 'print-fail', label: 'Druck fehlgeschlagen' },
   { kind: 'low', label: 'Spule fast leer' }
@@ -90,6 +96,25 @@ function sample(kind: InboxKind): Pick<InboxItem, 'title' | 'text' | 'facts' | '
         title: 'Test: Trocknen fällig',
         text: 'Trocknen fällig: Sunlu PETG Schwarz (65 °C, 8 h).',
         items: [{ title: 'Sunlu PETG Schwarz', sub: 'PETG · 65 °C · 8 h', color: '#1f2937' }]
+      };
+    case 'print-check':
+      return {
+        title: 'Test: Spulen-Check',
+        text: 'Benchy.3mf braucht ca. 120 g, Bambu PLA Basic Weiß hat nur 62 g.',
+        items: [{ title: 'Bambu PLA Basic Weiß', sub: 'Slot 1 · braucht 120 g · da 62 g', color: '#f1f5f9' }]
+      };
+    case 'printer-error':
+      return {
+        title: 'Test: Druckerfehler',
+        text: 'Die Düse ist verstopft.',
+        facts: [{ label: 'Bereich', value: 'Druck' }, { label: 'Stufe', value: 'Ernst' }, { label: 'Code', value: '0300_4006' }]
+      };
+    case 'humidity':
+      return {
+        title: 'Test: Feuchte zu hoch',
+        text: 'AMS: 48 % Luftfeuchte (Grenze 40 %). Trocknen empfohlen.',
+        facts: [{ label: 'Gemessen', value: '48 %' }, { label: 'Grenze', value: '40 %' }],
+        items: spools
       };
     case 'print-start':
       return {

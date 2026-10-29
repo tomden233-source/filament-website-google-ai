@@ -39,6 +39,10 @@ export interface BambuLiveState {
     ams?: any;
     lights_report?: Array<{ mode: string; node: string }>;
     vt_tray?: any;
+    /** Aktuelle HMS-Meldungen ([{ attr, code }]) */
+    hms?: { attr: number; code: number }[];
+    /** Fehlercode des Auftrags (0 = keiner) */
+    print_error?: number;
   };
   formatted: {
     remainingTimeStr: string;

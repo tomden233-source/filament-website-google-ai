@@ -21,7 +21,8 @@ interface Params {
   vtTray: any;
   amsSlots: Record<number, string>;
   spools: Spool[];
-  onDeductWeight: (spoolId: string, grams: number) => void;
+  /** Abziehen und dem Druck im Verlauf zuordnen */
+  onDeductForPrint: (printId: string, spoolId: string, grams: number) => void;
   notify: (t: { text: string; ok: boolean }) => void;
   onPending: (p: PendingDeduct) => void;
 }
@@ -47,7 +48,7 @@ export function useLanDeduct(p: Params) {
 
   /** Am Druckende aufrufen (von usePrintWatch) */
   const handleEnd = useCallback((session: PrintSession, info: PrintEndInfo) => {
-    const { enabled, spools, amsSlots, ams, vtTray, onDeductWeight, notify, onPending } = latest.current;
+    const { enabled, spools, amsSlots, ams, vtTray, onDeductForPrint, notify, onPending } = latest.current;
     if (!enabled || !isAutoDeductOn()) return;
     const name = session.name || 'Druckauftrag';
     const slot = mainSlot(session) ?? activeSlotFromPrinter(ams);
@@ -70,6 +71,7 @@ export function useLanDeduct(p: Params) {
         colorHex,
         at: new Date().toISOString(),
         reason: failed ? 'failed' : info.missed ? 'missed' : 'unknown',
+        printId: session.id,
         percent: failed ? Math.round(session.lastPercent || 0) : undefined,
         parts: parts.length ? parts.map(x => ({ spoolId: x.spoolId, grams: round1(x.grams * share) })) : undefined
       };
@@ -81,7 +83,7 @@ export function useLanDeduct(p: Params) {
       const texts: string[] = [];
       parts.forEach((x, i) => {
         const grams = round1(x.grams);
-        setTimeout(() => onDeductWeight(x.spoolId, grams), i * 300);
+        setTimeout(() => onDeductForPrint(session.id, x.spoolId, grams), i * 300);
         const sp = spools.find(s => s.id === x.spoolId);
         texts.push(`${grams} g von ${sp ? `${sp.brand} ${sp.name}` : 'Spule'}`);
       });

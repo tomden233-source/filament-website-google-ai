@@ -4,6 +4,7 @@ import { DEFAULT_NABU_URL, getHaCredentials, saveHaCredentials, testHaConnection
 import { homeAssistantApi } from '../../api';
 import { IS_NATIVE, IS_STATIC } from '../../utils/env';
 import { addSystemLog } from '../../utils/logService';
+import { getHaAutoOffInfo, installHaAutoOff, type HaAutoOffInfo } from '../../utils/haAutoOff';
 
 interface Entity {
   entity_id: string;
@@ -27,6 +28,8 @@ export const HomeAssistantCard: React.FC<{ onSaved?: () => void }> = ({ onSaved 
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [cameras, setCameras] = useState<Entity[]>([]);
   const [switches, setSwitches] = useState<Entity[]>([]);
+  const [autoOff, setAutoOff] = useState<HaAutoOffInfo | null>(getHaAutoOffInfo);
+  const [autoBusy, setAutoBusy] = useState(false);
 
   // Lokaler Server (nur Browser mit Server): gespeicherte Adresse übernehmen
   useEffect(() => {
@@ -160,6 +163,28 @@ export const HomeAssistantCard: React.FC<{ onSaved?: () => void }> = ({ onSaved 
         </button>
       </div>
       {result && <p className={`text-[11px] font-bold leading-snug break-words ${result.ok ? 'text-emerald-400' : 'text-amber-400'}`}>{result.text}</p>}
+
+      <div className="pt-2 mt-1 border-t space-y-1.5" style={{ borderColor: 'var(--app-border)' }}>
+        <div className="text-[11px] font-bold">„Nach Druck aus“ auch ohne App</div>
+        <p className="text-[10px] leading-snug" style={{ color: 'var(--app-text-muted)' }}>
+          Legt in Home Assistant eine Automation an. Die App schaltet sie nur ein, wenn du „Nach Druck aus“ wählst. Braucht die Bambu-Lab-Integration in Home Assistant. Passiert beim ersten „Nach Druck aus“ auch von selbst.
+        </p>
+        <button
+          type="button"
+          disabled={autoBusy || !getHaCredentials().token}
+          onClick={async () => {
+            setAutoBusy(true);
+            setAutoOff(await installHaAutoOff());
+            setAutoBusy(false);
+          }}
+          className="w-full py-2 rounded-xl border text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40"
+          style={{ backgroundColor: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+        >
+          {autoBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          {autoOff?.ok ? 'Neu einrichten' : 'In Home Assistant einrichten'}
+        </button>
+        {autoOff && <p className={`text-[11px] font-bold leading-snug break-words ${autoOff.ok ? 'text-emerald-400' : 'text-amber-400'}`}>{autoOff.text}</p>}
+      </div>
     </div>
   );
 };

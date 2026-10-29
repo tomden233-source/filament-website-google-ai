@@ -6,7 +6,8 @@ import {
   RefreshCw,
   Pause,
   Play,
-  Square
+  Square,
+  Droplets
 } from 'lucide-react';
 
 import type { BambuPrinterWidgetProps as ParentProps } from '../BambuPrinterWidget';
@@ -62,6 +63,9 @@ export interface PrinterExpandedPanelProps {
   /** „Nach Druck ausschalten“ ist gewählt */
   autoOffArmed?: boolean;
   onToggleAutoOff?: () => void;
+  /** „Nach Druck trocknen“ ist gewählt */
+  dryAfterArmed?: boolean;
+  onToggleDryAfter?: () => void;
 }
 
 export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
@@ -109,7 +113,9 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
   dryLoading,
   printActive = false,
   autoOffArmed = false,
-  onToggleAutoOff
+  onToggleAutoOff,
+  dryAfterArmed = false,
+  onToggleDryAfter
 }) => {
   return (
 <div className="p-4 sm:p-5 space-y-4">
@@ -230,6 +236,18 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
                 >
                   <Power className="w-3.5 h-3.5" />
                   <span>{autoOffArmed ? 'Aus nach Druck ✓' : 'Nach Druck aus'}</span>
+                </button>
+              )}
+              {(printActive || dryAfterArmed) && onToggleDryAfter && (
+                <button
+                  onClick={onToggleDryAfter}
+                  title={dryAfterArmed ? 'Abwählen: nach dem Druck nicht trocknen' : 'AMS-Trocknung starten, wenn der Druck fertig ist'}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    dryAfterArmed ? 'border-amber-500/60 bg-amber-500/20 text-amber-300' : 'border-[var(--app-border)] text-[var(--app-text-muted)] hover:bg-amber-500/10'
+                  }`}
+                >
+                  <Droplets className="w-3.5 h-3.5" />
+                  <span>{dryAfterArmed ? 'Danach trocknen ✓' : 'Danach trocknen'}</span>
                 </button>
               )}
               {isPrinting ? (

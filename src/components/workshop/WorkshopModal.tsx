@@ -1,17 +1,24 @@
 import React from 'react';
-import { Bell, BellRing, QrCode, SlidersHorizontal, Wrench, X } from 'lucide-react';
+import { BarChart3, Bell, BellRing, Camera, QrCode, SlidersHorizontal, Wrench, X } from 'lucide-react';
 import type { Spool } from '../../types/filament';
 import { NoticesTab } from './NoticesTab';
 import { InboxTab } from './InboxTab';
 import { useUnreadCount } from '../../utils/inbox';
 import { LabelsTab } from './LabelsTab';
+import { PrintsTab } from './PrintsTab';
+import { StatsTab } from './StatsTab';
 
-export type WorkshopTab = 'inbox' | 'notices' | 'labels';
+export type WorkshopTab = 'inbox' | 'notices' | 'labels' | 'prints' | 'stats';
 
 // Zwei Fenster in einem: „Mitteilungen“ (Postfach + Einstellungen, geöffnet über die Glocke) und „Werkstatt“ (Etiketten)
 const NOTICE_TABS: { id: WorkshopTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'inbox', label: 'Postfach', icon: Bell },
   { id: 'notices', label: 'Einstellungen', icon: SlidersHorizontal }
+];
+const WORKSHOP_TABS: { id: WorkshopTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'prints', label: 'Drucke', icon: Camera },
+  { id: 'stats', label: 'Statistik', icon: BarChart3 },
+  { id: 'labels', label: 'Etiketten', icon: QrCode }
 ];
 
 export interface WorkshopModalProps {
@@ -29,7 +36,8 @@ export interface WorkshopModalProps {
 export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, tab, onTabChange, spools, labelSpoolId, focusId }) => {
   const unread = useUnreadCount();
   if (!isOpen) return null;
-  const isWorkshop = tab === 'labels';
+  const isWorkshop = tab === 'labels' || tab === 'prints' || tab === 'stats';
+  const tabs = isWorkshop ? WORKSHOP_TABS : NOTICE_TABS;
   const HeadIcon = isWorkshop ? Wrench : BellRing;
 
   return (
@@ -53,7 +61,7 @@ export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, t
             <div>
               <h3 className="font-extrabold text-base tracking-tight">{isWorkshop ? 'Werkstatt' : 'Mitteilungen'}</h3>
               <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                {isWorkshop ? 'Etiketten für deine Spulen' : 'Was passiert ist und welche Meldungen du willst'}
+                {isWorkshop ? 'Drucke mit Foto, Statistik und Etiketten' : 'Was passiert ist und welche Meldungen du willst'}
               </p>
             </div>
           </div>
@@ -67,9 +75,9 @@ export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, t
           </button>
         </div>
 
-        {!isWorkshop && (
+        {(
         <div className="flex gap-1.5 overflow-x-auto px-4 pt-3">
-          {NOTICE_TABS.map(t => {
+          {tabs.map(t => {
             const Icon = t.icon;
             const active = t.id === tab;
             return (
@@ -98,7 +106,9 @@ export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, t
 
         <div className="p-4 overflow-y-auto">{tab === 'inbox' && <InboxTab focusId={focusId || undefined} />}
           {tab === 'notices' && <NoticesTab />}
-          {tab === 'labels' && <LabelsTab spools={spools} preselectId={labelSpoolId} />}</div>
+          {tab === 'labels' && <LabelsTab spools={spools} preselectId={labelSpoolId} />}
+          {tab === 'prints' && <PrintsTab />}
+          {tab === 'stats' && <StatsTab spools={spools} />}</div>
       </div>
     </div>
   );

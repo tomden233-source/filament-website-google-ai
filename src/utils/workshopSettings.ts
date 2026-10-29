@@ -11,6 +11,18 @@ export interface WorkshopSettings {
   /** Welche Mitteilungen kommen sollen */
   /** Druck gestartet (auch wenn er nicht über die App gestartet wurde) */
   alertPrintStart: boolean;
+  /** Beim Druckstart prüfen: reicht das Filament, passt das Material */
+  alertPrintCheck: boolean;
+  /** Fehler und Hinweise des Druckers (HMS) */
+  alertErrors: boolean;
+  /** Luftfeuchte über der Grenze (AMS oder externer Sensor) */
+  alertHumidity: boolean;
+  /** Grenze Luftfeuchte in % */
+  humidityMax: number;
+  /** Externer Feuchte-Sensor in Home Assistant (leer = keiner) */
+  humidityEntity: string;
+  /** Beim Einlegen einer Spule, die trocknen sollte, fragen */
+  drySuggest: boolean;
   alertPrintDone: boolean;
   alertPrintFail: boolean;
   alertDryDue: boolean;
@@ -34,6 +46,12 @@ export const DEFAULT_WORKSHOP_SETTINGS: WorkshopSettings = {
   lowWarning: true,
   lowWeightG: 100,
   alertPrintStart: true,
+  alertPrintCheck: true,
+  alertErrors: true,
+  alertHumidity: true,
+  humidityMax: 40,
+  humidityEntity: 'sensor.filament_ams_box_feuchte',
+  drySuggest: true,
   alertPrintDone: true,
   alertPrintFail: true,
   alertDryDue: true,
@@ -68,6 +86,9 @@ function sanitize(raw: (Partial<WorkshopSettings> & Record<string, unknown>) | n
   });
   const g = Number(s.lowWeightG);
   s.lowWeightG = Number.isFinite(g) ? Math.max(0, Math.min(1000, Math.round(g))) : DEFAULT_WORKSHOP_SETTINGS.lowWeightG;
+  const h = Number(s.humidityMax);
+  s.humidityMax = Number.isFinite(h) ? Math.max(10, Math.min(90, Math.round(h))) : DEFAULT_WORKSHOP_SETTINGS.humidityMax;
+  s.humidityEntity = String(s.humidityEntity || '').trim();
   return s;
 }
 

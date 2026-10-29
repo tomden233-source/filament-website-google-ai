@@ -14,7 +14,7 @@ export function useHaSwitch({ setActionToast }: useHaSwitchParams) {
     state: 'on' | 'off' | 'unknown' | 'error';
     power?: number | null;
     friendly_name?: string;
-  }>({ configured: true, state: 'off' });
+  }>({ configured: true, state: 'unknown' }); // 'unknown' bis zur ersten Abfrage (sonst gilt der Drucker kurz als stromlos)
 
   const [haSwitchLoading, setHaSwitchLoading] = useState<boolean>(false);
 

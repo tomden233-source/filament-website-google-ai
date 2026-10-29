@@ -1528,5 +1528,25 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.106',
+    label: '1.106 (Fehler-Push, Feuchte & Druck-Fotos)',
+    releaseDate: '29.10.2026',
+    description: 'Druckerfehler als Klartext aufs Handy, Feuchte-Alarm (AMS und externer Sensor), Spulen-Check beim Start, Trocknen-Vorschlag beim Einlegen mit „Nach Druck trocknen“, Druck-Verlauf mit Foto und Verbrauchs-Statistik. „Nach Druck aus“ geht jetzt auch über Home Assistant ohne App.',
+    features: [
+      '⚠️ Druckerfehler (HMS) als Klartext aufs Handy: Düse verstopft, Spaghetti, AMS-Problem … mit Bereich, Stufe und Code',
+      '🧐 Spulen-Check beim Druckstart: Filament reicht nicht, Material fehlt im AMS oder passt nicht zur Spule',
+      '💧 Feuchte-Alarm: AMS-Messwert und externer AHT20-Sensor am ESP32 (Grenze einstellbar, Standard 40 %)',
+      '☀️ Trocknen-Vorschlag beim Einlegen einer Spule + Knopf „Danach trocknen“: AMS trocknet nach dem Druck von selbst',
+      '🔌 „Nach Druck aus“ wartet auf die Trocknung und läuft über eine Home-Assistant-Automation auch ohne offene App',
+      '📸 Werkstatt → Drucke: jeder Druck mit Foto vom Ende, Dauer, Verbrauch und Kosten',
+      '📊 Werkstatt → Statistik: Gramm und Euro pro Woche/Monat, 8-Wochen-Verlauf, Lieblingsfarben, Ø-Kosten je Druck',
+      '🔧 ESPHome-Datei mit AHT20 (I2C an GPIO21/32), geprüft mit ESPHome 2026.10.1',
+      '🔢 Aktualisierte Zahlen-FunFacts: 79 Commits und 106 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

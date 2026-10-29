@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, BellRing, CheckCircle2, PackageMinus, Send } from 'lucide-react';
+import { Bell, BellRing, CheckCircle2, PackageMinus, Send, Waves } from 'lucide-react';
+import { useHumidity } from '../../utils/humidity';
 import { IS_NATIVE } from '../../utils/env';
 import { testAlert, TEST_KINDS } from '../../utils/alerts';
 import type { InboxKind } from '../../utils/inbox';
@@ -19,6 +20,7 @@ const PERMISSION_TEXT: Record<NotifyPermission, string> = {
 /** Einstellungen: welche Mitteilungen kommen, und ob sie zusätzlich als Benachrichtigung aufs Gerät gehen. */
 export const NoticesTab: React.FC = () => {
   const [s, update] = useWorkshopSettings();
+  const hum = useHumidity();
   const [perm, setPerm] = useState<NotifyPermission>(notifyPermission());
   const [testInfo, setTestInfo] = useState('');
   const [testKind, setTestKind] = useState<InboxKind>('dry-done');
@@ -45,16 +47,70 @@ export const NoticesTab: React.FC = () => {
         </div>
         <div className="space-y-3">
           <Toggle on={s.alertPrintStart} onChange={v => update({ alertPrintStart: v })} label="Druck gestartet" hint="Auch wenn du über Bambu Studio, Handy oder Display startest." />
+          <Toggle on={s.alertPrintCheck} onChange={v => update({ alertPrintCheck: v })} label="Spulen-Check beim Start" hint="Warnt, wenn das Filament nicht reicht, das Material fehlt oder nicht zur Spule passt." />
+          <Toggle on={s.alertErrors} onChange={v => update({ alertErrors: v })} label="Druckerfehler" hint="Alle Fehler und Hinweise des Druckers als Klartext (Düse verstopft, Spaghetti, AMS …)." />
           <Toggle on={s.alertPrintDone} onChange={v => update({ alertPrintDone: v })} label="Druck fertig" hint="Sobald der Drucker das Ende meldet. War die App zu, kommt die Meldung beim nächsten Öffnen." />
           <Toggle on={s.alertPrintFail} onChange={v => update({ alertPrintFail: v })} label="Druck fehlgeschlagen oder abgebrochen" />
           <Toggle on={s.alertDryDone} onChange={v => update({ alertDryDone: v })} label="Trocknung fertig" hint="Mit Dauer, Temperatur und den getrockneten Spulen." />
           <Toggle on={s.alertDryStop} onChange={v => update({ alertDryStop: v })} label="Trocknung gestoppt" hint="Wenn die Trocknung vor dem Ende angehalten wird." />
           <Toggle on={s.alertDryDue} onChange={v => update({ alertDryDue: v })} label="Trocknen fällig" hint="Einmal pro Tag und Spule, mit Temperatur und Zeit." />
+          <Toggle on={s.drySuggest} onChange={v => update({ drySuggest: v })} label="Trocknen-Vorschlag beim Einlegen" hint="Kommt eine Spule ins AMS, die trocknen sollte: Mitteilung und Frage „Nach dem Druck trocknen“." />
           <Toggle on={s.alertLow} onChange={v => update({ alertLow: v })} label="Spule fast leer" hint="Kommt, wenn der Rest unter die Grenze fällt." />
         </div>
         <p className="text-[11px] leading-snug" style={{ color: 'var(--app-text-muted)' }}>
           Mitteilungen kommen, solange die App läuft oder im Hintergrund offen ist und mit dem Drucker verbunden bleibt. Alle landen im Postfach (Reiter „Mitteilungen“).
         </p>
+      </Card>
+
+      <Card>
+        <div className="flex items-center gap-2 text-xs font-extrabold">
+          <Waves className="w-4 h-4 text-sky-400" />
+          <span>Luftfeuchte</span>
+        </div>
+        <Toggle on={s.alertHumidity} onChange={v => update({ alertHumidity: v })} label="Melden, wenn die Feuchte zu hoch ist" hint="AMS-Messwert und ein externer Sensor (z. B. in der Lagerbox). Erst nach 5 Minuten über der Grenze." />
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          <div className="rounded-lg border p-2" style={{ borderColor: 'var(--app-border)' }}>
+            <div style={{ color: 'var(--app-text-muted)' }}>AMS</div>
+            <div className="text-sm font-extrabold font-mono-num">{hum.ams?.value != null ? `${Math.round(hum.ams.value)} %` : '–'}</div>
+            {hum.ams?.temp != null && <div style={{ color: 'var(--app-text-muted)' }}>{Math.round(hum.ams.temp)} °C</div>}
+          </div>
+          <div className="rounded-lg border p-2" style={{ borderColor: 'var(--app-border)' }}>
+            <div style={{ color: 'var(--app-text-muted)' }}>Externer Sensor</div>
+            <div className="text-sm font-extrabold font-mono-num">{hum.external?.value != null ? `${Math.round(hum.external.value)} %` : '–'}</div>
+            {hum.external?.temp != null && <div style={{ color: 'var(--app-text-muted)' }}>{Math.round(hum.external.temp)} °C</div>}
+            {hum.external?.error && <div className="text-amber-400 leading-snug">{hum.external.error}</div>}
+          </div>
+        </div>
+        <label className="flex items-center justify-between gap-2 text-xs font-bold">
+          <span>Grenze</span>
+          <span className="flex items-center gap-1">
+            <input
+              type="number"
+              min={10}
+              max={90}
+              value={s.humidityMax}
+              onChange={e => update({ humidityMax: parseInt(e.target.value, 10) || 40 })}
+              className="w-16 px-2 py-1 rounded-lg border text-xs font-mono-num outline-none text-right"
+              style={inputStyle}
+              aria-label="Grenze Luftfeuchte in Prozent"
+            />
+            <span>%</span>
+          </span>
+        </label>
+        <label className="block text-xs font-bold space-y-1">
+          <span>Externer Sensor (Home Assistant)</span>
+          <input
+            type="text"
+            value={s.humidityEntity}
+            onChange={e => update({ humidityEntity: e.target.value })}
+            placeholder="sensor.filament_ams_box_feuchte"
+            className="w-full px-2 py-1.5 rounded-lg border text-xs font-mono outline-none"
+            style={inputStyle}
+          />
+          <span className="block text-[11px] font-normal leading-snug" style={{ color: 'var(--app-text-muted)' }}>
+            Der AHT20 am ESP32 des NFC-Lesers heißt so von selbst. Leer lassen = kein externer Sensor.
+          </span>
+        </label>
       </Card>
 
       <Card>

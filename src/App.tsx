@@ -126,7 +126,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.105';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.106';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
@@ -1227,7 +1227,7 @@ export default function App() {
         syncOk={syncStatus.ok}
         onOpenHistory={() => setIsHistoryModalOpen(true)}
         onOpenWorkshop={() => {
-          setWorkshopTab('labels');
+          setWorkshopTab('prints');
           setLabelSpoolId(null);
           setIsWorkshopOpen(true);
         }}

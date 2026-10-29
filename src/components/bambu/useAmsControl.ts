@@ -171,13 +171,16 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
     }
   };
 
-  const handleToggleAmsDrying = async (start: boolean) => {
+  /** Trocknung starten/stoppen. override = Dauer/Temperatur von außen (z. B. „Nach Druck trocknen“). Gibt zurück, ob der Drucker es angenommen hat. */
+  const handleToggleAmsDrying = async (start: boolean, override?: { hours: number; temp: number }): Promise<boolean> => {
+    const dryHours = override?.hours ?? amsDryHours;
+    const dryTemp = override?.temp ?? amsDryTemp;
     setDryLoading(true);
     const nextDrying = {
       isDrying: start,
       startTimestamp: start ? Date.now() : 0,
-      durationHours: start ? amsDryHours : 0,
-      targetTemp: start ? amsDryTemp : 50
+      durationHours: start ? dryHours : 0,
+      targetTemp: start ? dryTemp : 50
     };
 
     const revertDrying = () => {
@@ -191,8 +194,8 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
       const res = await printerApi.amsDrying({
         amsId: 0,
         mode: start ? 1 : 0,
-        duration: amsDryHours,
-        temp: amsDryTemp
+        duration: dryHours,
+        temp: dryTemp
       });
       const data = res.data;
       if (res.ok && data.success) {
@@ -208,28 +211,31 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
             if (sid) {
               const sp = spools.find(s => s.id === sid);
               if (sp) {
-                onApplyDryingCredit?.(sid, amsDryHours, amsDryTemp);
+                onApplyDryingCredit?.(sid, dryHours, dryTemp);
                 credited.push(`${sp.name} (Slot ${slotIdx})`);
               }
             }
           });
           if (credited.length > 0) {
-            addSystemLog('spule', `☀️ AMS Trocknung (${amsDryHours}h @ ${amsDryTemp}°C) automatisch gutgeschrieben auf: ${credited.join(', ')}`, 'AMS Trocknung', 'success');
+            addSystemLog('spule', `☀️ AMS Trocknung (${dryHours}h @ ${dryTemp}°C) automatisch gutgeschrieben auf: ${credited.join(', ')}`, 'AMS Trocknung', 'success');
           } else {
-            addSystemLog('drucker', `AMS Trocknung gestartet (${amsDryHours}h @ ${amsDryTemp}°C)`, 'Bambu AMS', 'info');
+            addSystemLog('drucker', `AMS Trocknung gestartet (${dryHours}h @ ${dryTemp}°C)`, 'Bambu AMS', 'info');
           }
         } else {
           addSystemLog('drucker', 'AMS Trocknung gestoppt', 'Bambu AMS', 'info');
         }
+        return true;
       } else {
         revertDrying();
         addSystemLog('drucker', 'AMS Trocknung nicht bestätigt', String(data?.error || ''), 'error');
         setActionToast({ text: data?.error || 'Trocknung wurde vom Drucker/AMS nicht angenommen. Verbindung und Entwickler-Modus prüfen.', ok: false });
+        return false;
       }
     } catch {
       revertDrying();
       setActionToast({ text: 'Verbindungsfehler: Trocknung nicht gesendet.', ok: false });
-        } finally {
+      return false;
+    } finally {
       setDryLoading(false);
     }
   };

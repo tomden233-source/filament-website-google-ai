@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.105 (Druck-Wächter & Auto-Aus)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.105 im Paket 2.0.105, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.106 (Fehler-Push, Feuchte & Druck-Fotos)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.106 im Paket 2.0.106, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Inhalt
 
@@ -120,6 +120,17 @@ Die App verfolgt jeden Druck, egal ob über Bambu Studio, Bambu Handy, das Druck
 ### Nach dem Druck ausschalten (ab 1.105)
 
 Während ein Druck läuft, steht bei der Drucksteuerung **„Nach Druck aus“** (eingeklappt oben neben „Strom“). Ist der Druck fertig, wartet die App mindestens 1 Minute und bis die Düse unter 60 °C ist (spätestens 20 Minuten), dann schaltet sie die Steckdose über Home Assistant aus und schickt eine Mitteilung. Bei einem fehlgeschlagenen Druck bleibt der Drucker an. Läuft auf jedem Gerät mit offener App (Android: Hintergrund-Dienst an lassen). Strom von Hand ausschalten fragt während eines Drucks jetzt nach.
+
+**Ohne App (ab 1.106):** Beim ersten „Nach Druck aus“ legt die App in Home Assistant die Automation „FilamentHub: Drucker nach Druck aus“ an (`src/utils/haAutoOff.ts`) und schaltet sie nur ein, solange „Nach Druck aus“ gewählt ist. Braucht die Bambu-Lab-Integration (HACS) in Home Assistant und einen Admin-Token. Von Hand: Verbindungen → Home Assistant → „In Home Assistant einrichten“. Ist „Danach trocknen“ gewählt, steuert die App das Ausschalten (erst nach der Trocknung).
+
+### Ab 1.106
+
+- **Druckerfehler:** jede HMS-Meldung und jeder Druckfehler als Klartext aufs Handy (`src/hooks/useHmsAlerts.ts`, Texte in `public/hms_de.json` aus ha-bambulab, MIT-Lizenz).
+- **Spulen-Check beim Start** (`src/utils/printChecks.ts`): reicht das Filament, fehlt ein Material im AMS, passt das Material laut Drucker zur Spule laut App.
+- **Feuchte-Alarm** (`src/hooks/useHumidityAlarm.ts`): AMS-Messwert und externer Sensor (`sensor.filament_ams_box_feuchte`, AHT20 am ESP32). Grenze unter Mitteilungen → Einstellungen.
+- **Trocknen-Vorschlag beim Einlegen** (`src/hooks/useDryAfterPrint.ts`): Spule, die trocknen sollte, kommt ins AMS → Mitteilung + Frage „Nach dem Druck trocknen / Jetzt trocknen“. Die Temperatur passt für alle Spulen im AMS (niedrigste).
+- **Werkstatt → Drucke:** Druck-Verlauf mit Foto vom Ende (Kamera über Home Assistant, Fotos in IndexedDB), Dauer, Verbrauch, Kosten.
+- **Werkstatt → Statistik:** Gramm und Euro pro Woche/Monat/gesamt, letzte 8 Wochen, Lieblingsfarben und Materialien, Ø-Kosten je Druck.
 
 ## QR und NFC öffnen die Spule
 

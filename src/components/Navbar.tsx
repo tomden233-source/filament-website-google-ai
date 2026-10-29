@@ -304,7 +304,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {onOpenWorkshop && (
             <button
               onClick={onOpenWorkshop}
-              title="Werkstatt: Etiketten drucken"
+              title="Werkstatt: Drucke, Statistik, Etiketten"
               className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer"
               style={{
                 backgroundColor: 'var(--app-card-sub)',

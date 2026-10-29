@@ -99,6 +99,8 @@ export interface PendingDeduct {
   reason?: 'unknown' | 'missed' | 'failed';
   /** Fortschritt beim Abbruch (%) */
   percent?: number;
+  /** Druck im Druck-Verlauf (für Verbrauch und Kosten) */
+  printId?: string;
   /** Vorschlag je Spule (aus Druckdatei oder gemerktem Gewicht) */
   parts?: { spoolId: string; grams: number }[];
 }

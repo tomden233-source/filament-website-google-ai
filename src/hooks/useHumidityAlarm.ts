@@ -1,0 +1,171 @@
+import { useEffect, useRef } from 'react';
+import type { Spool } from '../types/filament';
+import { raiseAlert } from '../utils/alerts';
+import { getHaCredentials } from '../utils/haClient';
+import { amsHumidityPercent, setHumidity } from '../utils/humidity';
+import { spoolInSlot } from '../utils/printAlerts';
+import { safeStorage } from '../utils/safeStorage';
+import { useWorkshopSettings } from '../utils/workshopSettings';
+
+// Feuchte-Alarm: AMS (Messwert vom Drucker) und optional ein externer Sensor über Home Assistant
+// (z. B. AHT20 am ESP32 des NFC-Lesers, siehe hardware/ams-nfc). Über der Grenze → Mitteilung.
+//  - Wert muss 5 Minuten über der Grenze liegen (kurze Spitzen zählen nicht)
+//  - danach erst wieder, wenn er 3 % unter die Grenze fiel, oder nach 12 Stunden
+//  - während die AMS-Trocknung läuft, kein Alarm fürs AMS
+
+interface Params {
+  amsUnit: any;
+  printerConnected: boolean;
+  drying: boolean;
+  spools: Spool[];
+}
+
+type Source = 'ams' | 'external';
+interface AlarmState {
+  highSince: number | null;
+  alertedAt: number;
+  armed: boolean;
+}
+
+const KEY = 'filamenthub_humidity_alarm_v1';
+const HOLD_MS = 5 * 60_000;
+const REPEAT_MS = 12 * 3600_000;
+const POLL_MS = 120_000;
+
+function readState(): Record<Source, AlarmState> {
+  const empty = (): AlarmState => ({ highSince: null, alertedAt: 0, armed: true });
+  try {
+    const v = JSON.parse(safeStorage.getItem(KEY) || '{}');
+    return { ams: { ...empty(), ...(v.ams || {}) }, external: { ...empty(), ...(v.external || {}) } };
+  } catch {
+    return { ams: empty(), external: empty() };
+  }
+}
+
+function saveState(s: Record<Source, AlarmState>): void {
+  safeStorage.setItem(KEY, JSON.stringify(s));
+}
+
+export function useHumidityAlarm(p: Params) {
+  const [settings] = useWorkshopSettings();
+  const latest = useRef(p);
+  latest.current = p;
+
+  const check = (source: Source, value: number | null) => {
+    if (value === null || !Number.isFinite(value)) return;
+    const s = readState();
+    const st = s[source];
+    const max = settings.humidityMax;
+    const now = Date.now();
+    if (value <= max - 3) {
+      st.armed = true;
+      st.highSince = null;
+    } else if (value > max) {
+      if (st.highSince === null) st.highSince = now;
+      const repeat = now - st.alertedAt > REPEAT_MS;
+      if (now - st.highSince >= HOLD_MS && (st.armed || repeat)) {
+        st.armed = false;
+        st.alertedAt = now;
+        const where = source === 'ams' ? 'AMS' : 'Lager-Sensor';
+        const text = `${where}: ${Math.round(value)} % Luftfeuchte (Grenze ${max} %). Trocknen empfohlen.`;
+        const items: { title: string; sub?: string; color?: string }[] = [];
+        if (source === 'ams') {
+          [1, 2, 3, 4].forEach(slot => {
+            const sp = spoolInSlot(slot, latest.current.spools);
+            if (sp) items.push({ title: `${sp.brand} ${sp.name}`, sub: `Slot ${slot} · ${sp.material}`, color: sp.colorHex });
+          });
+        }
+        void raiseAlert({
+          kind: 'humidity',
+          key: `humidity-${source}-${now}`,
+          title: 'Feuchte zu hoch',
+          text,
+          toast: `💧 ${text}`,
+          facts: [
+            { label: 'Ort', value: where },
+            { label: 'Gemessen', value: `${Math.round(value)} %` },
+            { label: 'Grenze', value: `${max} %` }
+          ],
+          items: items.length ? items : undefined
+        });
+      }
+    } else {
+      st.highSince = null; // zwischen Grenze-3 und Grenze: weder Alarm noch neu scharf
+    }
+    saveState(s);
+  };
+
+  // AMS-Wert vom Drucker
+  const amsValue = p.printerConnected ? amsHumidityPercent(p.amsUnit) : null;
+  const amsTemp = p.printerConnected && p.amsUnit?.temp !== undefined ? Number(p.amsUnit.temp) : null;
+  useEffect(() => {
+    setHumidity({ ams: amsValue === null ? null : { value: amsValue, temp: Number.isFinite(amsTemp) ? amsTemp : null, at: Date.now() } });
+    if (!settings.alertHumidity || p.drying) return;
+    check('ams', amsValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amsValue, amsTemp, settings.alertHumidity, settings.humidityMax, p.drying]);
+
+  // Gleichbleibender Wert: trotzdem regelmäßig prüfen (für die 5-Minuten-Regel)
+  const amsRef = useRef(amsValue);
+  amsRef.current = amsValue;
+  useEffect(() => {
+    if (!settings.alertHumidity) return;
+    const id = setInterval(() => {
+      if (!latest.current.drying) check('ams', amsRef.current);
+    }, 60_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.alertHumidity, settings.humidityMax]);
+
+  // Externer Sensor über Home Assistant (alle 2 Minuten)
+  useEffect(() => {
+    const entity = settings.humidityEntity;
+    if (!entity) {
+      setHumidity({ external: null });
+      return;
+    }
+    let stop = false;
+    const tempEntity = entity.includes('feuchte') ? entity.replace('feuchte', 'temperatur') : entity.includes('humidity') ? entity.replace('humidity', 'temperature') : '';
+    const poll = async () => {
+      const { url, token } = getHaCredentials();
+      if (!token) return;
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+        const res = await fetch(`${url}/api/states/${entity}`, { headers, signal: AbortSignal.timeout(8000) });
+        if (stop) return;
+        if (res.status === 404) {
+          setHumidity({ external: { value: null, at: Date.now(), error: 'Sensor nicht in Home Assistant gefunden' } });
+          return;
+        }
+        if (!res.ok) return;
+        const st = await res.json();
+        const value = Number(st?.state);
+        let temp: number | null = null;
+        if (tempEntity) {
+          try {
+            const r2 = await fetch(`${url}/api/states/${tempEntity}`, { headers, signal: AbortSignal.timeout(8000) });
+            if (r2.ok) {
+              const t = Number((await r2.json())?.state);
+              temp = Number.isFinite(t) ? t : null;
+            }
+          } catch {
+            /* Temperatur ist nur Zusatz */
+          }
+        }
+        if (stop) return;
+        const ok = Number.isFinite(value);
+        setHumidity({ external: { value: ok ? value : null, temp, at: Date.now(), error: ok ? undefined : 'Sensor meldet keinen Wert' } });
+        if (ok && settings.alertHumidity) check('external', value);
+      } catch {
+        /* Home Assistant gerade nicht erreichbar */
+      }
+    };
+    void poll();
+    const id = setInterval(() => void poll(), POLL_MS);
+    return () => {
+      stop = true;
+      clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.humidityEntity, settings.alertHumidity, settings.humidityMax]);
+}

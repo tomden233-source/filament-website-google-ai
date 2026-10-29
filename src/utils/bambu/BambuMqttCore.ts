@@ -73,6 +73,10 @@ export interface BambuPrinterData {
   ams: any;
   vt_tray: any;
   lights_report: any;
+  /** Aktuelle HMS-Meldungen des Druckers ([{ attr, code }]) */
+  hms: { attr: number; code: number }[];
+  /** Fehlercode des Druckauftrags (0 = keiner) */
+  print_error: number;
 }
 
 export interface BambuPrinterStatusResponse {
@@ -157,7 +161,9 @@ export abstract class BambuMqttCore {
     // Kein Demo-AMS: ohne Verbindung gibt es keine Slot-Daten (sonst falsche Farben)
     ams: null,
     vt_tray: null,
-    lights_report: null
+    lights_report: null,
+    hms: [],
+    print_error: 0
   };
 
   // Zu häufige pushall-Anfragen kann Bambu drosseln oder mit Trennung bestrafen. Der Drucker meldet Änderungen selbst,
@@ -841,7 +847,13 @@ export abstract class BambuMqttCore {
     if (delta.command === 'ams_filament_drying') {
       this.dryCmdResult = { result: String(delta.result ?? '').toLowerCase(), reason: String(delta.reason ?? ''), at: Date.now() };
     }
-    if (Array.isArray(delta.hms)) this.lastHms = delta.hms;
+    if (Array.isArray(delta.hms)) {
+      this.lastHms = delta.hms;
+      this.printData.hms = delta.hms
+        .map((h: any) => ({ attr: Number(h?.attr) || 0, code: Number(h?.code) || 0 }))
+        .filter((h: { attr: number; code: number }) => h.attr > 0 || h.code > 0);
+    }
+    if (delta.print_error !== undefined && delta.print_error !== null) this.printData.print_error = Number(delta.print_error) || 0;
     // HMS 0500-0500-0001-0007 = „MQTT command verification failed": Bambu lehnt unsignierte Fremd-Befehle ab
     if (Array.isArray(delta.hms)) {
       this.hmsBlocked = delta.hms.some((h: any) => Number(h?.attr) === 0x05000500 && Number(h?.code) === 0x00010007);
@@ -1049,7 +1061,9 @@ export abstract class BambuMqttCore {
       spd_mag: 100,
       ams: null,
       vt_tray: null,
-      lights_report: null
+      lights_report: null,
+      hms: [],
+      print_error: 0
     };
     this.lastUpdated = new Date().toISOString();
   }

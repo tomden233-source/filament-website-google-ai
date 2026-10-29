@@ -48,6 +48,15 @@ import { useAutoPowerOff } from '../hooks/useAutoPowerOff';
 import { armAutoOff, disarmAutoOff } from '../utils/autoPowerOff';
 import { alertPrintEnd, alertPrintStart } from '../utils/printAlerts';
 import { ACTIVE_STATES } from '../utils/printSession';
+import { checkPrintStart } from '../utils/printChecks';
+import { getWorkshopSettings } from '../utils/workshopSettings';
+import { useHmsAlerts } from '../hooks/useHmsAlerts';
+import { useHumidityAlarm } from '../hooks/useHumidityAlarm';
+import { useDryAfterPrint } from '../hooks/useDryAfterPrint';
+import { DrySuggestSheet } from './bambu/DrySuggestSheet';
+import { armDryPlan, disarmDryPlan, dryPlanFor, needsDryingNow } from '../utils/dryAfterPrint';
+import { setHaAutoOff } from '../utils/haAutoOff';
+import { addPrintRecord, addPrintUsage, capturePrintPhoto } from '../utils/printLog';
 import { useAmsNfcReaders } from '../hooks/useAmsNfcReaders';
 import { LanDeductPrompt } from './bambu/LanDeductPrompt';
 import type { PendingDeduct } from '../utils/printUsage';
@@ -177,16 +186,27 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
   // LAN-Modus: kein Cloud-Auftrag mit Gewicht → gemerktes Gewicht je Auftrag oder kurze Frage nach dem Druck
   const [pendingDeduct, setPendingDeduct] = useState<PendingDeduct | null>(null);
+  // Abziehen und im Druck-Verlauf dem Druck zuordnen (Verbrauch, Kosten)
+  const spoolsRef = useRef(spools);
+  spoolsRef.current = spools;
+  const deductForPrint = (printId: string | undefined, spoolId: string, grams: number) => {
+    addPrintUsage(printId, spoolsRef.current.find(s => s.id === spoolId), grams);
+    onDeductWeight(spoolId, grams);
+  };
   const lanDeduct = useLanDeduct({
     enabled: Boolean(liveState.lanMode),
     ams: liveState.data.ams,
     vtTray: liveState.data.vt_tray,
     amsSlots,
     spools,
-    onDeductWeight,
+    onDeductForPrint: deductForPrint,
     notify: setActionToast,
     onPending: setPendingDeduct
   });
+
+  // Aktuelle Daten für verzögerte Prüfungen (Spulen-Check kurz nach dem Start)
+  const liveRef = useRef({ liveState, amsSlots });
+  liveRef.current = { liveState, amsSlots };
 
   // Jeden Druck verfolgen, egal wo gestartet (Studio, Handy, Display). Auch Start/Ende, während die App zu war.
   const printToast = (text: string) => setActionToast({ text, ok: true });
@@ -197,7 +217,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     startTime: liveState.data.gcode_start_time,
     percent: Number(liveState.data.mc_percent) || 0,
     ams: liveState.data.ams,
-    onStart: session =>
+    onStart: session => {
       alertPrintStart(session, {
         spools,
         activeSlot: activeSlotFromPrinter(liveState.data.ams),
@@ -205,11 +225,44 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
         remainingMin: Number(liveState.data.mc_remaining_time) || 0,
         etaText: liveState.formatted.etaClockStr,
         showToast: printToast
-      }),
+      });
+      // Spulen- und Material-Check: beim Start kurz warten, bis der Drucker den aktiven Slot meldet
+      if (getWorkshopSettings().alertPrintCheck) {
+        setTimeout(
+          () => {
+            const { liveState: ls, amsSlots: slots } = liveRef.current;
+            void checkPrintStart(session, { spools: spoolsRef.current, amsSlots: slots, ams: ls.data.ams, vtTray: ls.data.vt_tray, percent: Number(ls.data.mc_percent) || 0, showToast: printToast });
+          },
+          session.midway ? 3000 : 90_000
+        );
+      }
+    },
     onEnd: (session, info) => {
+      const end = Date.now();
+      const begin = session.startMs || (session.midway ? 0 : session.seenAt);
+      addPrintRecord({
+        id: session.id,
+        name: session.name || 'Druckauftrag',
+        startMs: begin,
+        endMs: end,
+        state: info.state,
+        missed: info.missed,
+        percent: info.state === 'FINISH' ? 100 : Math.round(session.lastPercent || 0),
+        durationMin: begin && !info.missed ? Math.round((end - begin) / 60000) : 0
+      });
+      void capturePrintPhoto(session.id);
       alertPrintEnd(session, info, { spools, showToast: printToast });
       lanDeduct.handleEnd(session, info);
     }
+  });
+
+  // Fehler des Druckers (HMS) als Klartext aufs Handy
+  useHmsAlerts({
+    connected: Boolean(liveState.connected && liveState.receivingData !== false),
+    hms: liveState.data.hms,
+    printError: liveState.data.print_error,
+    jobName: liveState.data.subtask_name,
+    showToast: (text: string) => setActionToast({ text, ok: false })
   });
 
   // „Neu verbinden"
@@ -231,7 +284,37 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
   // „Nach dem Druck ausschalten“ (Steckdose über Home Assistant, wenn fertig und Düse abgekühlt)
   const printActive = Boolean(liveState.connected && liveState.receivingData !== false && ACTIVE_STATES.has(liveState.data.gcode_state));
+  const dryLeftNow = liveState.connected ? Number(liveState.data.ams?.ams?.[0]?.dry_time) || 0 : 0;
+
+  // Trocknen-Vorschlag beim Einlegen + „Nach Druck trocknen“
+  const dryAfter = useDryAfterPrint({
+    connected: Boolean(liveState.connected && liveState.receivingData !== false),
+    gcodeState: liveState.data.gcode_state,
+    amsSlots,
+    spools,
+    startDrying: o => handleToggleAmsDrying(true, o),
+    notify: setActionToast
+  });
+  const amsSpools = () => [1, 2, 3, 4].map(sl => spools.find(s => s.id === amsSlots[sl])).filter(Boolean) as Spool[];
+  const handleToggleDryAfter = () => {
+    if (dryAfter.plan.armed) {
+      disarmDryPlan();
+      setActionToast({ text: 'Keine Trocknung nach dem Druck.', ok: true });
+      return;
+    }
+    const inAms = amsSpools();
+    if (!inAms.length) {
+      setActionToast({ text: 'Erst Spulen den AMS-Slots zuordnen.', ok: false });
+      return;
+    }
+    const due = inAms.filter(needsDryingNow);
+    const plan = dryPlanFor(due.length ? due : inAms, inAms);
+    armDryPlan({ ...plan, spoolIds: (due.length ? due : inAms).map(s => s.id) }, printActive);
+    setActionToast({ text: `Nach dem Druck wird getrocknet (${plan.temp} °C, ${plan.hours} h).`, ok: true });
+  };
+
   const autoOff = useAutoPowerOff({
+    hold: dryAfter.plan.armed || dryLeftNow > 0,
     connected: Boolean(liveState.connected && liveState.receivingData !== false),
     gcodeState: liveState.data.gcode_state,
     jobName: liveState.data.subtask_name,
@@ -252,9 +335,28 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       return;
     }
     armAutoOff(liveState.data.subtask_name || '');
-    setActionToast({ text: 'Drucker wird nach dem Druck ausgeschaltet (sobald die Düse abgekühlt ist).', ok: true });
+    setActionToast({
+      text: dryAfter.plan.armed ? 'Drucker geht nach dem Druck und der Trocknung aus.' : 'Drucker wird nach dem Druck ausgeschaltet (sobald die Düse abgekühlt ist).',
+      ok: true
+    });
     addSystemLog('steckdose', 'Auto-Aus nach Druck gewählt', liveState.data.subtask_name || '', 'info');
   };
+  // Auto-Aus auch ohne offene App: Automation in Home Assistant an, solange gewählt (nicht bei geplanter Trocknung,
+  // die steuert die App, damit der Strom erst nach dem Trocknen ausgeht)
+  const haAutoOffWanted = autoOff.armed && !dryAfter.plan.armed;
+  useEffect(() => {
+    if (!haSwitchState.configured) return;
+    void setHaAutoOff(haAutoOffWanted);
+  }, [haAutoOffWanted, haSwitchState.configured]);
+
+  // Feuchte-Alarm (AMS + externer Sensor)
+  useHumidityAlarm({
+    amsUnit: liveState.data.ams?.ams?.[0],
+    printerConnected: Boolean(liveState.connected && liveState.receivingData !== false),
+    drying: dryLeftNow > 0,
+    spools
+  });
+
   // Strom während eines Drucks nur mit Rückfrage ausschalten
   const handleToggleSwitch = () => {
     if (haSwitchState.state === 'on' && printActive && !window.confirm('Es läuft gerade ein Druck! Strom wirklich ausschalten? Der Druck wäre dann verloren.')) return;
@@ -990,7 +1092,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {isExpanded && isCameraOpen && <PrinterCameraPanel setCameraSnapshotKey={setCameraSnapshotKey} handleToggleLight={handleToggleLight} isLightOn={isLightOn} isSocketOff={isSocketOff} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} cameraSource={cameraSource} haCameraBlobUrl={haCameraBlobUrl} haCreds={haCreds} cameraSnapshotKey={cameraSnapshotKey} printerLocalIp={printerLocalIp} haSwitchState={haSwitchState} />}
 
       {/* AUSGEKLAPPTE VOLLANSICHT */}
-      {isExpanded && <PrinterExpandedPanel compact={compact} isSocketOff={isSocketOff} haCreds={haCreds} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} isPrinterPowerOff={isPrinterPowerOff} isPrinterConnected={isPrinterAlive} liveState={liveState} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} inlineNozzle1Temp={inlineNozzle1Temp} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} isPrinting={isPrinting} handleSendCommand={handleSendCommand} setShowStopPinModal={setShowStopPinModal} setAmsSlots={setAmsSlots} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlotNfc} nfcInfo={nfcInfo} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} printActive={printActive} autoOffArmed={autoOff.armed} onToggleAutoOff={handleToggleAutoOff} />}
+      {isExpanded && <PrinterExpandedPanel compact={compact} isSocketOff={isSocketOff} haCreds={haCreds} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} isPrinterPowerOff={isPrinterPowerOff} isPrinterConnected={isPrinterAlive} liveState={liveState} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} inlineNozzle1Temp={inlineNozzle1Temp} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} isPrinting={isPrinting} handleSendCommand={handleSendCommand} setShowStopPinModal={setShowStopPinModal} setAmsSlots={setAmsSlots} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlotNfc} nfcInfo={nfcInfo} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} printActive={printActive} autoOffArmed={autoOff.armed} onToggleAutoOff={handleToggleAutoOff} dryAfterArmed={dryAfter.plan.armed} onToggleDryAfter={handleToggleDryAfter} />}
 
       {/* MODAL 1: TEMPERATUR ANPASSEN BEI KLICK AUF HOTEND ODER BETT */}
       {tempModalTarget && <TemperatureModal setTempModalTarget={setTempModalTarget} tempModalTarget={tempModalTarget} setTempModalValue={setTempModalValue} tempModalValue={tempModalValue} handleSetTemperature={handleSetTemperature} actionLoading={actionLoading} />}
@@ -1094,7 +1196,23 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
       {/* ZERO LAYOUT SHIFT: Floating Fixed Toast am Bildschirmrand */}
       {pendingDeduct && (
-        <LanDeductPrompt pending={pendingDeduct} spools={spools} onDeduct={onDeductWeight} onClose={() => setPendingDeduct(null)} />
+        <LanDeductPrompt pending={pendingDeduct} spools={spools} onDeduct={(sid, g) => deductForPrint(pendingDeduct.printId, sid, g)} onClose={() => setPendingDeduct(null)} />
+      )}
+      {dryAfter.offer && (
+        <DrySuggestSheet
+          offer={dryAfter.offer}
+          printRunning={printActive}
+          onAfterPrint={o => {
+            armDryPlan({ ...o, spoolIds: dryAfter.offer!.spools.map(x => x.id) }, printActive);
+            setActionToast({ text: `Nach dem Druck wird getrocknet (${o.temp} °C, ${o.hours} h).`, ok: true });
+            dryAfter.closeOffer();
+          }}
+          onNow={o => {
+            dryAfter.closeOffer();
+            void handleToggleAmsDrying(true, o);
+          }}
+          onClose={dryAfter.closeOffer}
+        />
       )}
       {actionToast && (
         <div

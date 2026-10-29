@@ -7,7 +7,7 @@ import { useWorkshopSettings } from '../utils/workshopSettings';
 /** Android-App: Hintergrund-Dienst läuft, solange ein Drucker eingerichtet ist und der Schalter in den Mitteilungs-Einstellungen an ist. */
 export function useKeepAlive(): void {
   const [settings] = useWorkshopSettings();
-  const anyAlert = settings.alertPrintStart || settings.alertPrintDone || settings.alertPrintFail || settings.alertDryDone || settings.alertDryStop;
+  const anyAlert = settings.alertErrors || settings.alertHumidity || settings.alertPrintStart || settings.alertPrintDone || settings.alertPrintFail || settings.alertDryDone || settings.alertDryStop;
   const want = settings.keepAlive && anyAlert && settings.systemPush;
   useEffect(() => {
     if (!IS_NATIVE) return;
