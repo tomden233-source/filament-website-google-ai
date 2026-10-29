@@ -24,7 +24,7 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
 
   const [amsEditMaxTemp, setAmsEditMaxTemp] = useState<number>(240);
 
-  const [amsDryHours, setAmsDryHours] = useState<number>(4);
+  const [amsDryHours, setAmsDryHours] = useState<number>(6);
 
   const [amsDryTemp, setAmsDryTemp] = useState<number>(50);
 

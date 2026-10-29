@@ -1101,5 +1101,19 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.81',
+    label: '1.81 (Trocknung eine Zeile)',
+    releaseDate: '29.10.2026',
+    description: 'Trocknungs-Auswahl in einer einzigen Zeile: 6h 8h 12h 24h und 45° 50° 60° 65°.',
+    features: [
+      '↔️ Eine Zeile: Dauer (6h, 8h, 12h, 24h) und Temperatur (45°, 50°, 60°, 65°) nebeneinander',
+      '🎯 Standard jetzt 6h bei 50°, Zeile „Gewählt“ darunter bleibt',
+      '🔢 Aktualisierte Zahlen-FunFacts: 54 Commits und 81 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

@@ -261,50 +261,41 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                    Dauer:
-                  </span>
-                  {[1, 2, 4, 6, 8, 12, 16, 24].map(hrs => (
+                <div className="flex items-center gap-1 flex-nowrap w-full">
+                  {[6, 8, 12, 24].map(hrs => (
                     <button
                       key={hrs}
                       onClick={() => setAmsDryHours(hrs)}
-                      className={`px-2 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
+                      className={`flex-1 min-w-0 px-1 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
                         amsDryHours === hrs ? 'bg-sky-500/25 border-sky-400 text-sky-300' : 'border-[var(--app-border)] text-[var(--app-text-muted)]'
                       }`}
                     >
-                      {hrs} h
+                      {hrs}h
                     </button>
                   ))}
-
-                  <span className="text-[11px] ml-2" style={{ color: 'var(--app-text-muted)' }}>
-                    Temperatur:
-                  </span>
+                  <span className="w-px h-5 mx-0.5 shrink-0" style={{ backgroundColor: 'var(--app-border)' }} />
                   {[
-                    { label: '45°', val: 45, hint: 'TPU' },
-                    { label: '50°', val: 50, hint: 'PLA' },
-                    { label: '55°', val: 55, hint: 'PLA+/Seide' },
-                    { label: '60°', val: 60, hint: 'PETG' },
-                    { label: '65°', val: 65, hint: 'PETG/ABS' },
-                    { label: '70°', val: 70, hint: 'ABS/ASA (nur AMS HT)' },
-                    { label: '80°', val: 80, hint: 'PA/PC (nur AMS HT)' }
+                    { val: 45, hint: 'TPU' },
+                    { val: 50, hint: 'PLA' },
+                    { val: 60, hint: 'PETG' },
+                    { val: 65, hint: 'PETG/ABS' }
                   ].map(t => (
                     <button
                       key={t.val}
                       onClick={() => setAmsDryTemp(t.val)}
                       title={t.hint}
-                      className={`px-2 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
+                      className={`flex-1 min-w-0 px-1 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
                         amsDryTemp === t.val ? 'bg-amber-500/25 border-amber-400 text-amber-300' : 'border-[var(--app-border)] text-[var(--app-text-muted)]'
                       }`}
                     >
-                      {t.label}
+                      {t.val}°
                     </button>
                   ))}
                 </div>
 
                 <div className="w-full text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
                   Gewählt: {amsDryHours} h bei {amsDryTemp}°C ·{' '}
-                  {({ 45: 'TPU', 50: 'PLA', 55: 'PLA+/Seide', 60: 'PETG', 65: 'PETG/ABS', 70: 'ABS/ASA, nur AMS HT', 80: 'PA/PC, nur AMS HT' } as Record<number, string>)[amsDryTemp] || ''}
+                  {({ 45: 'TPU', 50: 'PLA', 60: 'PETG', 65: 'PETG/ABS' } as Record<number, string>)[amsDryTemp] || ''}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
