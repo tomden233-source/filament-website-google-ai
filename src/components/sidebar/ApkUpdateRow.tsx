@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, ChevronRight } from 'lucide-react';
 import { APK_URL, IS_NATIVE, APP_VERSION } from '../../utils/env';
 import { installApkInApp } from '../../utils/liveUpdate';
 
@@ -27,20 +27,28 @@ export const ApkUpdateRow: React.FC = () => {
   };
 
   return (
-    <div className="px-1.5 pb-1.5 space-y-1">
+    <div className="px-3 pt-2.5 pb-0 shrink-0" style={{ backgroundColor: 'var(--app-card-sub)' }}>
       <button
         type="button"
         onClick={run}
         disabled={busy}
-        className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-extrabold text-xs shadow flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.98] transition"
+        className="w-full rounded-2xl border px-3 py-2 flex items-center gap-3 text-left cursor-pointer disabled:opacity-60 active:scale-[0.99] transition"
+        style={{ backgroundColor: 'var(--app-accent-sub)', borderColor: 'var(--app-accent)', color: 'var(--app-text)' }}
       >
-        <Download className="w-4 h-4" />
-        <span>{busy ? 'Lade …' : 'Neueste APK herunterladen'}</span>
-        <span className="text-[10px] font-mono-num opacity-80">(jetzt v{APP_VERSION})</span>
+        <span
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white shadow"
+          style={{ backgroundImage: 'var(--app-accent-gradient)' }}
+        >
+          <Download className={`w-5 h-5 ${busy ? 'animate-bounce' : ''}`} />
+        </span>
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block text-xs font-extrabold">{busy ? 'Lade neueste App …' : 'App-Update holen'}</span>
+          <span className="block text-[10px] truncate" style={{ color: 'var(--app-text-muted)' }}>
+            {note || `Installiert: v${APP_VERSION} · Auto-Updates bleiben an`}
+          </span>
+        </span>
+        <ChevronRight className="w-4 h-4 shrink-0 opacity-60" />
       </button>
-      <p className="text-[10px] text-center leading-tight" style={{ color: 'var(--app-text-muted)' }}>
-        {note || 'Automatische Updates bleiben an. Dieser Knopf holt zusätzlich die komplette App (Logo, neue Android-Funktionen).'}
-      </p>
     </div>
   );
 };

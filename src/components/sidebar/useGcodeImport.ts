@@ -25,20 +25,22 @@ export function useGcodeImport({ setCalcGrams, setCalcPrintHours, setHaActionToa
     try {
       const res = await printerApi.bambuStatus();
       const data = res.data;
-      if (data && data.success) {
-        const fileName = data.printName || data.subtask_name || 'FilamentHub_X2D.gcode';
-        const weightGrams = data.printGrams || 42;
-        const timeHours = data.totalSeconds ? Number((data.totalSeconds / 3600).toFixed(1)) : 2.5;
-        setGcodeData({
-          fileName,
-          weightGrams,
-          timeHours,
-          material: 'PLA'
-        });
-        setCalcGrams(weightGrams);
-        setCalcPrintHours(timeHours);
-        setHaActionToast(`G-Code "${fileName}" (${weightGrams}g) vom X2D geladen!`);
-        addSystemLog('drucker', `G-Code "${fileName}" (${weightGrams}g, ${timeHours}h) vom X2D in Rechner übernommen`, 'Auto-Sync', 'info');
+      const fileName = data?.printName || data?.subtask_name || '';
+      if (data && data.success && fileName) {
+        const weightGrams = Number(data.printGrams) > 0 ? Number(data.printGrams) : 0;
+        // totalSeconds ist beim Drucker nur die Restzeit, keine Gesamtzeit
+        const timeHours = Number(data.totalSeconds) > 0 ? Number(((data.totalSeconds as number) / 3600).toFixed(1)) : 0;
+        setGcodeData({ fileName, weightGrams, timeHours, material: 'PLA' });
+        if (weightGrams > 0) setCalcGrams(weightGrams);
+        if (timeHours > 0) setCalcPrintHours(timeHours);
+        setHaActionToast(
+          weightGrams > 0
+            ? `G-Code "${fileName}" (${weightGrams}g) vom X2D geladen!`
+            : `Name "${fileName}" geholt. Das Gewicht meldet der Drucker nicht: bitte die .gcode-Datei hochladen.`
+        );
+        addSystemLog('drucker', `Druckdatei "${fileName}" vom X2D übernommen`, weightGrams > 0 ? `${weightGrams} g` : 'ohne Gewicht', 'info');
+      } else {
+        setHaActionToast('Der Drucker meldet gerade keine Druckdatei.');
       }
     } catch {
       setHaActionToast('Konnte Druckdatei nicht vom X2D abrufen.');

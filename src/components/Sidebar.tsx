@@ -556,7 +556,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             borderColor: 'var(--app-border)'
           }}
         >
-          <ApkUpdateRow />
           <div
             className="grid gap-1"
             style={{ gridTemplateColumns: `repeat(${isAppShell() ? 4 : 5}, minmax(0, 1fr))` }}
@@ -786,6 +785,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {activeTab === 'tools' && <ToolsTab onSyncCloud={onSyncCloud} onExportBackup={onExportBackup} onImportBackup={onImportBackup} onRestoreDefaultSpools={onRestoreDefaultSpools} />}
         </div>
 
+        <ApkUpdateRow />
         {/* Drawer Footer */}
         <div
           className="p-3 border-t flex items-center justify-between text-xs shrink-0 transition-colors"

@@ -84,6 +84,19 @@ export const NoticesTab: React.FC<{ extra?: React.ReactNode }> = ({ extra }) => 
 
       <Card>
         <div className="flex items-center gap-2 text-xs font-extrabold">
+          <BellRing className="w-4 h-4 text-emerald-400" />
+          <span>Druck-Meldung</span>
+        </div>
+        <Toggle
+          on={s.finishAlert}
+          onChange={v => update({ finishAlert: v })}
+          label="Melden, wenn ein Druck fertig ist oder fehlschlägt"
+          hint="Kommt, solange die App läuft oder im Hintergrund offen ist und mit dem Drucker verbunden bleibt."
+        />
+      </Card>
+
+      <Card>
+        <div className="flex items-center gap-2 text-xs font-extrabold">
           <Droplets className="w-4 h-4 text-sky-400" />
           <span>Trocknungs-Erinnerung</span>
         </div>
@@ -91,7 +104,7 @@ export const NoticesTab: React.FC<{ extra?: React.ReactNode }> = ({ extra }) => 
           on={s.dryReminder}
           onChange={v => update({ dryReminder: v })}
           label="Erinnern, wenn Trocknen fällig ist"
-          hint="Einmal pro Tag und Spule. Meldet auch, wenn die AMS-Trocknung fertig ist. PETG, TPU und Nylon haben einen Feuchte-Hinweis auf der Karte."
+          hint="Einmal pro Tag und Spule. Meldet auch, wenn der Drucker das Ende der AMS-Trocknung meldet. PETG, TPU und Nylon haben einen Feuchte-Hinweis auf der Karte."
         />
       </Card>
 

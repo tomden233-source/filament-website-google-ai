@@ -1177,5 +1177,22 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.86',
+    label: '1.86 (Meldungen & Aufräumen)',
+    releaseDate: '29.10.2026',
+    description: 'Handy-Meldungen bei Druck fertig, Trocknung fertig und Trocknen nötig. Der APK-Knopf sitzt jetzt schön unten im Menü. Tools geprüft und eine Fehlanzeige korrigiert.',
+    features: [
+      '🖨️ Druck fertig oder fehlgeschlagen: Meldung aufs Handy, wenn der Drucker es meldet (Schalter im Meldungen-Tab)',
+      '🔥 Trocknung fertig: Meldung, sobald der Drucker das Ende der AMS-Trocknung meldet (zusätzlich zur Zeit-Erinnerung)',
+      '☀️ Trocknen nötig: Erinnerung pro Spule bleibt aktiv, höchstens einmal am Tag',
+      '📲 APK-Knopf neu gestaltet: schmale Karte „App-Update holen“ unten im Menü, mit Version und Hinweis, dass Auto-Updates an bleiben',
+      '🧰 Tools geprüft: Cloud-Sync, Backup, Zurücksetzen, G-Code-Rechner funktionieren. „Druckdatei vom X2D“ erfindet keine 42 g / 2,5 h mehr, sondern zeigt nur echte Werte',
+      '🔢 Aktualisierte Zahlen-FunFacts: 59 Commits und 86 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

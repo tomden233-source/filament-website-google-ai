@@ -39,6 +39,7 @@ import { PrintUsageModal } from './bambu/PrintUsageModal';
 import { NfcSlotModal } from './bambu/NfcSlotModal';
 import { useAutoDeduct } from './bambu/useAutoDeduct';
 import { readTrays } from '../utils/amsMatch';
+import { usePrinterAlerts } from '../hooks/usePrinterAlerts';
 
 const BambuSettingsModal = lazy(() => import('./BambuSettingsModal').then(m => ({ default: m.BambuSettingsModal })));
 
@@ -457,6 +458,15 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   const dryMinutesLeft = Number(amsUnit0?.dry_time) || 0;
   const dsx = amsUnit0?.dry_setting;
   const isDryingActive = dryMinutesLeft > 0 || (Number(dsx?.dry_duration) > 0 && Number(dsx?.dry_temperature) > 0);
+
+  // Meldungen aufs Handy: Druck fertig/fehlgeschlagen, AMS-Trocknung fertig (laut Drucker)
+  usePrinterAlerts({
+    connected: Boolean(liveState.connected && liveState.receivingData !== false),
+    gcodeState: liveState.data.gcode_state,
+    jobName: liveState.data.subtask_name,
+    dryMinutesLeft,
+    showToast: (text: string) => setActionToast({ text, ok: true })
+  });
 
   const calcRemainingTime = () => {
     if (!isDryingActive) return null;
