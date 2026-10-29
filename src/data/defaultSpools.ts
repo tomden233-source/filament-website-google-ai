@@ -1305,5 +1305,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.94',
+    label: '1.94 (Sync stabiler)',
+    releaseDate: '29.10.2026',
+    description: 'Cloud-Zugriff der Windows-App ist robuster: zweiter Versuch über IPv4, Wiederholung bei kurzen Cloud-Fehlern und genauer Fehlergrund in der Anzeige.',
+    features: [
+      '🔁 Wiederholt automatisch, wenn die Cloud kurz mit einem Serverfehler (5xx) antwortet',
+      '🌐 Zweiter Weg über IPv4, falls das Netzwerk oder der Router Probleme mit dem ersten Weg hat',
+      '🔍 Grund-Zeile zeigt jetzt den echten Fehlertext aus dem Server statt nur die Zahl',
+      '🔢 Aktualisierte Zahlen-FunFacts: 67 Commits und 94 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

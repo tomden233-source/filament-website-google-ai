@@ -134,7 +134,13 @@ export async function syncDevices(cloudUrl: string): Promise<SyncResult> {
   try {
     const res = await cloudFetch(cloudUrl, { cache: 'no-store' });
     if (!res.ok) {
-      lastDetail = `Cloud antwortet mit HTTP ${res.status}.`;
+      let extra = '';
+      try {
+        extra = ((await res.json()) as any)?.error || '';
+      } catch {
+        extra = '';
+      }
+      lastDetail = `Cloud antwortet mit HTTP ${res.status}. ${extra}`.trim();
       return 'error';
     }
     const doc: any = await res.json();
