@@ -1275,5 +1275,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.92',
+    label: '1.92 (Windows-Sync fix)',
+    releaseDate: '29.10.2026',
+    description: 'Geräte-Sync und Cloud-Abgleich funktionieren jetzt auch in der Windows-App. Der Fehler „Failed to fetch“ kam vom Browser-Schutz im Fenster.',
+    features: [
+      '🪟 Windows-App: Cloud-Zugriff läuft über den eingebauten Server, dadurch kein „Failed to fetch“ mehr',
+      '🔒 Sicher begrenzt: Der Server leitet nur Anfragen an api.npoint.io weiter, sonst nichts',
+      '🔄 Gilt für Geräte-Sync (Drucker-Zugang, Einstellungen) und für den Spulen-Abgleich',
+      '🔢 Aktualisierte Zahlen-FunFacts: 65 Commits und 92 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

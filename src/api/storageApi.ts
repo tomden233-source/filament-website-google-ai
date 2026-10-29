@@ -1,4 +1,5 @@
 import { apiGet, apiPost, type ApiBase } from './client';
+import { cloudFetch } from '../utils/cloudFetch';
 
 // Server-Speicher (/api/storage/*) und optionaler Cloud-Sync (externer JSON-Speicher).
 
@@ -24,7 +25,7 @@ export interface CloudPayload {
  */
 export const cloudSync = {
   async load(url: string): Promise<{ ok: boolean; data: CloudPayload | null }> {
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await cloudFetch(url, { cache: 'no-store' });
     if (!res.ok) return { ok: false, data: null };
     return { ok: true, data: (await res.json()) as CloudPayload };
   },
@@ -32,12 +33,12 @@ export const cloudSync = {
     // Bestehende Felder (z. B. verschlüsselter Geräte-Sync „secure“) erhalten, nur Spulen/Verlauf ersetzen
     let existing: Record<string, unknown> = {};
     try {
-      const cur = await fetch(url, { cache: 'no-store' });
+      const cur = await cloudFetch(url, { cache: 'no-store' });
       if (cur.ok) existing = (await cur.json()) || {};
     } catch {
       existing = {};
     }
-    const res = await fetch(url, {
+    const res = await cloudFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...existing, ...payload })

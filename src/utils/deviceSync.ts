@@ -4,6 +4,7 @@
 import { safeStorage } from './safeStorage';
 import { STORAGE_KEY_SETTINGS } from './storageKeys';
 import { printerApi } from '../api/printerApi';
+import { cloudFetch } from './cloudFetch';
 
 const PASS_KEY = 'filamenthub_sync_pass';
 const BASE_HASH_KEY = 'filamenthub_sync_hash';
@@ -131,7 +132,7 @@ export async function syncDevices(cloudUrl: string): Promise<SyncResult> {
   }
   busy = true;
   try {
-    const res = await fetch(cloudUrl, { cache: 'no-store' });
+    const res = await cloudFetch(cloudUrl, { cache: 'no-store' });
     if (!res.ok) {
       lastDetail = `Cloud antwortet mit HTTP ${res.status}.`;
       return 'error';
@@ -154,8 +155,8 @@ export async function syncDevices(cloudUrl: string): Promise<SyncResult> {
     const upload = async () => {
       const enc = await encrypt(JSON.stringify(local), pass);
       // frischen Stand holen, damit Spulen/Verlauf anderer Geräte nicht überschrieben werden
-      const fresh = await fetch(cloudUrl, { cache: 'no-store' }).then(r => (r.ok ? r.json() : doc)).catch(() => doc);
-      const ok = await fetch(cloudUrl, {
+      const fresh = await cloudFetch(cloudUrl, { cache: 'no-store' }).then(r => (r.ok ? r.json() : doc)).catch(() => doc);
+      const ok = await cloudFetch(cloudUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...fresh, secure: { ...enc, at: Date.now() } })
