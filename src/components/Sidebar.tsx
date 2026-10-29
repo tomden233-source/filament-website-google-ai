@@ -33,6 +33,7 @@ import { SettingsPresetsPanel } from './sidebar/SettingsPresetsPanel';
 import { SettingsConnectionsPanel } from './sidebar/SettingsConnectionsPanel';
 import { SettingsHomeAssistantPanel } from './sidebar/SettingsHomeAssistantPanel';
 import { ConnectTab } from './sidebar/ConnectTab';
+import { ApkUpdateRow } from './sidebar/ApkUpdateRow';
 import { AiAgentTab } from './sidebar/AiAgentTab';
 import { GcodeCalcTab } from './sidebar/GcodeCalcTab';
 import { ToolsTab } from './sidebar/ToolsTab';
@@ -555,6 +556,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             borderColor: 'var(--app-border)'
           }}
         >
+          <ApkUpdateRow />
           <div
             className="grid gap-1"
             style={{ gridTemplateColumns: `repeat(${isAppShell() ? 4 : 5}, minmax(0, 1fr))` }}

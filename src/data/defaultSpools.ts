@@ -1146,5 +1146,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.84',
+    label: '1.84 (APK-Knopf im Menü)',
+    releaseDate: '29.10.2026',
+    description: 'Neuer Knopf im Menü: Neueste APK direkt herunterladen und installieren. Die automatischen Updates bleiben wie gehabt.',
+    features: [
+      '⬇️ Knopf „Neueste APK herunterladen“ ganz oben im Menü, in der App und im Browser sichtbar',
+      '📲 In der App lädt sie die APK selbst und öffnet den Android-Installer, im Browser startet der Download',
+      '🔄 Automatische Updates der Oberfläche bleiben unverändert aktiv',
+      '🟢 Löst das alte App-Symbol: neue APK installieren, dann zeigt der Startbildschirm das grüne Logo',
+      '🔢 Aktualisierte Zahlen-FunFacts: 57 Commits und 84 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
