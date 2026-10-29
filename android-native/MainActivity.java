@@ -6,7 +6,8 @@ import com.getcapacitor.BridgeActivity;
 import java.io.File;
 
 // Meldet die eigenen Plugins an: FilamentBars (Systemleisten), FilamentMqtt (Drucker ohne Server),
-// FilamentNfc (NFC-Tags), FilamentBle (Etiketten-Drucker per Bluetooth), FilamentLive (Live-Update der Oberfläche ohne neue APK).
+// FilamentNfc (NFC-Tags), FilamentBle (Etiketten-Drucker per Bluetooth), FilamentLive (Live-Update der Oberfläche ohne neue APK),
+// FilamentNotify (Meldungen aufs Handy).
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -15,6 +16,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(FilamentNfcPlugin.class);
         registerPlugin(FilamentLivePlugin.class);
         registerPlugin(FilamentBlePlugin.class);
+        registerPlugin(FilamentNotifyPlugin.class);
         super.onCreate(savedInstanceState);
         loadLiveBundle();
     }

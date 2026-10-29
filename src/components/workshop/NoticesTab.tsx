@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bell, BellRing, Droplets, PackageMinus } from 'lucide-react';
-import { notifyPermission, localNotify, requestNotifyPermission, type NotifyPermission } from '../../utils/notify';
+import { notifyPermission, localNotify, requestNotifyPermission, refreshNotifyPermission, openNotifySettings, notifyNeedsNewApk, type NotifyPermission } from '../../utils/notify';
 import { useWorkshopSettings } from '../../utils/workshopSettings';
 import { Card, Toggle, buttonStyle, inputStyle } from './ui';
 
@@ -17,6 +17,13 @@ export const NoticesTab: React.FC<{ extra?: React.ReactNode }> = ({ extra }) => 
   const [s, update] = useWorkshopSettings();
   const [perm, setPerm] = useState<NotifyPermission>(notifyPermission());
   const [testInfo, setTestInfo] = useState('');
+  useEffect(() => {
+    const refresh = () => void refreshNotifyPermission().then(setPerm);
+    refresh();
+    // Zurück aus den Android-Einstellungen: Stand neu lesen
+    document.addEventListener('visibilitychange', refresh);
+    return () => document.removeEventListener('visibilitychange', refresh);
+  }, []);
 
   const askPermission = async () => {
     setPerm(await requestNotifyPermission());
@@ -96,6 +103,11 @@ export const NoticesTab: React.FC<{ extra?: React.ReactNode }> = ({ extra }) => 
         <p className="text-[11px] leading-snug" style={{ color: 'var(--app-text-muted)' }}>
           Status: <strong style={{ color: 'var(--app-text)' }}>{PERMISSION_TEXT[perm]}</strong>
         </p>
+        {notifyNeedsNewApk() && (
+          <p className="text-[11px] leading-snug text-amber-400">
+            Deine installierte App ist zu alt für Meldungen. Bitte die neueste APK (ab v1.82) installieren.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           {perm !== 'granted' && perm !== 'unsupported' && (
             <button
@@ -105,6 +117,15 @@ export const NoticesTab: React.FC<{ extra?: React.ReactNode }> = ({ extra }) => 
             >
               <BellRing className="w-3.5 h-3.5 text-orange-400" />
               <span>Erlauben</span>
+            </button>
+          )}
+          {perm !== 'granted' && notifyPermission() !== 'unsupported' && (
+            <button
+              onClick={() => void openNotifySettings()}
+              className="px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer"
+              style={buttonStyle}
+            >
+              Android-Einstellungen öffnen
             </button>
           )}
           {perm === 'granted' && (

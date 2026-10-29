@@ -1115,5 +1115,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.82',
+    label: '1.82 (Meldungen aufs Handy)',
+    releaseDate: '29.10.2026',
+    description: 'Benachrichtigungen funktionieren jetzt in der Android-App. Vorher fehlte die Berechtigung, der Schalter in Android war grau und aus.',
+    features: [
+      '🔔 Berechtigung: Die App fragt Android jetzt nach Meldungen (Android 13+), der Schalter in den Einstellungen lässt sich einschalten',
+      '📲 Echte Handy-Meldungen: Trocknen fällig, Trocknung fertig, Spule fast leer, Test-Meldung',
+      '⚙️ Button „Android-Einstellungen öffnen“, falls Meldungen blockiert sind',
+      '🆕 Neue APK nötig (neue Android-Berechtigung), die App zeigt einen Hinweis, wenn sie noch alt ist',
+      '🔢 Aktualisierte Zahlen-FunFacts: 55 Commits und 82 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
