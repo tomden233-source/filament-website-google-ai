@@ -88,7 +88,7 @@ export const printerApi = {
   }) => apiPost<AmsFilamentResponse>('/api/printer/ams-filament', payload, { timeoutMs: 25000 }),
 
   amsDrying: (payload: { amsId: number; mode: number; duration: number; temp: number }) =>
-    apiPost<ApiBase>('/api/printer/ams-drying', payload, { timeoutMs: 20000 }),
+    apiPost<ApiBase>('/api/printer/ams-drying', payload, { timeoutMs: 40000 }),
 
   extractUser: (accessToken: string, userId: string) =>
     apiPost<ApiBase & { userId?: string }>('/api/printer/extract-user', { accessToken, userId }),

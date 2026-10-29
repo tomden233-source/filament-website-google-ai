@@ -1070,5 +1070,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.79',
+    label: '1.79 (Trocknung Diagnose)',
+    releaseDate: '29.10.2026',
+    description: 'AMS-Trocknung probiert jetzt mehrere Befehlsformen, erkennt die Trocknung auch über dry_setting und zeigt bei Fehlern genau, was der Drucker antwortet.',
+    features: [
+      '🔁 4 Befehlsformen: Die App probiert nacheinander verschiedene Formate (andere AMS-Nummer, mit Filamentart), bis der Drucker die Trocknung zeigt',
+      '👀 Bessere Erkennung: Trocknung zählt, wenn der Drucker dry_time oder dry_setting meldet',
+      '🩺 Diagnose: Bei Fehler steht in der Meldung und im Log die Antwort des Druckers, die AMS-Felder und HMS-Codes',
+      '🔢 Aktualisierte Zahlen-FunFacts: 52 Commits und 79 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

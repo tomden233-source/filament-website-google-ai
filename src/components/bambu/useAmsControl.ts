@@ -216,6 +216,7 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
         }
       } else {
         revertDrying();
+        addSystemLog('drucker', 'AMS Trocknung nicht bestätigt', String(data?.error || ''), 'error');
         setActionToast({ text: data?.error || 'Trocknung wurde vom Drucker/AMS nicht angenommen. Verbindung und Entwickler-Modus prüfen.', ok: false });
       }
     } catch {

@@ -455,10 +455,12 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // Nur was der Drucker selbst meldet (dry_time = Restminuten), keine geschätzten/lokalen Werte
   const amsUnit0 = liveState.connected ? liveState.data.ams?.ams?.[0] : null;
   const dryMinutesLeft = Number(amsUnit0?.dry_time) || 0;
-  const isDryingActive = dryMinutesLeft > 0;
+  const dsx = amsUnit0?.dry_setting;
+  const isDryingActive = dryMinutesLeft > 0 || (Number(dsx?.dry_duration) > 0 && Number(dsx?.dry_temperature) > 0);
 
   const calcRemainingTime = () => {
     if (!isDryingActive) return null;
+    if (dryMinutesLeft <= 0) return null;
     return `${Math.floor(dryMinutesLeft / 60)}h ${dryMinutesLeft % 60}m`;
   };
 

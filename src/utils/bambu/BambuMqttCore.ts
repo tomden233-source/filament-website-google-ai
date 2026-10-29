@@ -130,6 +130,8 @@ export abstract class BambuMqttCore {
   private amsCmdResult: { result: string; reason: string; at: number } | null = null;
   /** Der Drucker meldet „MQTT command verification failed" (Bambu lässt Fremd-Befehle über die Cloud nicht zu) */
   private hmsBlocked = false;
+  private dryCmdResult: { result: string; reason: string; at: number } | null = null;
+  private lastHms: any[] = [];
 
   // Akkumulierter Druckstatus (Delta-Updates werden hinein gemergt)
   private printData: BambuPrinterData = {
@@ -828,6 +830,10 @@ export abstract class BambuMqttCore {
         at: Date.now()
       };
     }
+    if (delta.command === 'ams_filament_drying') {
+      this.dryCmdResult = { result: String(delta.result ?? '').toLowerCase(), reason: String(delta.reason ?? ''), at: Date.now() };
+    }
+    if (Array.isArray(delta.hms)) this.lastHms = delta.hms;
     // HMS 0500-0500-0001-0007 = „MQTT command verification failed": Bambu lehnt unsignierte Fremd-Befehle ab
     if (Array.isArray(delta.hms)) {
       this.hmsBlocked = delta.hms.some((h: any) => Number(h?.attr) === 0x05000500 && Number(h?.code) === 0x00010007);
@@ -1383,6 +1389,10 @@ export abstract class BambuMqttCore {
     return this.hmsBlocked ? 'blocked' : 'unconfirmed';
   }
 
+  private getDryResult() {
+    return this.dryCmdResult;
+  }
+
   /**
    * AMS Trocknung starten oder stoppen
    */
@@ -1395,46 +1405,73 @@ export abstract class BambuMqttCore {
     const duration = params.duration || 4;
     const temp = params.temp || 50;
 
-    // Echte AMS-ID aus dem Drucker-Report nehmen (AMS 2 Pro: 0-3, AMS HT: ab 128). Fest „0“ wurde still ignoriert.
     const unit = () => (Array.isArray(this.printData.ams?.ams) ? this.printData.ams.ams[0] : null);
-    const unitId = unit()?.id !== undefined && unit()?.id !== '' ? Number(unit().id) : params.amsId || 0;
-    const dryTime = () => Number(unit()?.dry_time) || 0; // Restzeit in Minuten laut Drucker
-
+    const idRaw = unit()?.id;
+    const unitId = idRaw !== undefined && idRaw !== '' && Number.isFinite(Number(idRaw)) ? Number(idRaw) : params.amsId || 0;
+    // Trocknet der Drucker? dry_time = Restminuten, dry_setting = eingestellte Werte (je nach Firmware eins von beiden)
+    const isDrying = () => {
+      const u = unit();
+      const ds = u?.dry_setting;
+      return (Number(u?.dry_time) || 0) > 0 || (Number(ds?.dry_duration) > 0 && Number(ds?.dry_temperature) > 0);
+    };
+    const filament = temp >= 60 ? 'PETG' : 'PLA';
     const reqTopic = `device/${this.serialNumber}/request`;
-    // Format laut ha-bambulab (getestet an AMS 2 Pro / AMS HT): Zieltemperatur steht in „temp“, nicht in „cooling_temp“
-    const payload = {
-      print: {
-        sequence_id: '0',
+    const build = (variant: number) => {
+      const base: any = {
+        sequence_id: variant === 0 ? '0' : String(Date.now()),
         command: 'ams_filament_drying',
-        ams_id: unitId,
+        ams_id: variant === 2 ? 0 : unitId,
         mode,
         temp: mode === 1 ? temp : 0,
         cooling_temp: mode === 1 ? 45 : 40,
         duration: mode === 1 ? duration : 0,
         humidity: 0,
         rotate_tray: false
+      };
+      if (variant === 3) {
+        // Variante mit Filamentart (ältere Firmware-Stände) und ohne Slot-Drehung
+        base.filament = filament;
+        base.rotate_tray = true;
       }
+      return { print: base };
     };
 
-    this.client.publish(reqTopic, JSON.stringify(payload));
-    this.schedulePushall(800);
-
-    // Nicht blind „gestartet“ melden: warten, bis der Drucker die Trocknung wirklich im Report zeigt
-    const deadline = Date.now() + 9000;
-    while (Date.now() < deadline) {
-      await new Promise(res => setTimeout(res, 500));
-      const left = dryTime();
-      if (mode === 1 && left > 0) {
-        return { success: true, message: `AMS Trocknung läuft (${duration} Std. bei ${temp}°C, Drucker bestätigt)` };
-      }
-      if (mode === 0 && left === 0) {
-        return { success: true, message: 'AMS Trocknung gestoppt (Drucker bestätigt).' };
+    // Nacheinander verschiedene Befehlsformen probieren, bis der Drucker die Trocknung wirklich meldet
+    this.dryCmdResult = null;
+    let sentVariants = 0;
+    for (let v = 0; v < 4; v++) {
+      if (v === 2 && unitId === 0) continue; // wäre identisch mit Variante 1
+      this.client.publish(reqTopic, JSON.stringify(build(v)));
+      sentVariants++;
+      this.schedulePushall(700);
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        await new Promise(res => setTimeout(res, 500));
+        if (mode === 1 && isDrying()) {
+          return { success: true, message: `AMS Trocknung läuft (${duration} Std. bei ${temp}°C, Drucker bestätigt)` };
+        }
+        if (mode === 0 && !isDrying()) {
+          return { success: true, message: 'AMS Trocknung gestoppt (Drucker bestätigt).' };
+        }
+        if (this.getDryResult()?.result === 'fail') break; // Drucker hat klar abgelehnt: nächste Form probieren
       }
     }
+    // Bei Stopp: war nichts aktiv, ist das auch ok
+    if (mode === 0 && !isDrying()) return { success: true, message: 'AMS Trocknung ist aus.' };
+
+    const u = unit();
+    const r = this.getDryResult();
+    const hms = this.lastHms.slice(0, 3).map((h: any) => `${Number(h?.attr).toString(16)}-${Number(h?.code).toString(16)}`).join(', ');
+    const diag = [
+      `AMS-ID ${unitId}`,
+      `${sentVariants} Befehlsformen gesendet`,
+      r ? `Antwort: ${r.result || '?'} ${r.reason}`.trim() : 'keine Antwort vom Drucker auf den Befehl',
+      u ? `Report: ${Object.keys(u).filter(k => k !== 'tray').join('/')} dry_time=${u.dry_time ?? '–'}` : 'kein AMS im Report',
+      hms ? `HMS ${hms}` : ''
+    ].filter(Boolean).join(' · ');
     return {
       success: false,
-      error:
-        'Der Drucker hat die Trocknung nicht bestätigt. Prüfen: Entwickler-Modus am Drucker an? Trocknung wird nur von AMS 2 Pro / AMS HT unterstützt, und der Drucker darf nicht gerade drucken.'
+      error: `Drucker hat die Trocknung nicht bestätigt. ${diag}`
     };
   }
 
