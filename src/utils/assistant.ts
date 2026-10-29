@@ -3,6 +3,7 @@
 // Rückbezüge („davon“, „die“), Rückfragen bei mehreren Treffern (Antwort mit Nummer) und viele Fragen zum Bestand.
 import type { Spool } from '../types/filament';
 import { getDryingStatus } from './shopLinks';
+import { isSealed, isInEibos } from './spoolState';
 
 export type AssistantAction =
   | { type: 'deduct'; spoolId: string; grams: number }
@@ -31,6 +32,8 @@ export interface AssistantContext {
   lowWeightG: number;
   eibosTara?: number;
   versions: { id: string; label: string }[];
+  /** Android-App: ohne G-Code-Rechner und Backup */
+  noGcode?: boolean;
 }
 
 const norm = (s: string) =>
@@ -166,6 +169,62 @@ function act(ctx: AssistantContext, spool: Spool, intent: NonNullable<AssistantM
 
 const has = (q: string, ...w: string[]) => w.some(x => q.includes(x));
 
+/** Spar-Tipps aus dem eigenen Bestand: Reste zuerst, doppelte Farben, ungeöffnete Spulen, Vorrat, Preisunterschiede, Trocknen */
+export function savingTips(ctx: AssistantContext): string {
+  const spools = ctx.spools.filter(s => (s.remainingWeight || 0) > 0);
+  if (!spools.length) return 'Du hast noch keine Spulen eingetragen. Trag sie ein, dann zeige ich dir, wo du sparen kannst.';
+  const tips: string[] = [];
+  const valueOf = (s: Spool) => ((s.remainingWeight || 0) / 1000) * (s.pricePerKg || 0);
+  const open = spools.filter(s => !isSealed(s));
+
+  // 1. Reste zuerst
+  const rests = open
+    .filter(s => (s.initialWeight || 1000) > 0 && s.remainingWeight / (s.initialWeight || 1000) <= 0.25)
+    .sort((a, b) => a.remainingWeight - b.remainingWeight)
+    .slice(0, 4);
+  if (rests.length) tips.push(`🧵 Reste zuerst verdrucken (kleine Teile, Tests, Stützen):\n${rests.map(s => `   • ${label(s)}: ${fmtG(s.remainingWeight)}`).join('\n')}`);
+
+  // 2. Gleiche Farbe doppelt angebrochen
+  const groups = new Map<string, Spool[]>();
+  open.forEach(s => {
+    const k = `${s.material}|${norm(s.colorName || s.name)}`;
+    groups.set(k, [...(groups.get(k) || []), s]);
+  });
+  const doubles = [...groups.values()].filter(g => g.length >= 2).slice(0, 3);
+  if (doubles.length) tips.push(`🎨 Gleiche Farbe mehrfach angebrochen, erst eine leer machen:\n${doubles.map(g => `   • ${g[0].material} ${g[0].colorName || g[0].name}: ${g.length} Spulen (${fmtG(g.reduce((a, x) => a + x.remainingWeight, 0))})`).join('\n')}`);
+
+  // 3. Vorrat reicht
+  const byMat = new Map<string, number>();
+  spools.forEach(s => byMat.set(s.material, (byMat.get(s.material) || 0) + s.remainingWeight));
+  const plenty = [...byMat.entries()].filter(([, g]) => g >= 3000).sort((a, b) => b[1] - a[1]);
+  if (plenty.length) tips.push(`📦 Genug auf Lager, erstmal nicht nachkaufen: ${plenty.map(([m, g]) => `${m} (${fmtG(g)})`).join(', ')}.`);
+
+  // 4. Preisunterschied je Material
+  const diffs: string[] = [];
+  byMat.forEach((_, m) => {
+    const priced = spools.filter(s => s.material === m && s.pricePerKg > 0).sort((a, b) => a.pricePerKg - b.pricePerKg);
+    if (priced.length >= 2 && priced[priced.length - 1].pricePerKg - priced[0].pricePerKg >= 4) {
+      diffs.push(`${m}: ${label(priced[0])} (${eur(priced[0].pricePerKg)}/kg) statt ${label(priced[priced.length - 1])} (${eur(priced[priced.length - 1].pricePerKg)}/kg) für Prototypen`);
+    }
+  });
+  if (diffs.length) tips.push(`💶 Günstigere Spule für Tests nehmen:\n${diffs.slice(0, 3).map(d => `   • ${d}`).join('\n')}`);
+
+  // 5. Trocknen nur wo nötig
+  const sealed = spools.filter(s => isSealed(s) && !s.needsDrying);
+  const dueDry = spools.filter(s => s.needsDrying || getDryingStatus(s).statusLevel === 'overdue');
+  const noBag = dueDry.filter(s => !isInEibos(s));
+  const dryParts: string[] = [];
+  if (sealed.length) dryParts.push(`${sealed.length} verschweißte Spule(n) brauchen kein Trocknen`);
+  if (noBag.length) dryParts.push(`${noBag.length} fällige Spule(n) danach im Eibos-Beutel lagern, dann hält es länger`);
+  if (dryParts.length) tips.push(`☀️ Strom und Zeit beim Trocknen sparen: ${dryParts.join('; ')}.`);
+
+  // 6. Gebundenes Geld in ungeöffneten Spulen
+  const sealedValue = sealed.reduce((a, s) => a + valueOf(s), 0);
+  if (sealed.length >= 3 && sealedValue > 0) tips.push(`🔒 In ${sealed.length} ungeöffneten Spulen stecken ca. ${eur(sealedValue)}. Erst die angebrochenen leer machen.`);
+
+  return tips.length ? `💡 So sparst du:\n${tips.join('\n')}` : 'Dein Bestand ist schon schlank: keine Reste, keine doppelten Farben, kein Überfluss. Weiter so.';
+}
+
 export function runAssistant(input: string, ctx: AssistantContext, mem: AssistantMemory): AssistantResult {
   const q = norm(input);
   const grams = parseGrams(input);
@@ -201,12 +260,15 @@ export function runAssistant(input: string, ctx: AssistantContext, mem: Assistan
     return { reply: 'Welche Spule? Nenn Marke, Farbe oder Material, z. B. „Zieh 25 g von Bambu PLA Weiß ab“.', actions: [], memory: mem };
   }
 
+  // Sparen
+  if (has(q, 'spar', 'einspar', 'sparfunktion', 'spartipp')) return { reply: savingTips(ctx), actions: [], memory: mem };
+
   // Navigation & Ansicht
   if (has(q, 'kamera', 'foto', 'scann', 'fotografier')) return { reply: '📷 Kamera geöffnet.', actions: [{ type: 'camera' }], memory: mem };
   if (has(q, 'vereinfacht', 'kompakt', 'einfache ansicht')) return { reply: 'Vereinfachte Ansicht an.', actions: [{ type: 'view', mode: 'simple' }], memory: mem };
   if (has(q, 'vollstaendig', 'volle ansicht', 'trocknungsbalken', 'details an')) return { reply: 'Vollständige Ansicht an.', actions: [{ type: 'view', mode: 'full' }], memory: mem };
-  if (has(q, 'gcode', 'g-code', 'rechner', 'kosten berechnen')) return { reply: 'G-Code-Rechner geöffnet.', actions: [{ type: 'tab', tab: 'gcode' }], memory: mem };
-  if (has(q, 'backup', 'tools', 'werkzeug')) return { reply: 'Tools geöffnet (Backup, Cloud-Sync).', actions: [{ type: 'tab', tab: 'tools' }], memory: mem };
+  if (has(q, 'gcode', 'g-code', 'rechner', 'kosten berechnen')) return { reply: ctx.noGcode ? 'Den G-Code-Rechner gibt es nur in der Windows-App und im Browser.' : 'G-Code-Rechner geöffnet.', actions: ctx.noGcode ? [] : [{ type: 'tab', tab: 'gcode' }], memory: mem };
+  if (has(q, 'backup', 'tools', 'werkzeug')) return { reply: ctx.noGcode ? 'Tools geöffnet (Cloud-Abgleich, Spulenbestand).' : 'Tools geöffnet (Backup, Cloud-Sync).', actions: [{ type: 'tab', tab: 'tools' }], memory: mem };
   if (has(q, 'tara', 'eibos')) return { reply: `Einstellungen geöffnet. Eibos-Tara ist ${ctx.eibosTara ?? '–'} g.`, actions: [{ type: 'tab', tab: 'settings' }], memory: mem };
   if (has(q, 'einstellung', 'design', 'farbe aendern', 'theme')) return { reply: 'Einstellungen geöffnet.', actions: [{ type: 'tab', tab: 'settings' }], memory: mem };
   const v = ctx.versions.find(x => q.includes(norm(x.id)) || q.includes(norm(x.id).replace('v', '')));
@@ -282,7 +344,7 @@ export function runAssistant(input: string, ctx: AssistantContext, mem: Assistan
   if (has(q, 'hilfe', 'was kannst', 'befehle', 'help')) {
     return {
       reply:
-        'Das kann ich:\n• „Zieh 35 g von Bambu Weiß ab“ / „25 g PETG schwarz verbraucht“\n• „Setz Eryone Rot auf 640 g“ / „200 g zu Sunlu Grau hinzufügen“\n• „Markiere PETG Weiß als getrocknet“\n• „Was ist fast leer?“, „Was muss getrocknet werden?“\n• „Wie viel PLA habe ich?“, „Was ist mein Filament wert?“\n• „Info zu Geeetech Braun“, „Wo liegt …?“\n• „Kamera öffnen“, „G-Code-Rechner“, „Einstellungen“\nAuf Rückfragen einfach mit der Nummer antworten.',
+        'Das kann ich:\n• „Zieh 35 g von Bambu Weiß ab“ / „25 g PETG schwarz verbraucht“\n• „Setz Eryone Rot auf 640 g“ / „200 g zu Sunlu Grau hinzufügen“\n• „Markiere PETG Weiß als getrocknet“\n• „Was ist fast leer?“, „Was muss getrocknet werden?“\n• „Wie viel PLA habe ich?“, „Was ist mein Filament wert?“\n• „Info zu Geeetech Braun“, „Wo liegt …?“\n• „Wo kann ich sparen?“ (Spar-Tipps aus deinem Bestand)\n• „Kamera öffnen“, „G-Code-Rechner“, „Einstellungen“\nAuf Rückfragen einfach mit der Nummer antworten.',
       actions: [],
       memory: mem
     };

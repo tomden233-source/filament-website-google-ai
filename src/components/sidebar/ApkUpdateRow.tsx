@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Download, ChevronRight } from 'lucide-react';
-import { APK_URL, IS_NATIVE, IS_DESKTOP, DESKTOP_URL, APP_VERSION } from '../../utils/env';
+import { APK_URL, IS_NATIVE, IS_DESKTOP, DESKTOP_URL, APP_REVISION } from '../../utils/env';
 import { installApkInApp } from '../../utils/liveUpdate';
 
 // Immer sichtbarer Knopf im Menü: neueste APK laden und installieren (z. B. für neues App-Symbol oder neue Android-Funktionen).
@@ -82,15 +82,15 @@ export const ApkUpdateRow: React.FC = () => {
           <span className="block text-[10px] truncate" style={{ color: 'var(--app-text-muted)' }}>
             {bridge?.checkUpdate
               ? upd?.state === 'current'
-                ? `Aktuell: v${APP_VERSION}. Du hast die neueste Version.`
+                ? `Aktuell: v${APP_REVISION}. Du hast die neueste Version.`
                 : upd?.state === 'ready'
                 ? 'Fertig geladen. Tippen: App startet neu und aktualisiert.'
                 : upd?.state === 'error'
                 ? `Fehler: ${upd.message || 'Update nicht möglich'}`
                 : upd?.state === 'dev'
                 ? upd.message
-                : `Installiert: v${APP_VERSION} · prüft auch automatisch`
-              : note || `Installiert: v${APP_VERSION} · Auto-Updates bleiben an`}
+                : `Installiert: v${APP_REVISION} · prüft auch automatisch`
+              : note || `Installiert: v${APP_REVISION} · Auto-Updates bleiben an`}
           </span>
         </span>
         <ChevronRight className="w-4 h-4 shrink-0 opacity-60" />

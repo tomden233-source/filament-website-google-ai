@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, BellRing, CheckCircle2, PackageMinus } from 'lucide-react';
+import { Bell, BellRing, CheckCircle2, PackageMinus, Send } from 'lucide-react';
+import { IS_NATIVE } from '../../utils/env';
+import { testAlert, TEST_KINDS } from '../../utils/alerts';
+import type { InboxKind } from '../../utils/inbox';
 import { notifyPermission, localNotify, requestNotifyPermission, refreshNotifyPermission, openNotifySettings, notifyNeedsNewApk, type NotifyPermission } from '../../utils/notify';
 import { useWorkshopSettings } from '../../utils/workshopSettings';
 import { Card, Toggle, buttonStyle, inputStyle } from './ui';
@@ -18,6 +21,7 @@ export const NoticesTab: React.FC = () => {
   const [s, update] = useWorkshopSettings();
   const [perm, setPerm] = useState<NotifyPermission>(notifyPermission());
   const [testInfo, setTestInfo] = useState('');
+  const [testKind, setTestKind] = useState<InboxKind>('dry-done');
   useEffect(() => {
     const refresh = () => void refreshNotifyPermission().then(setPerm);
     refresh();
@@ -27,9 +31,9 @@ export const NoticesTab: React.FC = () => {
   }, []);
 
   const sendTest = async () => {
-    const ok = await localNotify('FilamentHub', 'Test: So sieht eine Meldung aus.', { tag: 'test' });
-    setTestInfo(ok ? 'Test gesendet.' : 'Keine Benachrichtigung möglich. Erlaube sie zuerst.');
-    setTimeout(() => setTestInfo(''), 5000);
+    const r = await testAlert(testKind);
+    setTestInfo(r.pushed ? 'Gesendet. Tipp auf die Benachrichtigung öffnet sie hier im Postfach.' : 'Im Postfach angelegt. Als Benachrichtigung ging sie nicht raus: erst erlauben (siehe Status).');
+    setTimeout(() => setTestInfo(''), 7000);
   };
 
   return (
@@ -43,6 +47,7 @@ export const NoticesTab: React.FC = () => {
           <Toggle on={s.alertPrintDone} onChange={v => update({ alertPrintDone: v })} label="Druck fertig" hint="Sobald der Drucker das Ende meldet." />
           <Toggle on={s.alertPrintFail} onChange={v => update({ alertPrintFail: v })} label="Druck fehlgeschlagen oder abgebrochen" />
           <Toggle on={s.alertDryDone} onChange={v => update({ alertDryDone: v })} label="Trocknung fertig" hint="Mit Dauer, Temperatur und den getrockneten Spulen." />
+          <Toggle on={s.alertDryStop} onChange={v => update({ alertDryStop: v })} label="Trocknung gestoppt" hint="Wenn die Trocknung vor dem Ende angehalten wird." />
           <Toggle on={s.alertDryDue} onChange={v => update({ alertDryDue: v })} label="Trocknen fällig" hint="Einmal pro Tag und Spule, mit Temperatur und Zeit." />
           <Toggle on={s.alertLow} onChange={v => update({ alertLow: v })} label="Spule fast leer" hint="Kommt, wenn der Rest unter die Grenze fällt." />
         </div>
@@ -98,6 +103,14 @@ export const NoticesTab: React.FC = () => {
           label="Zusätzlich als Benachrichtigung anzeigen"
           hint="Ein Tipp darauf öffnet die App direkt bei der Mitteilung."
         />
+        {IS_NATIVE && (
+          <Toggle
+            on={s.keepAlive}
+            onChange={v => update({ keepAlive: v })}
+            label="Im Hintergrund aktiv bleiben"
+            hint="Zeigt eine kleine dauerhafte Anzeige. So bleibt die Verbindung zum Drucker offen und Meldungen kommen auch, wenn die App zu ist."
+          />
+        )}
         <p className="text-[11px] leading-snug" style={{ color: 'var(--app-text-muted)' }}>
           Status: <strong style={{ color: 'var(--app-text)' }}>{PERMISSION_TEXT[perm]}</strong>
         </p>
@@ -120,14 +133,37 @@ export const NoticesTab: React.FC = () => {
               Android-Einstellungen öffnen
             </button>
           )}
-          {perm === 'granted' && (
-            <button onClick={sendTest} className="px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer flex items-center gap-1.5" style={buttonStyle}>
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              Test senden
-            </button>
-          )}
-          {testInfo && <span className="text-[11px] self-center text-emerald-400">{testInfo}</span>}
         </div>
+      </Card>
+
+      <Card>
+        <div className="flex items-center gap-2 text-xs font-extrabold">
+          <Send className="w-4 h-4 text-sky-400" />
+          <span>Test-Mitteilung</span>
+        </div>
+        <p className="text-[11px] leading-snug" style={{ color: 'var(--app-text-muted)' }}>
+          Wähle aus, welche Mitteilung geschickt wird. Sie sieht aus wie die echte und landet auch im Postfach.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={testKind}
+            onChange={e => setTestKind(e.target.value as InboxKind)}
+            className="flex-1 min-w-[10rem] px-2.5 py-2 rounded-lg border text-xs font-semibold outline-none cursor-pointer"
+            style={inputStyle}
+            aria-label="Welche Test-Mitteilung"
+          >
+            {TEST_KINDS.map(t => (
+              <option key={t.kind} value={t.kind}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <button onClick={sendTest} className="px-3 py-2 rounded-lg border text-xs font-bold cursor-pointer flex items-center gap-1.5" style={buttonStyle}>
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            Senden
+          </button>
+        </div>
+        {testInfo && <p className="text-[11px] leading-snug text-emerald-400">{testInfo}</p>}
       </Card>
     </div>
   );

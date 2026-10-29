@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Palette,
   FlaskConical,
-  Plug
+  Plug,
+  PanelLeftClose
 } from 'lucide-react';
 import {
   AppSettings,
@@ -88,6 +89,9 @@ export interface SidebarProps {
   onResetAllSettings: () => void;
   cloudDbUrl: string;
   syncStatus: { label: string; ok: boolean };
+  /** Desktop: Menü dauerhaft als feste Seitenleiste, ohne Abdunkeln */
+  docked?: boolean;
+  onToggleDock?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -123,9 +127,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onUpdateEibosBagTara,
   onUpdateCardSize,
   cloudDbUrl,
-  syncStatus
+  syncStatus,
+  docked = false,
+  onToggleDock
 }) => {
-  const [activeTab, setActiveTab] = useState<SidebarTab>('ai'); // Standard: KI-Assistent
+  // Android-App und installierte Web-App: nur die App-Funktionen. Windows-App/Browser: alles.
+  const APP = isAppShell();
+  const [activeTab, setActiveTabRaw] = useState<SidebarTab>('ai'); // Standard: KI-Assistent
+  // G-Code-Rechner gibt es in der App nicht: dorthin springt nichts
+  const setActiveTab = (t: SidebarTab) => setActiveTabRaw(APP && (t === 'gcode' || t === 'calc') ? 'tools' : t);
 
   // Kostenrechner State
   const {
@@ -295,7 +305,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onAddWeight
   });
 
-  if (!isOpen) return null;
+  if (!isOpen && !docked) return null;
 
   const activeVersion =
     versionProfiles.find(v => v.id === activeVersionId) || versionProfiles[versionProfiles.length - 1];
@@ -329,23 +339,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isThemesTab = activeTab === 'settings' && settingsSubTab === 'themes';
 
+  // Menüpunkte je nach Gerät: App = KI, Tools, Einstellungen. Windows-App/Browser zusätzlich G-Code-Rechner (und im Browser „Handy“).
+  const navItems: { id: string; icon: React.ComponentType<{ className?: string }>; label?: string; labelLine1?: string; labelLine2?: string }[] = [
+    { id: 'ai', icon: Bot, label: 'KI' },
+    ...(APP ? [] : [{ id: 'gcode', icon: FileCode2, labelLine1: 'G-Code', labelLine2: 'Rechner' }]),
+    { id: 'tools', icon: Wrench, label: 'Tools' },
+    { id: 'settings', icon: Settings, label: 'Einst.' },
+    // „Handy“ (App installieren, QR) nur im Browser: in den Apps steckt es unter Einstellungen → Verbindungen
+    ...(APP || IS_DESKTOP ? [] : [{ id: 'connect', icon: Smartphone, label: 'Handy' }])
+  ];
+  const settingTabs = ([
+    { id: 'themes', label: 'Aussehen', icon: Palette },
+    // Material (Trocknung, Leerspulen-Gewichte) braucht man in der App nicht
+    ...(APP ? [] : [{ id: 'presets', label: 'Material', icon: FlaskConical }]),
+    { id: 'connections', label: 'Verbindungen', icon: Plug }
+  ] as const);
+
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Klickbare rechte Fläche schließt das Menü SOFORT */}
-      <div
-        onClick={onClose}
-        className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity cursor-pointer"
-        title="Klick auf die freie Fläche schließt das Menü sofort"
-      />
+    <div className={docked ? 'contents' : 'fixed inset-0 z-50 flex'}>
+      {/* Klickbare rechte Fläche schließt das Menü SOFORT (nicht bei der festen Seitenleiste) */}
+      {!docked && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity cursor-pointer"
+          title="Klick auf die freie Fläche schließt das Menü sofort"
+        />
+      )}
 
       {/* Menü-Drawer links - immer geblurred an der Seite außer im Themes-Tab für unverfälschte Farbwahrnehmung */}
       <aside
         onClick={e => e.stopPropagation()}
-        className={`relative z-10 w-[460px] max-w-[94vw] border-r h-full flex flex-col justify-between shadow-2xl overflow-hidden transition-all duration-200 ${
-          isThemesTab ? 'backdrop-blur-none' : 'backdrop-blur-2xl'
-        }`}
+        className={
+          docked
+            ? 'sticky top-0 z-20 w-[400px] shrink-0 border-r h-screen flex flex-col justify-between overflow-hidden'
+            : `relative z-10 w-[460px] max-w-[94vw] border-r h-full flex flex-col justify-between shadow-2xl overflow-hidden transition-all duration-200 ${
+                isThemesTab ? 'backdrop-blur-none' : 'backdrop-blur-2xl'
+              }`
+        }
         style={{
-          backgroundColor: isThemesTab
+          backgroundColor: docked || isThemesTab
             ? 'var(--app-card)'
             : 'color-mix(in srgb, var(--app-card) 85%, transparent)',
           borderColor: 'var(--app-border)',
@@ -393,14 +425,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Fun Facts</span>
             </button>
 
-            <button
-              onClick={onClose}
-              className="p-1 rounded-lg hover:opacity-80 transition cursor-pointer"
-              style={{ color: 'var(--app-text-muted)' }}
-              title="Menü schließen (oder rechts außerhalb klicken)"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {docked ? (
+              <button
+                onClick={onToggleDock}
+                className="p-1 rounded-lg hover:opacity-80 transition cursor-pointer"
+                style={{ color: 'var(--app-text-muted)' }}
+                title="Seitenleiste einklappen"
+                aria-label="Seitenleiste einklappen"
+              >
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={onClose}
+                className="p-1 rounded-lg hover:opacity-80 transition cursor-pointer"
+                style={{ color: 'var(--app-text-muted)' }}
+                title="Menü schließen (oder rechts außerhalb klicken)"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -536,18 +580,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             borderColor: 'var(--app-border)'
           }}
         >
-          <div
-            className="grid gap-1"
-            style={{ gridTemplateColumns: `repeat(${isAppShell() || IS_DESKTOP ? 4 : 5}, minmax(0, 1fr))` }}
-          >
-            {[
-              { id: 'ai', icon: Bot, label: 'KI' },
-              { id: 'gcode', icon: FileCode2, labelLine1: 'G-Code', labelLine2: 'Rechner' },
-              { id: 'tools', icon: Wrench, label: 'Tools' },
-              { id: 'settings', icon: Settings, label: 'Einst.' },
-              // "Handy" (App installieren, QR) ist in den Apps überflüssig: dort steckt es unter Einstellungen → Verbindungen
-              ...(isAppShell() || IS_DESKTOP ? [] : [{ id: 'connect', icon: Smartphone, label: 'Handy' }])
-            ].map(item => {
+          <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}>
+            {navItems.map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id || (item.id === 'gcode' && activeTab === 'calc');
               return (
@@ -593,15 +627,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="space-y-3">
               {/* Einstellungs-Sub-Navigation: 3 aufgeräumte Hauptbereiche */}
               <div
-                className="grid grid-cols-3 gap-1 p-1 rounded-xl border text-[11px] font-bold transition-colors"
-                style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)' }}
+                className="grid gap-1 p-1 rounded-xl border text-[11px] font-bold transition-colors"
+                style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)', gridTemplateColumns: `repeat(${settingTabs.length}, minmax(0, 1fr))` }}
                 role="tablist"
               >
-                {([
-                  { id: 'themes', label: 'Aussehen', icon: Palette },
-                  { id: 'presets', label: 'Material', icon: FlaskConical },
-                  { id: 'connections', label: 'Verbindungen', icon: Plug }
-                ] as const).map(t => {
+                {settingTabs.map(t => {
                   const Icon = t.icon;
                   const on = settingsSubTab === t.id;
                   return (
@@ -609,7 +639,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       key={t.id}
                       role="tab"
                       aria-selected={on}
-                      onClick={() => setSettingsSubTab(t.id)}
+                      onClick={() => setSettingsSubTab(t.id as 'themes' | 'presets' | 'connections')}
                       className={`py-1.5 px-1 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 font-bold ${on ? 'shadow' : 'hover:opacity-80'}`}
                       style={{ backgroundColor: on ? 'var(--app-accent)' : 'transparent', color: on ? '#ffffff' : 'var(--app-text-muted)' }}
                     >
@@ -728,7 +758,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
 
               {/* BEREICH 2: MATERIAL & TARA (PRESETS) */}
-              {settingsSubTab === 'presets' && <SettingsPresetsPanel selectedMaterial={selectedMaterial} setSelectedMaterial={setSelectedMaterial} appSettings={appSettings} matInterval={matInterval} setMatInterval={setMatInterval} matTemp={matTemp} setMatTemp={setMatTemp} matHours={matHours} setMatHours={setMatHours} handleSaveMaterial={handleSaveMaterial} matSavedSuccess={matSavedSuccess} handleResetMaterial={handleResetMaterial} eibosTaraInput={eibosTaraInput} setEibosTaraInput={setEibosTaraInput} handleSaveEibosTara={handleSaveEibosTara} eibosSavedSuccess={eibosSavedSuccess} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand} brandTara={brandTara} setBrandTara={setBrandTara} brandDefaultPrice={brandDefaultPrice} setBrandDefaultPrice={setBrandDefaultPrice} handleSaveBrand={handleSaveBrand} brandSavedSuccess={brandSavedSuccess} handleResetBrand={handleResetBrand} />}
+              {!APP && settingsSubTab === 'presets' && <SettingsPresetsPanel selectedMaterial={selectedMaterial} setSelectedMaterial={setSelectedMaterial} appSettings={appSettings} matInterval={matInterval} setMatInterval={setMatInterval} matTemp={matTemp} setMatTemp={setMatTemp} matHours={matHours} setMatHours={setMatHours} handleSaveMaterial={handleSaveMaterial} matSavedSuccess={matSavedSuccess} handleResetMaterial={handleResetMaterial} eibosTaraInput={eibosTaraInput} setEibosTaraInput={setEibosTaraInput} handleSaveEibosTara={handleSaveEibosTara} eibosSavedSuccess={eibosSavedSuccess} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand} brandTara={brandTara} setBrandTara={setBrandTara} brandDefaultPrice={brandDefaultPrice} setBrandDefaultPrice={setBrandDefaultPrice} handleSaveBrand={handleSaveBrand} brandSavedSuccess={brandSavedSuccess} handleResetBrand={handleResetBrand} />}
 
               {/* BEREICH 3: VERBINDUNGEN (aufgeräumte Liste, zeigt nur was es auf diesem Gerät gibt) */}
               {settingsSubTab === 'connections' && (
@@ -751,10 +781,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {activeTab === 'ai' && <AiAgentTab setAiInput={setAiInput} chatMessages={chatMessages} handleAiSubmit={handleAiSubmit} aiInput={aiInput} />}
 
           {/* TAB 4: G-CODE & RECHNER (VEREINT) */}
-          {(activeTab === 'gcode' || activeTab === 'calc') && <GcodeCalcTab handlePullGcodeFromPrinter={handlePullGcodeFromPrinter} printerFetchLoading={printerFetchLoading} handleGcodeFileChange={handleGcodeFileChange} gcodeData={gcodeData} calcSpoolId={calcSpoolId} setCalcSpoolId={setCalcSpoolId} spools={spools} onDeductWeight={onDeductWeight} setCalcPricePerKg={setCalcPricePerKg} calcGrams={calcGrams} setCalcGrams={setCalcGrams} calcPricePerKg={calcPricePerKg} calcPrintHours={calcPrintHours} setCalcPrintHours={setCalcPrintHours} calcPrinterWatts={calcPrinterWatts} setCalcPrinterWatts={setCalcPrinterWatts} filamentCost={filamentCost} powerCost={powerCost} totalCost={totalCost} />}
+          {!APP && (activeTab === 'gcode' || activeTab === 'calc') && <GcodeCalcTab handlePullGcodeFromPrinter={handlePullGcodeFromPrinter} printerFetchLoading={printerFetchLoading} handleGcodeFileChange={handleGcodeFileChange} gcodeData={gcodeData} calcSpoolId={calcSpoolId} setCalcSpoolId={setCalcSpoolId} spools={spools} onDeductWeight={onDeductWeight} setCalcPricePerKg={setCalcPricePerKg} calcGrams={calcGrams} setCalcGrams={setCalcGrams} calcPricePerKg={calcPricePerKg} calcPrintHours={calcPrintHours} setCalcPrintHours={setCalcPrintHours} calcPrinterWatts={calcPrinterWatts} setCalcPrinterWatts={setCalcPrinterWatts} filamentCost={filamentCost} powerCost={powerCost} totalCost={totalCost} />}
 
           {/* TAB 6: TOOLS & BACKUP */}
-          {activeTab === 'tools' && <ToolsTab onSyncCloud={onSyncCloud} onExportBackup={onExportBackup} onImportBackup={onImportBackup} onRestoreDefaultSpools={onRestoreDefaultSpools} onClearAllSpools={onClearAllSpools} />}
+          {activeTab === 'tools' && <ToolsTab full={!APP} onSyncCloud={onSyncCloud} onExportBackup={onExportBackup} onImportBackup={onImportBackup} onRestoreDefaultSpools={onRestoreDefaultSpools} onClearAllSpools={onClearAllSpools} />}
         </div>
 
         {haActionToast && (

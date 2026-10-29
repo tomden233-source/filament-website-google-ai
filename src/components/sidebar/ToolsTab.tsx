@@ -6,6 +6,8 @@ import { isGistUrl } from '../../utils/gistStore';
 import { STORAGE_KEY_CLOUD_URL } from '../../utils/storageKeys';
 
 export interface ToolsTabProps {
+  /** Windows-App/Browser: mit Backup und Beispiel-Spulen. Android-App: nur Abgleich und Bestand. */
+  full?: boolean;
   onSyncCloud: ParentProps['onSyncCloud'];
   onExportBackup: ParentProps['onExportBackup'];
   onImportBackup: ParentProps['onImportBackup'];
@@ -66,7 +68,7 @@ const Group: React.FC<{ title: string; children: React.ReactNode }> = ({ title, 
   </section>
 );
 
-export const ToolsTab: React.FC<ToolsTabProps> = ({ onSyncCloud, onExportBackup, onImportBackup, onRestoreDefaultSpools, onClearAllSpools }) => {
+export const ToolsTab: React.FC<ToolsTabProps> = ({ full = true, onSyncCloud, onExportBackup, onImportBackup, onRestoreDefaultSpools, onClearAllSpools }) => {
   const gist = isGistUrl(safeStorage.getItem(STORAGE_KEY_CLOUD_URL) || '');
   return (
     <div className="space-y-4">
@@ -76,6 +78,7 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ onSyncCloud, onExportBackup,
         </Item>
       </Group>
 
+      {full && (
       <Group title="Backup">
         <Item icon={Download} tone="text-emerald-400 bg-emerald-500/15 border-emerald-500/30" title="Backup herunterladen" hint="Alle Spulen, Verlauf und Einstellungen als JSON-Datei" onClick={onExportBackup} />
         <Item icon={Upload} tone="text-amber-400 bg-amber-500/15 border-amber-500/30" title="Backup wiederherstellen" hint="JSON-Datei auswählen" as="label">
@@ -90,8 +93,10 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ onSyncCloud, onExportBackup,
           />
         </Item>
       </Group>
+      )}
 
       <Group title="Spulenbestand">
+        {full && (
         <Item
           icon={Database}
           tone="text-slate-400 bg-slate-500/15 border-slate-500/30"
@@ -101,6 +106,7 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ onSyncCloud, onExportBackup,
             if (confirm('21 Beispiel-Spulen laden? Deine jetzige Liste wird ersetzt (oben auf „Zurück“ bringt sie wieder).')) onRestoreDefaultSpools();
           }}
         />
+        )}
         <Item
           icon={Trash2}
           tone="text-rose-400 bg-rose-500/15 border-rose-500/30"

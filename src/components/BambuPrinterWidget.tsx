@@ -40,6 +40,7 @@ import { NfcSlotModal } from './bambu/NfcSlotModal';
 import { useAutoDeduct } from './bambu/useAutoDeduct';
 import { readTrays } from '../utils/amsMatch';
 import { usePrinterAlerts } from '../hooks/usePrinterAlerts';
+import { setPrinterLive, type PrinterLevel } from '../utils/printerLive';
 import { useLanDeduct } from '../hooks/useLanDeduct';
 import { useAmsNfcReaders } from '../hooks/useAmsNfcReaders';
 import { LanDeductPrompt } from './bambu/LanDeductPrompt';
@@ -559,6 +560,20 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // Anmelden statt „Neu verbinden“: noch kein Login oder die Cloud lehnt den gespeicherten Login ab
   const needsLogin =
     IS_NATIVE && (!liveState.hasToken || /abgelaufen|ung[üu]ltig|abgelehnt|neu anmelden|Zugangscode/i.test(String(liveState.error || '')));
+
+  // Stand ans Verbindungen-Menü melden (dort steht dann dasselbe wie hier auf der Karte)
+  const liveLevel: PrinterLevel = isSocketOff
+    ? 'standby'
+    : isPrinterAlive
+      ? 'online'
+      : isPrinterConnected
+        ? 'standby'
+        : liveState.connecting || reconnecting
+          ? 'connecting'
+          : 'offline';
+  useEffect(() => {
+    setPrinterLive({ level: liveLevel, text: effectiveStatusText });
+  }, [liveLevel, effectiveStatusText]);
 
   const isPrinting = isPrinterAlive && liveState.data.gcode_state === 'RUNNING';
   const isPaused = isPrinterAlive && liveState.data.gcode_state === 'PAUSE';

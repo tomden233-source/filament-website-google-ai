@@ -30,7 +30,7 @@ export const SettingsThemesPanel: React.FC<SettingsThemesPanelProps> = ({
                       <span>Farbschemata & 5 Helligkeitsstufen</span>
                     </span>
                     <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
-                      Wähle aus 5 Helligkeiten (Weiß, Soft, Grau, Dämmerung, Nacht). Standard ist Soft. Menü und alle Bereiche passen sich automatisch an.
+                      Wähle aus 5 Helligkeiten (Weiß, Soft, Grau, Graphit, Nacht). Standard ist Soft. Menü und alle Bereiche passen sich automatisch an.
                     </p>
                   </div>
 

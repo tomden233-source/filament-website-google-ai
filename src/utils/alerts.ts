@@ -10,6 +10,7 @@ const KIND_SETTING: Record<InboxKind, keyof WorkshopSettings | null> = {
   'print-fail': 'alertPrintFail',
   'dry-due': 'alertDryDue',
   'dry-done': 'alertDryDone',
+  'dry-stop': 'alertDryStop',
   low: 'alertLow',
   info: null
 };
@@ -35,9 +36,76 @@ export async function raiseAlert(input: AlertInput, showToast?: (text: string) =
   if (!isNew) return null;
 
   showToast?.(input.toast || input.text);
-  addSystemLog('system', input.title, input.text, input.kind === 'print-fail' || input.kind === 'dry-due' || input.kind === 'low' ? 'warn' : 'success');
+  addSystemLog('system', input.title, input.text, input.kind === 'print-fail' || input.kind === 'dry-due' || input.kind === 'dry-stop' || input.kind === 'low' ? 'warn' : 'success');
   if (settings.systemPush) {
     void localNotify(input.title, input.text, { tag: input.key || input.kind, inboxId: id });
   }
   return id;
+}
+
+// --- Test-Mitteilungen: zeigen genau so eine Meldung, wie sie später echt kommt (mit Postfach-Eintrag und Tipp-zum-Öffnen) ---
+
+export const TEST_KINDS: { kind: InboxKind; label: string }[] = [
+  { kind: 'dry-done', label: 'Trocknung fertig' },
+  { kind: 'dry-stop', label: 'Trocknung gestoppt' },
+  { kind: 'dry-due', label: 'Trocknen fällig' },
+  { kind: 'print-done', label: 'Druck fertig' },
+  { kind: 'print-fail', label: 'Druck fehlgeschlagen' },
+  { kind: 'low', label: 'Spule fast leer' }
+];
+
+const sampleTime = () => new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+
+function sample(kind: InboxKind): Pick<InboxItem, 'title' | 'text' | 'facts' | 'items'> {
+  const spools = [
+    { title: 'Bambu PLA Basic Weiß', sub: 'Slot 1 · PLA', color: '#f1f5f9' },
+    { title: 'Sunlu PETG Schwarz', sub: 'Slot 2 · PETG', color: '#1f2937' }
+  ];
+  switch (kind) {
+    case 'dry-done':
+      return {
+        title: 'Test: Trocknung fertig',
+        text: 'AMS-Trocknung fertig (6 h bei 55 °C). Im AMS: Bambu PLA Basic Weiß, Sunlu PETG Schwarz.',
+        facts: [
+          { label: 'Dauer', value: '6 h' },
+          { label: 'Temperatur', value: '55 °C' },
+          { label: 'Fertig seit', value: sampleTime() }
+        ],
+        items: spools
+      };
+    case 'dry-stop':
+      return {
+        title: 'Test: Trocknung gestoppt',
+        text: 'Die AMS-Trocknung wurde gestoppt. Es fehlten noch 2 h 10 min.',
+        facts: [
+          { label: 'Gestoppt', value: sampleTime() },
+          { label: 'Es fehlten noch', value: '2 h 10 min' }
+        ],
+        items: spools
+      };
+    case 'dry-due':
+      return {
+        title: 'Test: Trocknen fällig',
+        text: 'Trocknen fällig: Sunlu PETG Schwarz (65 °C, 8 h).',
+        items: [{ title: 'Sunlu PETG Schwarz', sub: 'PETG · 65 °C · 8 h', color: '#1f2937' }]
+      };
+    case 'print-done':
+      return { title: 'Test: Druck fertig', text: 'Benchy.3mf ist fertig.', facts: [{ label: 'Auftrag', value: 'Benchy.3mf' }, { label: 'Beendet', value: sampleTime() }, { label: 'Dauer', value: '1 h 12 min' }] };
+    case 'print-fail':
+      return { title: 'Test: Druck fehlgeschlagen', text: 'Benchy.3mf ist fehlgeschlagen oder wurde abgebrochen.', facts: [{ label: 'Auftrag', value: 'Benchy.3mf' }, { label: 'Beendet', value: sampleTime() }] };
+    case 'low':
+      return { title: 'Test: Spule fast leer', text: 'Bambu PLA Basic Weiß hat nur noch 62 g.', items: [{ title: 'Bambu PLA Basic Weiß', sub: 'Rest 62 g von 1000 g', color: '#f1f5f9' }] };
+    default:
+      return { title: 'Test: Info', text: 'So sieht eine Info aus.' };
+  }
+}
+
+/** Schickt eine Test-Mitteilung (ignoriert die Ein/Aus-Schalter der Art, sonst wäre ein Test bei ausgeschalteter Art sinnlos).
+ *  pushed = die Benachrichtigung aufs Gerät wurde wirklich gezeigt. */
+export async function testAlert(kind: InboxKind): Promise<{ id: string; pushed: boolean }> {
+  const s = sample(kind);
+  const key = `test-${kind}-${Date.now()}`;
+  const { id } = addInbox({ kind, title: s.title, text: s.text, key, facts: s.facts, items: s.items });
+  const pushed = await localNotify(s.title, s.text, { tag: key, inboxId: id });
+  return { id, pushed };
 }

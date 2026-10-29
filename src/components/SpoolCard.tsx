@@ -19,6 +19,7 @@ import { getBrandInfo, getDryingStatus, getSpoolLink } from '../utils/shopLinks'
 import { isInEibos, spoolTara } from '../utils/spoolState';
 import { getBambuProfile, formatBambuParametersText } from '../data/bambuParameters';
 import { SpoolBadges } from './workshop/SpoolBadges';
+import { SpoolTile } from './SpoolTile';
 
 interface SpoolCardProps {
   spool: Spool;
@@ -209,206 +210,21 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
   };
 
   // =========================================================================
-  // VEREINFACHTE ANSICHT (Optimiert für kleine Smartphones & Daumen-Bedienung)
+  // KOMPAKT: schlichte Kachel (Farbe, Name, Gewicht), Aktionen klappen beim Antippen auf
   // =========================================================================
   if (viewMode === 'simple') {
     return (
-      <div
-        className={`rounded-2xl border transition-all p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 shadow-sm ${
-          dry.isOverdue ? 'overdue-card border-rose-500/70' : ''
-        }`}
-        style={{
-          backgroundColor: 'var(--app-card)',
-          borderColor: dry.isOverdue ? undefined : 'var(--app-border)',
-          color: 'var(--app-text)'
-        }}
-      >
-        {/* Kopf: oben Marke/Material/Preis + Knöpfe, darunter der Name über die volle Breite (bricht seltener um) */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between items-start gap-2">
-            <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1 pt-1">
-              <span className="text-[10px] uppercase font-extrabold text-orange-500">
-                {spool.brand}
-              </span>
-              <span
-                className="text-[10px] px-1.5 py-0.2 rounded font-bold"
-                style={{ backgroundColor: 'var(--app-card-sub)' }}
-              >
-                {spool.material}
-              </span>
-              <span className="text-[10px] font-mono-num text-emerald-500 font-semibold">
-                {priceKg.toFixed(2).replace('.', ',')} €/kg
-              </span>
-              {amsInfo.slot !== null && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-[#00AE42]/20 text-[#00AE42] border border-[#00AE42]/30">
-                  AMS {amsInfo.slot}
-                </span>
-              )}
-              {amsInfo.isDrying && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-sky-500/25 text-sky-300 border border-sky-400/50 animate-pulse flex items-center gap-1">
-                  <Sun className="w-2.5 h-2.5" />
-                  <span>Trocknet ({amsInfo.remainingTime || 'aktiv'})</span>
-                </span>
-              )}
-              <SpoolBadges spool={spool} />
-            </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <a
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={link.label}
-              className="p-1.5 rounded-lg text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition shadow-xs"
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-            </a>
-            <LabelPrintButton spool={spool} compact />
-            {onWriteNfc && (
-              <button
-                onClick={() => onWriteNfc(spool.id)}
-                title={spool.nfcWritten ? 'NFC-Tag beschrieben – Klicken für Details & Löschen' : 'Spule auf NFC-Tag schreiben'}
-                className={`p-1.5 rounded-lg transition cursor-pointer border shadow-xs ${
-                  spool.nfcWritten
-                    ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/40 hover:bg-emerald-500/25'
-                    : 'text-rose-400 bg-rose-500/15 border-rose-500/40 hover:bg-rose-500/25'
-                }`}
-              >
-                <Tag className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <button
-              onClick={() => onEdit(spool.id)}
-              title="Bearbeiten"
-              className="p-1.5 rounded-lg text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer shadow-xs"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => onDelete(spool.id)}
-              title="Löschen"
-              className="p-1.5 rounded-lg text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition cursor-pointer shadow-xs"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <span
-              className="w-4 h-4 rounded-full border border-black/10 dark:border-white/20 shrink-0 shadow-sm mt-0.5"
-              style={{ backgroundColor: hex }}
-            />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-bold break-words leading-snug" style={{ color: 'var(--app-text)' }}>
-                {spool.name}
-              </h3>
-              {spool.storageNote && (
-                <p className="text-[11px] break-words leading-relaxed mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
-                  📦 {spool.storageNote}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Füllstand & Restgewicht groß für kleine Handys */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-baseline text-xs" style={{ color: 'var(--app-text-muted)' }}>
-            <span className="truncate">{spool.colorName || 'Standard'}</span>
-            <span
-              className="font-mono-num text-sm sm:text-base font-extrabold"
-              style={{ color: isCriticalLow ? 'var(--app-danger-text)' : 'var(--app-accent-text)' }}
-            >
-              {remW}g <span className="text-xs font-normal" style={{ color: 'var(--app-text-muted)' }}>/ {initW}g ({pct}%)</span>
-            </span>
-          </div>
-          <div
-            className="w-full h-2 rounded-full overflow-hidden"
-            style={{ backgroundColor: 'var(--app-card-sub)' }}
-          >
-            <div className="h-full rounded-full transition-all duration-300 shadow-sm" style={fillBarStyle} />
-          </div>
-        </div>
-
-        {/* Daumen-Schnellabzug & Hinzufügen: Extra touch-freundlich für Smartphones */}
-        <div className="space-y-1.5 pt-1">
-          {/* Zeile 1: Schnell abziehen (-) */}
-          <div className="grid grid-cols-4 gap-1.5">
-            {[10, 25, 50, 100].map(amt => (
-              <button
-                key={amt}
-                onClick={() => onDeduct(spool.id, amt)}
-                className="py-1 rounded-lg text-xs font-mono-num font-bold transition cursor-pointer border active:scale-95 text-center flex items-center justify-center shadow-xs text-rose-300 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20"
-              >
-                -{amt}g
-              </button>
-            ))}
-          </div>
-          {/* Zeile 2: Schnell hinzufügen (+) */}
-          <div className="grid grid-cols-4 gap-1.5">
-            {[10, 25, 50, 100].map(amt => (
-              <button
-                key={amt}
-                onClick={() => (onAdd ? onAdd(spool.id, amt) : onDeduct(spool.id, -amt))}
-                className="py-1 rounded-lg text-xs font-mono-num font-bold transition cursor-pointer border active:scale-95 text-center flex items-center justify-center shadow-xs text-emerald-300 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20"
-              >
-                +{amt}g
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div
-          className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t text-xs"
-          style={{ borderColor: 'var(--app-border)' }}
-        >
-          <span className={dry.isOverdue ? 'text-rose-500 font-bold' : ''} style={{ color: dry.isOverdue ? undefined : 'var(--app-text-muted)' }}>
-            {dry.isOverdue ? `⚠️ Trocknen fällig` : `🔥 in ${dry.days}d ${dry.hours}h`}
-          </span>
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              placeholder="g"
-              value={deductInput}
-              onChange={e => setDeductInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleDeductSubmit();
-              }}
-              className="w-14 px-2 py-1 rounded-lg text-xs font-mono-num outline-none border focus:border-orange-500"
-              style={{
-                backgroundColor: 'var(--app-input-bg)',
-                borderColor: 'var(--app-border)',
-                color: 'var(--app-text)'
-              }}
-            />
-            <button
-              onClick={handleDeductSubmit}
-              title="Gramm abziehen"
-              className="px-2 py-1 rounded-lg text-[11px] font-bold text-white transition cursor-pointer shadow-xs bg-rose-600 hover:bg-rose-700"
-            >
-              − Abzug
-            </button>
-            <button
-              onClick={handleAddSubmit}
-              title="Gramm hinzufügen"
-              className="px-2 py-1 rounded-lg text-[11px] font-bold text-white transition cursor-pointer shadow-xs bg-emerald-700 hover:bg-emerald-800"
-            >
-              + Plus
-            </button>
-            <button
-              onClick={() => onMarkDried(spool.id)}
-              title="Als jetzt getrocknet markieren"
-              className="px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer border"
-              style={{
-                backgroundColor: 'var(--app-card-sub)',
-                borderColor: 'var(--app-border)',
-                color: 'var(--app-accent-text)'
-              }}
-            >
-              🔥
-            </button>
-          </div>
-        </div>
-      </div>
+      <SpoolTile
+        spool={spool}
+        now={now}
+        appSettings={appSettings}
+        onDeduct={onDeduct}
+        onAdd={onAdd}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onWriteNfc={onWriteNfc}
+        onMarkDried={onMarkDried}
+      />
     );
   }
 

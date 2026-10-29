@@ -42,6 +42,7 @@ export const AiAgentTab: React.FC<AiAgentTabProps> = ({
                     'Was muss getrocknet werden?',
                     'Wie viel PLA habe ich?',
                     'Was ist mein Filament wert?',
+                    'Wo kann ich sparen?',
                     'Zieh 50 g von Bambu Weiß ab',
                     'Hilfe'
                   ].map(chip => (

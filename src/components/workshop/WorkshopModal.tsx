@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellRing, QrCode, SlidersHorizontal, X } from 'lucide-react';
+import { Bell, BellRing, QrCode, SlidersHorizontal, Wrench, X } from 'lucide-react';
 import type { Spool } from '../../types/filament';
 import { NoticesTab } from './NoticesTab';
 import { InboxTab } from './InboxTab';
@@ -8,10 +8,10 @@ import { LabelsTab } from './LabelsTab';
 
 export type WorkshopTab = 'inbox' | 'notices' | 'labels';
 
-const TABS: { id: WorkshopTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'inbox', label: 'Mitteilungen', icon: Bell },
-  { id: 'notices', label: 'Einstellungen', icon: SlidersHorizontal },
-  { id: 'labels', label: 'Etiketten', icon: QrCode }
+// Zwei Fenster in einem: „Mitteilungen“ (Postfach + Einstellungen, geöffnet über die Glocke) und „Werkstatt“ (Etiketten)
+const NOTICE_TABS: { id: WorkshopTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'inbox', label: 'Postfach', icon: Bell },
+  { id: 'notices', label: 'Einstellungen', icon: SlidersHorizontal }
 ];
 
 export interface WorkshopModalProps {
@@ -25,10 +25,12 @@ export interface WorkshopModalProps {
   focusId?: string | null;
 }
 
-/** Werkstatt: ein Fenster für alle Zusatz-Funktionen (Meldungen, später Projekte, Statistik, Etiketten, Backup). */
+/** Glocke: Mitteilungen mit Einstellungen. Werkzeug-Knopf: Werkstatt (Etiketten). */
 export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, tab, onTabChange, spools, labelSpoolId, focusId }) => {
   const unread = useUnreadCount();
   if (!isOpen) return null;
+  const isWorkshop = tab === 'labels';
+  const HeadIcon = isWorkshop ? Wrench : BellRing;
 
   return (
     <div
@@ -46,12 +48,12 @@ export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, t
               className="w-9 h-9 rounded-xl border flex items-center justify-center shrink-0"
               style={{ backgroundColor: 'var(--app-accent-sub)', borderColor: 'var(--app-accent)', color: 'var(--app-accent-text)' }}
             >
-              <BellRing className="w-5 h-5" />
+              <HeadIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base tracking-tight">Mitteilungen</h3>
+              <h3 className="font-extrabold text-base tracking-tight">{isWorkshop ? 'Werkstatt' : 'Mitteilungen'}</h3>
               <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                Was passiert ist, Einstellungen und Etiketten
+                {isWorkshop ? 'Etiketten für deine Spulen' : 'Was passiert ist und welche Meldungen du willst'}
               </p>
             </div>
           </div>
@@ -65,8 +67,9 @@ export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, t
           </button>
         </div>
 
+        {!isWorkshop && (
         <div className="flex gap-1.5 overflow-x-auto px-4 pt-3">
-          {TABS.map(t => {
+          {NOTICE_TABS.map(t => {
             const Icon = t.icon;
             const active = t.id === tab;
             return (
@@ -91,6 +94,7 @@ export const WorkshopModal: React.FC<WorkshopModalProps> = ({ isOpen, onClose, t
             );
           })}
         </div>
+        )}
 
         <div className="p-4 overflow-y-auto">{tab === 'inbox' && <InboxTab focusId={focusId || undefined} />}
           {tab === 'notices' && <NoticesTab />}

@@ -44,7 +44,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           (cd dist && zip -qr ../live-bundle.zip .)
           # nativeApi muss zu NATIVE_API in android-native/FilamentLivePlugin.java passen
-          echo "{\"version\":\"$VERSION\",\"nativeApi\":4}" > live-version.json
+          echo "{\"version\":\"$VERSION\",\"nativeApi\":5}" > live-version.json
           cat live-version.json
 
       - name: Capacitor installieren (nur im Build, nicht im Projekt)
@@ -74,6 +74,31 @@ jobs:
           # Bluetooth für den Etiketten-Drucker (Android 12+: Scan/Connect, älter: Standort für die Suche)
           sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />' "$MANIFEST"
           grep -n "BLUETOOTH_SCAN" "$MANIFEST" || echo "Hinweis: Bluetooth-Eintrag fehlt"
+          # Hintergrund-Dienst: hält die Verbindung zum Drucker offen, damit Meldungen auch bei geschlossener App kommen
+          sed -i '/<uses-permission android:name="android.permission.INTERNET"/a\    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />' "$MANIFEST"
+          python3 - <<'PYSVC'
+          path = "android/app/src/main/AndroidManifest.xml"
+          xml = open(path, encoding="utf-8").read()
+          svc = (
+              '        <service android:name="com.filamenthub.app.FilamentKeepAliveService" android:exported="false" android:foregroundServiceType="specialUse">\n'
+              '            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Verbindung zum 3D-Drucker offen halten, damit Meldungen (Trocknung, Druck fertig) ankommen" />\n'
+              '        </service>\n'
+          )
+          if "FilamentKeepAliveService" in xml:
+              print("Hintergrund-Dienst schon vorhanden")
+          else:
+              i = xml.find("</application>")
+              if i < 0:
+                  print("Hinweis: application im Manifest nicht gefunden, Hintergrund-Dienst fehlt")
+              else:
+                  xml = xml[:i] + svc + "    " + xml[i:]
+                  open(path, "w", encoding="utf-8").write(xml)
+                  print("Hintergrund-Dienst eingetragen")
+          PYSVC
+          grep -n "FilamentKeepAliveService\|FOREGROUND_SERVICE" "$MANIFEST" || echo "Hinweis: Hintergrund-Dienst fehlt im Manifest"
+          # Einfarbiges Spulen-Symbol für Meldungen (Android zeigt Meldungs-Symbole nur als Umriss, das bunte App-Symbol wäre ein weißes Quadrat)
+          mkdir -p android/app/src/main/res/drawable
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">\n    <path android:fillColor="#FFFFFFFF" android:pathData="M12,2 A10,10 0 1,1 12,22 A10,10 0 1,1 12,2 Z M12,5 A7,7 0 1,0 12,19 A7,7 0 1,0 12,5 Z M12,6.3 A5.7,5.7 0 1,1 12,17.7 A5.7,5.7 0 1,1 12,6.3 Z M12,9.5 A2.5,2.5 0 1,0 12,14.5 A2.5,2.5 0 1,0 12,9.5 Z" />\n</vector>\n' > android/app/src/main/res/drawable/ic_stat_spool.xml
           # Dateifreigabe für den Installer (Cache-Ordner mit der geladenen APK)
           mkdir -p android/app/src/main/res/xml
           printf '<?xml version="1.0" encoding="utf-8"?>\n<paths>\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n    <files-path name="my_files" path="." />\n</paths>\n' > android/app/src/main/res/xml/file_paths.xml
@@ -103,6 +128,26 @@ jobs:
                   print("NFC-Filter eingetragen")
           PYEOF
           grep -n "NDEF_DISCOVERED\|TECH_DISCOVERED" "$MANIFEST" || echo "Hinweis: NFC-Filter fehlen"
+          # QR-Etiketten: Link filamenthub://spool/ID und die Seiten-Adresse öffnen die App direkt bei der Spule
+          python3 - <<'PYLINK'
+          path = "android/app/src/main/AndroidManifest.xml"
+          xml = open(path, encoding="utf-8").read()
+          links = (
+              '        <intent-filter><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="filamenthub" android:host="spool" /></intent-filter>\n'
+              '        <intent-filter><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" android:host="tomden234.github.io" android:pathPrefix="/filament-website-google-ai" /></intent-filter>\n'
+          )
+          if 'android:scheme="filamenthub"' in xml:
+              print("Spulen-Links schon vorhanden")
+          else:
+              i = xml.find("</activity>")
+              if i < 0:
+                  print("Hinweis: Activity im Manifest nicht gefunden, Spulen-Links fehlen")
+              else:
+                  xml = xml[:i] + links + "    " + xml[i:]
+                  open(path, "w", encoding="utf-8").write(xml)
+                  print("Spulen-Links eingetragen")
+          PYLINK
+          grep -n 'android:scheme="filamenthub"' "$MANIFEST" || echo "Hinweis: Spulen-Links fehlen"
           grep -n "paho" android/app/build.gradle || echo "Hinweis: Paho fehlt"
           # Inhalt nicht unter die Systemleisten zeichnen (Menü oben links bleibt sichtbar), Leistenfarben sind einstellbar
           for st in AppTheme AppTheme.NoActionBar AppTheme.NoActionBarLaunch; do

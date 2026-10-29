@@ -1,24 +1,21 @@
-import { LabelPrintButton } from '../LabelPrintButton';
 import React from 'react';
-import { Zap, Camera, Tag, Plus, Minus, Pencil, Trash2 } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { BambuPrinterWidget } from '../BambuPrinterWidget';
-import { SpoolBadges } from '../workshop/SpoolBadges';
 import { LocationFilter } from '../workshop/LocationFilter';
+import { SpoolTile } from '../SpoolTile';
 
 export interface MobileAppViewProps {
   spools: any;
   totalGrams: any;
-  setIsCameraModalOpen: any;
-  setNfcSpoolId: any;
-  setNfcModalMode: any;
-  setIsNfcModalOpen: any;
+  now: number;
+  appSettings: any;
   setSpoolToEdit: any;
   setSpoolPrefill: any;
   setIsSpoolModalOpen: any;
-  setIsQuickDeductOpen: any;
   viewMode: any;
   handleDeductWeight: (...args: any[]) => any;
   handleApplyDryingCredit: any;
+  handleMarkDried: (...args: any[]) => any;
   searchQuery: any;
   setSearchQuery: any;
   setActiveMaterialFilter: any;
@@ -32,20 +29,19 @@ export interface MobileAppViewProps {
   setActiveLocationFilter: any;
 }
 
+/** Handy-Ansicht: Drucker oben, darunter Suche und die Spulen als schlichte Kacheln. Funktionen stecken im Menü und unter „Neu“. */
 export const MobileAppView: React.FC<MobileAppViewProps> = ({
   spools,
   totalGrams,
-  setIsCameraModalOpen,
-  setNfcSpoolId,
-  setNfcModalMode,
-  setIsNfcModalOpen,
+  now,
+  appSettings,
   setSpoolToEdit,
   setSpoolPrefill,
   setIsSpoolModalOpen,
-  setIsQuickDeductOpen,
   viewMode,
   handleDeductWeight,
   handleApplyDryingCredit,
+  handleMarkDried,
   searchQuery,
   setSearchQuery,
   setActiveMaterialFilter,
@@ -58,305 +54,103 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
   activeLocationFilter,
   setActiveLocationFilter
 }) => {
+  const kg = (totalGrams / 1000).toLocaleString('de-DE', { maximumFractionDigits: 2 });
+  const materials = ['ALL', ...Array.from(new Set<string>(spools.map((s: any) => String(s.material || '')).filter(Boolean))).sort()];
+
   return (
-<div className="max-w-md mx-auto w-full space-y-3 pb-20">
-            {/* 4 GROSSE SCHNELL-AKTIONEN */}
-            <section
-              className="rounded-2xl border p-3.5 shadow-sm space-y-2.5 transition-colors"
-              style={{
-                backgroundColor: 'var(--app-card)',
-                borderColor: 'var(--app-border)',
-                color: 'var(--app-text)'
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 text-white flex items-center justify-center shadow-sm">
-                    <Zap className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h2 className="font-extrabold text-xs" style={{ color: 'var(--app-text)' }}>
-                      Schnell-Aktionen
-                    </h2>
-                    <p className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
-                      Foto, NFC, Eintragen & Abziehen
-                    </p>
-                  </div>
-                </div>
+    <div className="max-w-md mx-auto w-full space-y-3">
+      <BambuPrinterWidget
+        compact
+        spools={spools}
+        viewMode={viewMode}
+        onDeductWeight={handleDeductWeight}
+        onApplyDryingCredit={handleApplyDryingCredit}
+        onOpenNewSpool={() => {
+          setSpoolToEdit(null);
+          setSpoolPrefill(null);
+          setIsSpoolModalOpen(true);
+        }}
+      />
 
-                <div
-                  className="px-2 py-0.5 rounded-lg border text-[10px] font-mono-num font-bold"
-                  style={{
-                    backgroundColor: 'var(--app-card-sub)',
-                    borderColor: 'var(--app-border)',
-                    color: 'var(--app-text)'
-                  }}
-                >
-                  {spools.length} Spulen • {totalGrams.toLocaleString('de-DE')}g
-                </div>
-              </div>
+      <div className="flex items-baseline justify-between pl-1 pr-7">
+        <h2 className="text-sm font-extrabold tracking-tight">Spulen</h2>
+        <span className="text-[11px] font-mono-num" style={{ color: 'var(--app-text-muted)' }}>
+          {spools.length} Stück · {kg} kg
+        </span>
+      </div>
 
-              {/* 4 Touch-Buttons */}
-              <div className="grid grid-cols-4 gap-1.5 pt-0.5">
-                {/* 1. FOTO-SCAN */}
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--app-text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Suchen"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 rounded-xl border text-xs outline-none"
+            style={{ backgroundColor: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 cursor-pointer" style={{ color: 'var(--app-text-muted)' }} aria-label="Suche leeren">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {materials.length > 2 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            {materials.map(mat => {
+              const on = activeMaterialFilter === mat;
+              return (
                 <button
-                  onClick={() => setIsCameraModalOpen(true)}
-                  className="p-2 rounded-xl border transition cursor-pointer flex flex-col items-center justify-center gap-1 text-center active:scale-95 shadow-sm"
+                  key={mat}
+                  onClick={() => setActiveMaterialFilter(mat)}
+                  className="px-3 py-1 rounded-full text-[11px] font-bold border whitespace-nowrap cursor-pointer transition"
                   style={{
-                    backgroundColor: 'var(--app-card-sub)',
-                    borderColor: 'var(--app-border)'
+                    backgroundColor: on ? 'var(--app-accent)' : 'transparent',
+                    borderColor: on ? 'var(--app-accent)' : 'var(--app-border)',
+                    color: on ? '#ffffff' : 'var(--app-text-muted)'
                   }}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/15 text-orange-400 flex items-center justify-center">
-                    <Camera className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold text-[10px] block" style={{ color: 'var(--app-text)' }}>Foto</span>
+                  {mat === 'ALL' ? 'Alle' : mat}
                 </button>
+              );
+            })}
+          </div>
+        )}
 
-                {/* 2. NFC-TAG */}
-                <button
-                  onClick={() => {
-                    setNfcSpoolId(undefined);
-                    setNfcModalMode('read');
-                    setIsNfcModalOpen(true);
-                  }}
-                  className="p-2 rounded-xl border transition cursor-pointer flex flex-col items-center justify-center gap-1 text-center active:scale-95 shadow-sm"
-                  style={{
-                    backgroundColor: 'var(--app-card-sub)',
-                    borderColor: 'var(--app-border)'
-                  }}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-                    <Tag className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold text-[10px] block" style={{ color: 'var(--app-text)' }}>NFC</span>
-                </button>
+        <LocationFilter locations={locations} active={activeLocationFilter} onChange={setActiveLocationFilter} />
+      </div>
 
-                {/* 3. SPULE EINTRAGEN */}
-                <button
-                  onClick={() => {
-                    setSpoolToEdit(null);
-                    setSpoolPrefill(null);
-                    setIsSpoolModalOpen(true);
-                  }}
-                  className="p-2 rounded-xl border transition cursor-pointer flex flex-col items-center justify-center gap-1 text-center active:scale-95 shadow-sm"
-                  style={{
-                    backgroundColor: 'var(--app-card-sub)',
-                    borderColor: 'var(--app-border)'
-                  }}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center">
-                    <Plus className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold text-[10px] block" style={{ color: 'var(--app-text)' }}>Eintragen</span>
-                </button>
-
-                {/* 4. SCHNELLABZUG */}
-                <button
-                  onClick={() => setIsQuickDeductOpen(true)}
-                  className="p-2 rounded-xl border transition cursor-pointer flex flex-col items-center justify-center gap-1 text-center active:scale-95 shadow-sm"
-                  style={{
-                    backgroundColor: 'var(--app-card-sub)',
-                    borderColor: 'var(--app-border)'
-                  }}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center">
-                    <Minus className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold text-[10px] block" style={{ color: 'var(--app-text)' }}>Abzug</span>
-                </button>
-              </div>
-            </section>
-
-            {/* Bambu Lab X2D Live-Dashboard im Smartphone-Modus */}
-            <BambuPrinterWidget
-              compact
-              spools={spools}
-              viewMode={viewMode}
-              onDeductWeight={handleDeductWeight}
-              onApplyDryingCredit={handleApplyDryingCredit}
-              onOpenNewSpool={() => {
-                setSpoolToEdit(null);
-                setSpoolPrefill(null);
-                setIsSpoolModalOpen(true);
+      <div className="space-y-2">
+        {filteredSpools.length === 0 ? (
+          <div className="rounded-2xl border p-8 text-center text-xs" style={{ backgroundColor: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text-muted)' }}>
+            {spools.length === 0 ? 'Noch keine Spulen. Oben auf „Neu“ tippen.' : 'Keine Spule gefunden.'}
+          </div>
+        ) : (
+          filteredSpools.map((spool: any) => (
+            <SpoolTile
+              key={spool.id}
+              spool={spool}
+              now={now}
+              appSettings={appSettings}
+              onDeduct={handleDeductWeight}
+              onAdd={handleAddWeight}
+              onMarkDried={handleMarkDried}
+              onWriteNfc={handleOpenSpoolNfc}
+              onDelete={handleDeleteSpool}
+              onEdit={id => {
+                const s = spools.find((x: any) => x.id === id);
+                if (s) {
+                  setSpoolToEdit(s);
+                  setSpoolPrefill(null);
+                  setIsSpoolModalOpen(true);
+                }
               }}
             />
-
-            {/* KOMPAKTE SUCHE & MATERIAL CHIPS */}
-            <section
-              className="rounded-2xl border p-2.5 space-y-2 transition-colors"
-              style={{
-                backgroundColor: 'var(--app-card)',
-                borderColor: 'var(--app-border)'
-              }}
-            >
-              <input
-                type="text"
-                placeholder="🔍 Spule suchen..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl border text-xs outline-none"
-                style={{
-                  backgroundColor: 'var(--app-input-bg)',
-                  borderColor: 'var(--app-border)',
-                  color: 'var(--app-text)'
-                }}
-              />
-
-              <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-                {['ALL', 'PLA', 'PETG', 'TPU', 'ABS', 'ASA'].map(mat => (
-                  <button
-                    key={mat}
-                    onClick={() => setActiveMaterialFilter(mat)}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold border whitespace-nowrap transition cursor-pointer"
-                    style={{
-                      backgroundColor: activeMaterialFilter === mat ? 'var(--app-accent)' : 'var(--app-card-sub)',
-                      borderColor: activeMaterialFilter === mat ? 'var(--app-accent)' : 'var(--app-border)',
-                      color: activeMaterialFilter === mat ? '#ffffff' : 'var(--app-text-muted)'
-                    }}
-                  >
-                    {mat === 'ALL' ? 'Alle' : mat}
-                  </button>
-                ))}
-              </div>
-
-              <LocationFilter locations={locations} active={activeLocationFilter} onChange={setActiveLocationFilter} />
-            </section>
-
-            {/* SPULE-KARTEN FÜR SMARTPHONE MIT 1-KLICK ABZUG */}
-            <div className="space-y-2.5">
-              {filteredSpools.length === 0 ? (
-                <div
-                  className="rounded-2xl border p-6 text-center text-xs"
-                  style={{
-                    backgroundColor: 'var(--app-card)',
-                    borderColor: 'var(--app-border)',
-                    color: 'var(--app-text-muted)'
-                  }}
-                >
-                  Keine Spulen gefunden.
-                </div>
-              ) : (
-                filteredSpools.map((spool: any) => {
-                  const maxW = spool.initialWeight || 1000;
-                  const pct = Math.max(0, Math.min(100, Math.round((spool.remainingWeight / maxW) * 100)));
-                  return (
-                    <div
-                      key={spool.id}
-                      className="rounded-2xl border p-3 space-y-2 transition-colors shadow-sm"
-                      style={{
-                        backgroundColor: 'var(--app-card)',
-                        borderColor: 'var(--app-border)',
-                        color: 'var(--app-text)'
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span
-                            className="w-4 h-4 rounded-full shrink-0 border border-black/20 shadow-xs"
-                            style={{ backgroundColor: spool.colorHex }}
-                          />
-                          <div className="min-w-0">
-                            <span className="font-extrabold text-xs block truncate" style={{ color: 'var(--app-text)' }}>
-                              {spool.brand} {spool.name}
-                            </span>
-                            <span className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
-                              {spool.material} • {spool.colorName}
-                            </span>
-                            <div className="flex flex-wrap items-center gap-1 mt-1 empty:hidden">
-                              <SpoolBadges spool={spool} />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <span className="font-mono-num font-extrabold text-xs block" style={{ color: 'var(--app-text)' }}>
-                            {spool.remainingWeight} g
-                          </span>
-                          <span className="text-[10px] font-mono-num" style={{ color: 'var(--app-text-muted)' }}>
-                            {pct}% Rest
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Fortschrittsbalken */}
-                      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--app-card-sub)' }}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${pct}%`,
-                            backgroundColor: pct < 15 ? '#f43f5e' : pct < 35 ? '#f59e0b' : 'var(--app-accent)'
-                          }}
-                        />
-                      </div>
-
-                      {/* 1-Klick Schnellabzug & Hinzufügen: feste Raster, nichts bricht mehr um */}
-                      <div className="pt-2 border-t space-y-1.5" style={{ borderColor: 'var(--app-border)' }}>
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {[10, 25, 50, 100].map(grams => (
-                            <button
-                              key={grams}
-                              onClick={() => handleDeductWeight(spool.id, grams)}
-                              className="py-1.5 rounded-lg border text-[11px] font-mono-num font-bold transition cursor-pointer active:scale-95 text-rose-400 bg-rose-500/10 border-rose-500/30"
-                            >
-                              −{grams}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {[10, 25, 50, 100].map(grams => (
-                            <button
-                              key={grams}
-                              onClick={() => handleAddWeight(spool.id, grams)}
-                              className="py-1.5 rounded-lg border text-[11px] font-mono-num font-bold transition cursor-pointer active:scale-95 text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
-                            >
-                              +{grams}
-                            </button>
-                          ))}
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-1.5 pt-0.5">
-                          <button
-                            onClick={() => handleOpenSpoolNfc(spool.id)}
-                            className={`py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer flex items-center justify-center gap-1 ${
-                              spool.nfcWritten
-                                ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30'
-                                : 'text-rose-400 bg-rose-500/10 border-rose-500/30'
-                            }`}
-                            title={spool.nfcWritten ? 'NFC: Beschrieben (Klicken für Details/Löschen)' : 'NFC: Unbeschrieben (Klicken zum Beschreiben)'}
-                          >
-                            <Tag className="w-3.5 h-3.5" />
-                            <span>NFC</span>
-                          </button>
-                          <LabelPrintButton spool={spool} className="w-full py-1.5" />
-                          <button
-                            onClick={() => {
-                              setSpoolToEdit(spool);
-                              setSpoolPrefill(null);
-                              setIsSpoolModalOpen(true);
-                            }}
-                            className="py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer flex items-center justify-center gap-1"
-                            style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
-                            title="Spule bearbeiten"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            <span>Ändern</span>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSpool(spool.id)}
-                            className="py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer flex items-center justify-center gap-1 text-rose-500 bg-rose-500/10 border-rose-500/30"
-                            title="Spule löschen"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Löschen</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 };

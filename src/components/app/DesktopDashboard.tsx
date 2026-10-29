@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit3, Wand2, Camera, Search, X, ArrowUpDown, Tag, Layers } from 'lucide-react';
+import { Edit3, Wand2, Camera, Search, X, ArrowUpDown } from 'lucide-react';
 import { BambuPrinterWidget } from '../BambuPrinterWidget';
 import { SpoolCard } from '../SpoolCard';
 import { LocationFilter } from '../workshop/LocationFilter';
@@ -82,89 +82,43 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 }) => {
   return (
 <>
-            {/* Volle KPI-Kacheln */}
-            <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-              <div
-                className="rounded-2xl border p-3.5 transition-colors shadow-sm"
-                style={{
-                  backgroundColor: 'var(--app-card)',
-                  borderColor: 'var(--app-border)'
-                }}
-              >
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--app-text-muted)' }}>
-                  Spulen im Bestand
-                </span>
-                <div className="text-xl sm:text-2xl font-extrabold font-mono-num mt-0.5">
-                  {spools.length}
+            {/* Zahlen: eine schlanke Zeile statt fünf großer Kacheln */}
+            <section
+              className="rounded-2xl border grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y lg:divide-y-0 overflow-hidden"
+              style={{ backgroundColor: 'var(--app-card)', borderColor: 'var(--app-border)', ['--tw-divide-color' as any]: 'var(--app-border)' }}
+            >
+              {[
+                { label: 'Spulen', value: String(spools.length), tone: 'var(--app-text)' },
+                { label: 'Filament', value: `${(totalGrams / 1000).toLocaleString('de-DE', { maximumFractionDigits: 2 })} kg`, tone: 'var(--app-text)' },
+                { label: 'Wert ca.', value: `${totalValue.toFixed(2).replace('.', ',')} €`, tone: 'var(--app-text)' },
+                { label: 'Trocknen fällig', value: String(dueDryingCount), tone: dueDryingCount > 0 ? 'var(--app-danger-text)' : 'var(--app-text)' }
+              ].map(k => (
+                <div key={k.label} className="px-4 py-3" style={{ borderColor: 'var(--app-border)' }}>
+                  <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--app-text-muted)' }}>
+                    {k.label}
+                  </div>
+                  <div className="text-lg sm:text-xl font-extrabold font-mono-num mt-0.5 leading-tight" style={{ color: k.tone }}>
+                    {k.value}
+                  </div>
                 </div>
-              </div>
-              <div
-                className="rounded-2xl border p-3.5 transition-colors shadow-sm"
-                style={{
-                  backgroundColor: 'var(--app-card)',
-                  borderColor: 'var(--app-border)'
-                }}
-              >
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--app-text-muted)' }}>
-                  Netto-Filament
-                </span>
-                <div className="text-xl sm:text-2xl font-extrabold text-emerald-500 font-mono-num mt-0.5">
-                  {totalGrams.toLocaleString('de-DE')} g
-                </div>
-              </div>
-              <div
-                className="rounded-2xl border p-3.5 transition-colors shadow-sm"
-                style={{
-                  backgroundColor: 'var(--app-card)',
-                  borderColor: 'var(--app-border)'
-                }}
-              >
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--app-text-muted)' }}>
-                  Bestandswert (ca.)
-                </span>
-                <div className="text-xl sm:text-2xl font-extrabold text-sky-500 font-mono-num mt-0.5">
-                  {totalValue.toFixed(2).replace('.', ',')} €
-                </div>
-              </div>
-              <div
-                className="rounded-2xl border p-3.5 transition-colors shadow-sm"
-                style={{
-                  backgroundColor: 'var(--app-card)',
-                  borderColor: 'var(--app-border)'
-                }}
-              >
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--app-text-muted)' }}>
-                  Trocknung fällig
-                </span>
-                <div className="text-xl sm:text-2xl font-extrabold text-rose-500 font-mono-num mt-0.5">
-                  {dueDryingCount}
-                </div>
-              </div>
-              <div
+              ))}
+              <button
+                type="button"
                 onClick={() => {
                   setEditUsedInputValue(String(totalUsedGrams));
                   setIsEditUsedModalOpen(true);
                 }}
-                className="col-span-2 lg:col-span-1 rounded-2xl border p-3.5 transition-all shadow-sm cursor-pointer hover:border-orange-500 hover:scale-[1.02] group relative"
-                style={{
-                  backgroundColor: 'var(--app-card)',
-                  borderColor: 'var(--app-border)'
-                }}
+                className="px-4 py-3 text-left cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition col-span-2 sm:col-span-1"
+                style={{ borderColor: 'var(--app-border)' }}
                 title="Klicken zum Überschreiben des verdruckten Filaments (z.B. auf 0 g setzen)"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold" style={{ color: 'var(--app-text-muted)' }}>
-                    Verdruckt (Verlauf)
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 font-bold border border-orange-500/30 group-hover:bg-orange-500 group-hover:text-white transition flex items-center gap-1">
-                    <Edit3 className="w-2.5 h-2.5" />
-                    <span>Ändern</span>
-                  </span>
+                <div className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1" style={{ color: 'var(--app-text-muted)' }}>
+                  Verdruckt <Edit3 className="w-2.5 h-2.5" />
                 </div>
-                <div className="text-xl sm:text-2xl font-extrabold text-orange-500 font-mono-num mt-0.5">
+                <div className="text-lg sm:text-xl font-extrabold font-mono-num mt-0.5 leading-tight" style={{ color: 'var(--app-accent-text)' }}>
                   {totalUsedGrams.toLocaleString('de-DE')} g
                 </div>
-              </div>
+              </button>
             </section>
 
             {/* Bambu Lab Live-Drucker-Monitor */}
@@ -241,9 +195,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
               </section>
             )}
 
-            {/* V1.53: Modernisierter, harmonischer Filter- & Such-Kommandobereich */}
+            {/* Suche, Sortierung und Material-Filter */}
             <section
-              className="rounded-2xl border p-3.5 sm:p-4 space-y-3 shadow-sm backdrop-blur-md transition-colors"
+              className="rounded-2xl border p-3 space-y-2.5 transition-colors"
               style={{
                 backgroundColor: 'var(--app-card)',
                 borderColor: 'var(--app-border)'
@@ -333,11 +287,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 className="pt-2 border-t flex items-center gap-2 overflow-x-auto pb-0.5"
                 style={{ borderColor: 'var(--app-border)' }}
               >
-                <div className="flex items-center gap-1.5 shrink-0 pr-1 text-xs font-bold" style={{ color: 'var(--app-text-muted)' }}>
-                  <Tag className="w-3.5 h-3.5 text-orange-400" />
-                  <span className="hidden sm:inline">Material:</span>
-                </div>
-
                 <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
                   {(
                     [
@@ -362,7 +311,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                       <button
                         key={mat}
                         onClick={() => setActiveMaterialFilter(mat)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                           isActive
                             ? 'font-bold shadow-orange-500/20'
                             : 'hover:border-orange-500/40 opacity-80 hover:opacity-100'
@@ -397,32 +346,18 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
               )}
             </section>
 
-            {/* Spulen-Bereich: Übersichtlicher Header mit Spulen-Anzahl (Kachelgröße exklusiv in den Einstellungen) */}
+            {/* Spulen-Bereich */}
             <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between gap-3 px-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-extrabold text-sm sm:text-base tracking-tight" style={{ color: 'var(--app-text)' }}>
-                        Filament-Spulen
-                      </h3>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-orange-500/30 text-orange-400 bg-orange-500/10">
-                        {filteredSpools.length} {filteredSpools.length === 1 ? 'Spule' : 'Spulen'}
-                      </span>
-                    </div>
-                    <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                      Eibos- & Vakuumlager mit Frische- & Trocknungsampel
-                    </p>
-                  </div>
-                </div>
+              <div className="flex items-baseline justify-between gap-3 px-1">
+                <h3 className="font-extrabold text-sm tracking-tight">Spulen</h3>
+                <span className="text-[11px] font-mono-num" style={{ color: 'var(--app-text-muted)' }}>
+                  {filteredSpools.length === spools.length ? `${spools.length} Stück` : `${filteredSpools.length} von ${spools.length}`}
+                </span>
               </div>
 
               {/* Spulen-Raster mit flexibler Kachelgröße */}
               <section
-                className="gap-4"
+                className="gap-3"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `repeat(auto-fill, minmax(${appSettings.cardSize || 340}px, 1fr))`

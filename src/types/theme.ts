@@ -16,7 +16,7 @@ export interface BrightnessOption {
   textHex: string;
 }
 
-// 5 Stufen, gleichmäßig von hell nach dunkel verteilt (Helligkeit des Hintergrunds ca. 100 / 87 / 65 / 35 / 6 %)
+// 5 Stufen, gleichmäßig von hell nach dunkel verteilt (Helligkeit des Hintergrunds ca. 100 / 87 / 65 / 20 / 6 %)
 export const BRIGHTNESS_OPTIONS: BrightnessOption[] = [
   {
     id: 'polar',
@@ -47,20 +47,20 @@ export const BRIGHTNESS_OPTIONS: BrightnessOption[] = [
   },
   {
     id: 'slate',
-    name: '4. Dämmerung',
-    subtitle: 'Dunkles Schiefergrau',
-    level: '35% Dunkel',
-    bgHex: '#3d4859',
-    cardHex: '#4a566a',
-    textHex: '#f8fafc'
+    name: '4. Graphit',
+    subtitle: 'Dunkles Graphit mit Blauton',
+    level: '20% Dunkel',
+    bgHex: '#1c202b',
+    cardHex: '#272c3a',
+    textHex: '#f4f6fb'
   },
   {
     id: 'midnight',
     name: '5. Nacht',
     subtitle: 'Tiefes Nachtblau',
     level: '6% Fast schwarz',
-    bgHex: '#0b111e',
-    cardHex: '#141c2c',
+    bgHex: '#080c15',
+    cardHex: '#131a2b',
     textHex: '#f1f5f9'
   }
 ];

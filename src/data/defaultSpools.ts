@@ -1410,8 +1410,8 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     viewMode: 'simple'
   },
   {
-    id: 'v2.00',
-    label: '2.00 (Flacher RC522-Halter)',
+    id: 'v1.100',
+    label: '1.100 (Flacher RC522-Halter)',
     releaseDate: '29.10.2026',
     description: 'Der RC522-Halter hat keine Seitenteile mehr. Es ist jetzt eine flache Platte, die du mit doppelseitigem Klebeband an Platine und AMS klebst.',
     features: [
@@ -1426,8 +1426,8 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     viewMode: 'simple'
   },
   {
-    id: 'v2.01',
-    label: '2.01 (Mitteilungen & neues Verbindungen-Menü)',
+    id: 'v1.101',
+    label: '1.101 (Mitteilungen & neues Verbindungen-Menü)',
     releaseDate: '29.10.2026',
     description: 'Mitteilungen mit Postfach: Ein Tipp auf die Benachrichtigung öffnet die App direkt bei „Trocknung fertig“ & Co. mit allen Details. Das Verbindungen-Menü ist komplett neu und zeigt nur, was es auf dem Gerät gibt. Der Log-Spam ist weg.',
     features: [
@@ -1440,6 +1440,31 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
       '📜 Log-Spam behoben: „Drucker bereit“ kam jede Sekunde. Statuswechsel zählen erst nach 15 s, gleiche Meldungen werden nicht doppelt gespeichert, alte zugespamte Logs räumen sich selbst auf',
       '📱 Android-Plugin erweitert (neue APK nötig, die App lädt sie selbst): FilamentNotify gibt die angetippte Mitteilung an die Oberfläche',
       '🔢 Aktualisierte Zahlen-FunFacts: 74 Commits und 101 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.102',
+    label: '1.102 (App & Desktop getrennt, Seitenleiste, neues Design)',
+    releaseDate: '29.10.2026',
+    description: 'App und Desktop sind jetzt wirklich getrennt: Die App zeigt nur App-Dinge, am PC bleibt das Menü dauerhaft an der Seite. Spulenansicht minimalistisch neu, Graphit-Dunkelmodus besser lesbar, QR/NFC-Scan öffnet direkt die Spule, neue Mitteilung „Trocknen gestoppt“.',
+    features: [
+      '🔢 Zählung geht bei 1.102 weiter, die 2 bleibt für ein großes Update frei',
+      '📲 Scan von NFC-Tag oder QR öffnet die App und direkt die richtige Spule (Android-Link, Banner „In der App öffnen“ im Browser)',
+      '🛑 Neue Mitteilung „Trocknen gestoppt“ (mit Laufzeit, fehlender Restzeit und Spulen), einzeln abschaltbar',
+      '🔔 Hintergrund-Dienst in der Android-App (schaltbar), damit „Trocknen fertig“ auch bei geschlossener App aufs Handy kommt',
+      '🧪 Test-Mitteilung frei wählbar: Auswahl der Art, dann „Senden“',
+      '⚙️ Mitteilungs-Einstellungen sind jetzt in der Glocke (Tabs Postfach / Einstellungen), Etiketten stehen unter „Werkstatt“',
+      '🖨️ Drucker-Status in Verbindungen stimmt jetzt (auch im Heimnetz-Modus), neues 3D-Drucker-Symbol',
+      '🖥️ Windows-App: richtiges Logo (.ico in allen Größen) und gleiches Logo in der Kopfleiste',
+      '📌 PC: Menü dauerhaft an der Seite (einklappbar, merkt sich den Zustand)',
+      '📱 App: nur App-Ansicht. Raus sind Backups, G-Code-Rechner, Material-Einstellungen, Schnellaktionen, Abzug, untere Menüleiste, „App/QR“ und „Webseite öffnen“',
+      '🎨 Spulenansicht neu: ruhige Kacheln mit Farbscheibe, Gewicht, Fortschritt und Chips; Aktionen klappen auf. Desktop-Dashboard mit schlanker Kennzahlen-Zeile',
+      '🌙 Dunkelmodus: „4. Graphit“ (lesbares Blaugrau statt dunklem Grün), „5. Nacht“ heller beschriftet',
+      '🤖 KI: neue Sparfunktion „Wo kann ich sparen?“ (Reste zuerst, doppelte Farben, Vorrat, Preise, gebundenes Geld)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 75 Commits und 102 Revisionsstufen'
     ],
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],

@@ -15,3 +15,8 @@ export function spoolIdFromHash(hash: string): string | null {
   const m = /[#&]s=([^&]+)/.exec(hash || '');
   return m ? decodeURIComponent(m[1]) : null;
 }
+
+/** Link, der die Android-App direkt bei der Spule öffnet (Chrome-„intent“-Link, bleibt auf der Seite, wenn die App fehlt) */
+export function appIntentLink(id: string, fallbackUrl: string): string {
+  return `intent://spool/${encodeURIComponent(id)}#Intent;scheme=filamenthub;package=com.filamenthub.app;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
+}

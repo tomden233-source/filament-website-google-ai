@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { runAssistant, type AssistantMemory } from '../../utils/assistant';
+import { isAppShell } from '../../utils/env';
 import { useWorkshopSettings } from '../../utils/workshopSettings';
 import type { SidebarProps as ParentProps } from '../Sidebar';
 
@@ -48,7 +49,7 @@ export function useAgentChat({ spools, onOpenCamera, onSetViewMode, versionProfi
 
     const res = runAssistant(
       prompt,
-      { spools, lowWeightG: settings.lowWeightG || 100, eibosTara: appSettings?.eibosBagTara, versions: versionProfiles.map(v => ({ id: v.id, label: v.label })) },
+      { spools, noGcode: isAppShell(), lowWeightG: settings.lowWeightG || 100, eibosTara: appSettings?.eibosBagTara, versions: versionProfiles.map(v => ({ id: v.id, label: v.label })) },
       memory.current
     );
     memory.current = res.memory;

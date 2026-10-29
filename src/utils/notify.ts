@@ -30,6 +30,18 @@ export async function refreshNotifyPermission(): Promise<NotifyPermission> {
   return notifyPermission();
 }
 
+/** Android-App: Hintergrund-Dienst ein/aus (hält die Verbindung zum Drucker offen, damit Meldungen auch bei geschlossener App kommen).
+ *  Braucht die APK ab 1.102, bei älteren passiert nichts. */
+export async function setKeepAlive(on: boolean): Promise<boolean> {
+  if (!IS_NATIVE) return false;
+  try {
+    const r = await nativeCall<{ running: boolean }>('keepAlive', { on });
+    return Boolean(r?.running);
+  } catch {
+    return false;
+  }
+}
+
 /** Android-Meldungseinstellungen der App öffnen (wenn blockiert) */
 export async function openNotifySettings(): Promise<void> {
   try {

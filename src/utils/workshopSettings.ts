@@ -13,9 +13,13 @@ export interface WorkshopSettings {
   alertPrintFail: boolean;
   alertDryDue: boolean;
   alertDryDone: boolean;
+  /** Trocknung wurde vor dem Ende gestoppt */
+  alertDryStop: boolean;
   alertLow: boolean;
   /** Zusätzlich als Benachrichtigung aufs Gerät (sonst nur im Postfach der App) */
   systemPush: boolean;
+  /** Android-App: im Hintergrund aktiv bleiben (kleine dauerhafte Anzeige), damit Meldungen auch bei geschlossener App kommen */
+  keepAlive: boolean;
   /** NFC-Leser im AMS (ESPHome über Home Assistant) nutzen */
   amsNfcOn: boolean;
   /** Bei erkannter Spule Material/Farbe an den Drucker senden */
@@ -31,8 +35,10 @@ export const DEFAULT_WORKSHOP_SETTINGS: WorkshopSettings = {
   alertPrintFail: true,
   alertDryDue: true,
   alertDryDone: true,
+  alertDryStop: true,
   alertLow: true,
   systemPush: true,
+  keepAlive: true,
   amsNfcOn: true,
   amsNfcToPrinter: true
 };
@@ -50,6 +56,7 @@ function sanitize(raw: (Partial<WorkshopSettings> & Record<string, unknown>) | n
   if (r.dryReminder === false) {
     if (r.alertDryDue === undefined) r.alertDryDue = false;
     if (r.alertDryDone === undefined) r.alertDryDone = false;
+    if (r.alertDryStop === undefined) r.alertDryStop = false;
   }
   if (r.lowWarning === false && r.alertLow === undefined) r.alertLow = false;
   const s: WorkshopSettings = { ...DEFAULT_WORKSHOP_SETTINGS };

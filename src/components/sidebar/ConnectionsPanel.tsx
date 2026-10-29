@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Printer, Home, Cloud, Nfc, BellRing, Smartphone, ChevronDown, Settings2, Inbox } from 'lucide-react';
-import { safeStorage } from '../../utils/safeStorage';
+import { Home, Cloud, Nfc, BellRing, Smartphone, ChevronDown, Settings2, Inbox } from 'lucide-react';
 import { getHaCredentials } from '../../utils/haClient';
 import { IS_DESKTOP, IS_NATIVE, IS_STATIC, isAppShell } from '../../utils/env';
 import { isGistUrl } from '../../utils/gistStore';
@@ -13,6 +12,8 @@ import { CloudStoreCard } from './CloudStoreCard';
 import { DeviceSyncCard } from './DeviceSyncCard';
 import { HomeAssistantCard } from './HomeAssistantCard';
 import { Toggle } from '../workshop/ui';
+import { ThreeDPrinterIcon } from '../ThreeDPrinterIcon';
+import { usePrinterLive, isPrinterConfigured, isPrinterLan } from '../../utils/printerLive';
 
 export interface ConnectionsPanelProps {
   cloudDbUrl: string;
@@ -121,19 +122,41 @@ export const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ cloudDbUrl, 
     void refreshNotifyPermission().then(setPerm);
   }, []);
 
-  const bambuOk = !!safeStorage.getItem('bambu_access_token');
+  const live = usePrinterLive();
+  const bambuOk = isPrinterConfigured();
   const ha = getHaCredentials();
   const haOk = !!ha.url?.trim() && !!ha.token;
   const gist = isGistUrl(cloudDbUrl);
   const syncPass = !!getSyncPass();
   void rev;
 
-  const printerStatus = bambuOk ? (IS_NATIVE ? 'Eingerichtet · direkt über die App' : 'Eingerichtet') : 'Nicht eingerichtet';
+  const way = isPrinterLan() ? 'Heimnetz' : IS_NATIVE ? 'direkt über die App' : 'Bambu Cloud';
+  let printerStatus: string;
+  let printerLevel: Level;
+  if (!bambuOk) {
+    printerStatus = 'Nicht eingerichtet';
+    printerLevel = 'warn';
+  } else if (live.level === 'online') {
+    printerStatus = `Online · ${live.text || 'bereit'} · ${way}`;
+    printerLevel = 'ok';
+  } else if (live.level === 'connecting') {
+    printerStatus = 'Verbindet …';
+    printerLevel = 'warn';
+  } else if (live.level === 'standby') {
+    printerStatus = `Verbunden · ${live.text || 'Drucker aus / nicht erreichbar'}`;
+    printerLevel = 'warn';
+  } else if (live.level === 'offline') {
+    printerStatus = 'Offline · Drucker nicht verbunden';
+    printerLevel = 'warn';
+  } else {
+    printerStatus = `Eingerichtet · ${way}`;
+    printerLevel = 'ok';
+  }
   const syncStatus = gist ? `Privater Gist${syncPass ? ' · Geräte-Sync an' : ''}` : 'npoint.io (alt, öffentlich)';
 
   return (
     <div className="space-y-2.5">
-      <Row id="printer" open={open} setOpen={setOpen} icon={Printer} tone="text-emerald-400 bg-emerald-500/15 border-emerald-500/30" title="Bambu-Drucker" status={printerStatus} level={bambuOk ? 'ok' : 'warn'}>
+      <Row id="printer" open={open} setOpen={setOpen} icon={ThreeDPrinterIcon} tone="text-emerald-400 bg-emerald-500/15 border-emerald-500/30" title="Bambu-Drucker" status={printerStatus} level={printerLevel}>
         {IS_STATIC && !IS_NATIVE && !IS_DESKTOP && (
           <p className="text-[11px] leading-relaxed text-amber-300">Live-Daten vom Drucker gibt es nur in der App oder mit lokalem Server. Im Browser ohne Server bleibt die Verbindung ohne Anzeige.</p>
         )}

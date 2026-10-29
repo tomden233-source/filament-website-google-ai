@@ -23,16 +23,17 @@ import {
 } from './utils/shopLinks';
 import { safeStorage } from './utils/safeStorage';
 import { spoolIdFromHash } from './utils/spoolLink';
+import { decodeRecords } from './utils/nfcRead';
+import { parseNfcContent, triggerNfcHaptic, playNfcSuccessChime } from './utils/nfcManager';
+import { OpenInAppBanner } from './components/OpenInAppBanner';
 import { Navbar, DeviceMode } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 
 
 import { HistoryModal } from './components/HistoryModal';
-import { QuickDeductModal } from './components/QuickDeductModal';
 import { RightLogDrawer } from './components/RightLogDrawer';
 import { addSystemLog } from './utils/logService';
 import { EditUsedModal } from './components/app/EditUsedModal';
-import { MobileAppBar } from './components/app/MobileAppBar';
 import { MobileAppView } from './components/app/MobileAppView';
 import { DesktopDashboard } from './components/app/DesktopDashboard';
 import {
@@ -48,6 +49,7 @@ import {
 import { useThemeSettings } from './hooks/useThemeSettings';
 import { useAppSettings } from './hooks/useAppSettings';
 import { useDryingReminders } from './hooks/useDryingReminders';
+import { useKeepAlive } from './hooks/useKeepAlive';
 import { LowStockBanner } from './components/workshop/LowStockBanner';
 import type { WorkshopTab } from './components/workshop/WorkshopModal';
 import { getLocationStats } from './utils/spoolAlerts';
@@ -123,7 +125,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v2.01';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.102';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
@@ -161,6 +163,24 @@ export default function App() {
     if (isAppShell() || window.innerWidth < 768) return 'app';
     return (safeStorage.getItem('filamenthub_device_mode') as DeviceMode) || 'app';
   });
+
+  // Am PC (Windows-App oder breiter Browser) bleibt das Menü als feste Seitenleiste offen; per Knopf einklappbar.
+  const [wideScreen, setWideScreen] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth >= 1100);
+  useEffect(() => {
+    const onResize = () => setWideScreen(window.innerWidth >= 1100);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const [dockPref, setDockPrefState] = useState<boolean>(() => safeStorage.getItem('filamenthub_dock') !== '0');
+  const setDockPref = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
+    setDockPrefState(prev => {
+      const next = typeof v === 'function' ? v(prev) : v;
+      safeStorage.setItem('filamenthub_dock', next ? '1' : '0');
+      return next;
+    });
+  }, []);
+  const canDock = deviceMode === 'desktop' && !isAppShell() && wideScreen;
+  const isDocked = canDock && dockPref;
 
   const handleSetDeviceMode = useCallback((mode: DeviceMode) => {
     setDeviceMode(mode);
@@ -269,7 +289,21 @@ export default function App() {
     } catch {
       /* ohne Adressleiste egal */
     }
-    const stopTaps = listenNotificationTaps(id => open('inbox', id));
+    const stopTaps = listenNotificationTaps(id => {
+      // „spool:ID“ kommt von einem gescannten QR-Etikett (Link filamenthub://spool/ID), alles andere ist eine Mitteilung
+      if (id.startsWith('spool:')) {
+        const found = spoolsLive.current.find(sp => sp.id === id.slice(6));
+        if (found) {
+          setSpoolToEdit(found);
+          setSpoolPrefill(null);
+          setIsSpoolModalOpen(true);
+        } else {
+          showToast('Diese Spule ist auf diesem Gerät nicht vorhanden. Im Menü unter Tools mit der Cloud abgleichen.');
+        }
+        return;
+      }
+      open('inbox', id);
+    });
     return () => {
       window.removeEventListener(OPEN_WORKSHOP_EVENT, onEvent);
       navigator.serviceWorker?.removeEventListener?.('message', onSw);
@@ -293,7 +327,6 @@ export default function App() {
   const [isNfcModalOpen, setIsNfcModalOpen] = useState<boolean>(false);
   const [nfcModalMode, setNfcModalMode] = useState<'read' | 'write' | 'batch' | 'write-direct' | 'inspect'>('batch');
   const [nfcSpoolId, setNfcSpoolId] = useState<string | undefined>(undefined);
-  const [isQuickDeductOpen, setIsQuickDeductOpen] = useState<boolean>(false);
 
   // Manuell überschreibbarer Wert für verdrucktes Filament
   const [manualUsedGrams, setManualUsedGrams] = useState<number | null>(() => {
@@ -333,6 +366,7 @@ export default function App() {
 
   // Erinnerung: Trocknen fällig, AMS-Trocknung fertig
   useDryingReminders({ spools, showToast });
+  useKeepAlive();
 
   // Zentraler Einstellungs-Hub (Material-Trocknungszeiten, Hersteller-Tara, Eibos-Beutel)
   const { appSettings, handleUpdateMaterialPreset, handleResetMaterialPreset, handleUpdateBrandPreset, handleResetBrandPreset, handleUpdateEibosBagTara, handleUpdateCardSize, handleResetAllSettings } = useAppSettings({ showToast });
@@ -483,9 +517,27 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spools]);
 
-  // NFC-Tag gehalten, während die App offen ist (kein Fenster scannt gerade): NFC-Fenster öffnen und Tag anzeigen
+  // NFC-Tag gehalten (auch beim Start der App durch den Tag): gehört er zu einer Spule, geht die Spule direkt auf.
+  // Unbekannte oder leere Tags öffnen das NFC-Fenster, damit man sie beschreiben kann.
+  const spoolsLive = useRef(spools);
+  spoolsLive.current = spools;
   useEffect(() => {
-    const onIdleTag = () => {
+    const onIdleTag = (e?: Event) => {
+      const ev: any = (e as CustomEvent | undefined)?.detail ?? peekIdleTag(4000);
+      try {
+        const text = decodeRecords(ev?.message?.records || []);
+        const parsed = parseNfcContent(text, ev?.serialNumber, spoolsLive.current);
+        if (parsed.matchedSpool) {
+          triggerNfcHaptic();
+          playNfcSuccessChime();
+          setSpoolToEdit(parsed.matchedSpool);
+          setSpoolPrefill(null);
+          setIsSpoolModalOpen(true);
+          return;
+        }
+      } catch {
+        /* Tag nicht lesbar: unten NFC-Fenster */
+      }
       setNfcSpoolId(undefined);
       setNfcModalMode('read');
       setIsNfcModalOpen(true);
@@ -1079,60 +1131,13 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen flex flex-col transition-colors selection:bg-orange-500 selection:text-white"
+      className="min-h-screen flex transition-colors selection:bg-orange-500 selection:text-white"
       style={{
         backgroundColor: 'var(--app-bg)',
         color: 'var(--app-text)'
       }}
     >
-      {/* Hinweis auf neue App-Version (nur Android-App) */}
-      <UpdateBanner />
-
-      {/* Top Navbar */}
-      <Navbar
-        onOpenMenu={() => setIsSidebarOpen(true)}
-        deviceMode={deviceMode}
-        onSetDeviceMode={handleSetDeviceMode}
-        viewMode={viewMode}
-        onSetViewMode={handleSetViewMode}
-        canUndo={undoStack.length > 0}
-        canRedo={redoStack.length > 0}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onOpenQr={() => {
-          setAppAndQrTab('app');
-          setIsAppAndQrOpen(true);
-        }}
-        onSyncCloud={() => syncWithCloud(true)}
-        isSyncing={isSyncing}
-        syncOk={syncStatus.ok}
-        onOpenHistory={() => setIsHistoryModalOpen(true)}
-        onOpenWorkshop={() => setIsWorkshopOpen(true)}
-        historyCount={printHistory.length}
-        onOpenNewSpool={() => {
-          setSpoolToEdit(null);
-          setSpoolPrefill(null);
-          setIsSpoolModalOpen(true);
-        }}
-        onOpenNfc={() => {
-          setNfcModalMode('read');
-          setNfcSpoolId(undefined);
-          setIsNfcModalOpen(true);
-        }}
-        activeVersionLabel={activeVersion?.label || activeVersionId}
-        versionProfiles={versionProfiles}
-        activeVersionId={activeVersionId}
-        onSelectVersion={handleSelectVersion}
-        onCreateVersionProfile={handleCreateVersionProfile}
-        onRestoreDefault={handleRestoreDefault21}
-        onOpenCamera={() => setIsCameraModalOpen(true)}
-        onOpenPWAInstall={() => {
-          setAppAndQrTab('app');
-          setIsAppAndQrOpen(true);
-        }}
-      />
-
-      {/* Slide-out Sidebar mit Klick-Schließen */}
+      {/* Menü: am PC feste Seitenleiste, am Handy ausfahrbar */}
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -1184,10 +1189,67 @@ export default function App() {
         onResetAllSettings={handleResetAllSettings}
         cloudDbUrl={cloudDbUrl}
         syncStatus={syncStatus}
+        docked={isDocked}
+        onToggleDock={() => setDockPref(false)}
+      />
+
+      <div className="flex-1 min-w-0 flex flex-col">
+      {/* Hinweis auf neue App-Version (nur Android-App) */}
+      <UpdateBanner />
+      {/* QR-Etikett im Handy-Browser gescannt: Knopf „In der App öffnen“ */}
+      <OpenInAppBanner />
+
+      {/* Top Navbar */}
+      <Navbar
+        onOpenMenu={() => (canDock ? setDockPref(v => !v) : setIsSidebarOpen(true))}
+        menuDocked={isDocked}
+        deviceMode={deviceMode}
+        onSetDeviceMode={handleSetDeviceMode}
+        viewMode={viewMode}
+        onSetViewMode={handleSetViewMode}
+        canUndo={undoStack.length > 0}
+        canRedo={redoStack.length > 0}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onOpenQr={() => {
+          setAppAndQrTab('app');
+          setIsAppAndQrOpen(true);
+        }}
+        onSyncCloud={() => syncWithCloud(true)}
+        isSyncing={isSyncing}
+        syncOk={syncStatus.ok}
+        onOpenHistory={() => setIsHistoryModalOpen(true)}
+        onOpenWorkshop={() => {
+          setWorkshopTab('labels');
+          setLabelSpoolId(null);
+          setIsWorkshopOpen(true);
+        }}
+        historyCount={printHistory.length}
+        onOpenNewSpool={() => {
+          setSpoolToEdit(null);
+          setSpoolPrefill(null);
+          setIsSpoolModalOpen(true);
+        }}
+        onOpenNfc={() => {
+          setNfcModalMode('read');
+          setNfcSpoolId(undefined);
+          setIsNfcModalOpen(true);
+        }}
+        activeVersionLabel={activeVersion?.label || activeVersionId}
+        versionProfiles={versionProfiles}
+        activeVersionId={activeVersionId}
+        onSelectVersion={handleSelectVersion}
+        onCreateVersionProfile={handleCreateVersionProfile}
+        onRestoreDefault={handleRestoreDefault21}
+        onOpenCamera={() => setIsCameraModalOpen(true)}
+        onOpenPWAInstall={() => {
+          setAppAndQrTab('app');
+          setIsAppAndQrOpen(true);
+        }}
       />
 
       {/* Hauptbereich */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 pb-24 space-y-4 sm:space-y-5">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-5 pb-10 space-y-4 sm:space-y-5">
         {/* Rest-Warnung: fast leere Spulen */}
         <LowStockBanner
           spools={spools}
@@ -1201,7 +1263,7 @@ export default function App() {
           /* ============================================================== */
           /* SMARTPHONE APP-MODUS: MOBILE-FOKUSSIERT & TOUCH-OPTIMIERT     */
           /* ============================================================== */
-          <MobileAppView spools={spools} totalGrams={totalGrams} setIsCameraModalOpen={setIsCameraModalOpen} setNfcSpoolId={setNfcSpoolId} setNfcModalMode={setNfcModalMode} setIsNfcModalOpen={setIsNfcModalOpen} setSpoolToEdit={setSpoolToEdit} setSpoolPrefill={setSpoolPrefill} setIsSpoolModalOpen={setIsSpoolModalOpen} setIsQuickDeductOpen={setIsQuickDeductOpen} viewMode={viewMode} handleDeductWeight={handleDeductWeight} handleApplyDryingCredit={handleApplyDryingCredit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} setActiveMaterialFilter={setActiveMaterialFilter} activeMaterialFilter={activeMaterialFilter} filteredSpools={filteredSpools} handleAddWeight={handleAddWeight} handleOpenSpoolNfc={handleOpenSpoolNfc} handleDeleteSpool={handleDeleteSpool} locations={locationStats} activeLocationFilter={activeLocationFilter} setActiveLocationFilter={setActiveLocationFilter} />
+          <MobileAppView spools={spools} totalGrams={totalGrams} now={now} appSettings={appSettings} setSpoolToEdit={setSpoolToEdit} setSpoolPrefill={setSpoolPrefill} setIsSpoolModalOpen={setIsSpoolModalOpen} viewMode={viewMode} handleDeductWeight={handleDeductWeight} handleApplyDryingCredit={handleApplyDryingCredit} handleMarkDried={handleMarkDried} searchQuery={searchQuery} setSearchQuery={setSearchQuery} setActiveMaterialFilter={setActiveMaterialFilter} activeMaterialFilter={activeMaterialFilter} filteredSpools={filteredSpools} handleAddWeight={handleAddWeight} handleOpenSpoolNfc={handleOpenSpoolNfc} handleDeleteSpool={handleDeleteSpool} locations={locationStats} activeLocationFilter={activeLocationFilter} setActiveLocationFilter={setActiveLocationFilter} />
         ) : (
           /* ============================================================== */
           /* DESKTOP-MODUS: VOLLE WERKSTATT-DASHBOARD VERSION               */
@@ -1209,6 +1271,7 @@ export default function App() {
           <DesktopDashboard spools={spools} totalGrams={totalGrams} totalValue={totalValue} dueDryingCount={dueDryingCount} setEditUsedInputValue={setEditUsedInputValue} totalUsedGrams={totalUsedGrams} setIsEditUsedModalOpen={setIsEditUsedModalOpen} viewMode={viewMode} handleDeductWeight={handleDeductWeight} handleApplyDryingCredit={handleApplyDryingCredit} setSpoolToEdit={setSpoolToEdit} setSpoolPrefill={setSpoolPrefill} setIsSpoolModalOpen={setIsSpoolModalOpen} setIsCameraModalOpen={setIsCameraModalOpen} quickLinkText={quickLinkText} setQuickLinkText={setQuickLinkText} handleQuickScan={handleQuickScan} isQuickScanning={isQuickScanning} searchQuery={searchQuery} setSearchQuery={setSearchQuery} sortBy={sortBy} setSortBy={setSortBy} activeMaterialFilter={activeMaterialFilter} setActiveMaterialFilter={setActiveMaterialFilter} filteredSpools={filteredSpools} appSettings={appSettings} now={now} handleApplyScale={handleApplyScale} handleMarkDried={handleMarkDried} handleDuplicateSpool={handleDuplicateSpool} handleDeleteSpool={handleDeleteSpool} handleOpenSpoolNfc={handleOpenSpoolNfc} locations={locationStats} activeLocationFilter={activeLocationFilter} setActiveLocationFilter={setActiveLocationFilter} />
         )}
       </main>
+      </div>
 
       {/* Spool Modal */}
       {isSpoolModalOpen && (
@@ -1310,14 +1373,6 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* Quick Deduct Modal */}
-      <QuickDeductModal
-        isOpen={isQuickDeductOpen}
-        onClose={() => setIsQuickDeductOpen(false)}
-        spools={spools}
-        onDeductWeight={handleDeductWeight}
-      />
-
       {/* MODAL: VERDRUCKTES FILAMENT MANUELL ANPASSEN ODER AUF 0 SETZEN */}
       {isEditUsedModalOpen && <EditUsedModal setIsEditUsedModalOpen={setIsEditUsedModalOpen} editUsedInputValue={editUsedInputValue} setEditUsedInputValue={setEditUsedInputValue} handleSaveUsedGrams={handleSaveUsedGrams} />}
 
@@ -1325,7 +1380,7 @@ export default function App() {
       {/* Meldungen: am Handy über der Daumen-Leiste, am PC unten rechts. Antippen schließt sie. */}
       <div
         className={`fixed z-[60] flex flex-col gap-2 pointer-events-none ${
-          deviceMode === 'app' ? 'left-3 right-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] items-center' : 'right-4 bottom-6 items-end'
+          deviceMode === 'app' ? 'left-3 right-3 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] items-center' : 'right-4 bottom-6 items-end'
         }`}
       >
         {toasts.map(t => (
@@ -1346,9 +1401,6 @@ export default function App() {
           </button>
         ))}
       </div>
-
-      {/* Feste Daumen-Leiste NUR im App-Modus - ergonomisch für Smartphone Daumenbedienung */}
-      {deviceMode === 'app' && <MobileAppBar setIsCameraModalOpen={setIsCameraModalOpen} setNfcSpoolId={setNfcSpoolId} setNfcModalMode={setNfcModalMode} setIsNfcModalOpen={setIsNfcModalOpen} setIsQuickDeductOpen={setIsQuickDeductOpen} setIsSidebarOpen={setIsSidebarOpen} />}
 
       {/* Rechts angedockter Live-Log Streifen & Ausklapp-Drawer (ca. 1cm) */}
       <RightLogDrawer spools={spools} onDeductWeight={handleDeductWeight} />

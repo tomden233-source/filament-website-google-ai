@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.provider.Settings;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
@@ -48,10 +49,37 @@ public class FilamentNotifyPlugin extends Plugin {
         rememberTap(intent, true);
     }
 
+    // Link zu einer Spule (QR-Etikett): filamenthub://spool/ID oder https://…github.io/…/#s=ID
+    private static String spoolFromLink(Intent intent) {
+        try {
+            android.net.Uri d = intent.getData();
+            if (d == null) return "";
+            String scheme = d.getScheme();
+            if ("filamenthub".equals(scheme)) {
+                String last = d.getLastPathSegment();
+                return last == null ? "" : last;
+            }
+            String frag = d.getFragment();
+            if (frag != null && frag.startsWith("s=")) return android.net.Uri.decode(frag.substring(2));
+        } catch (Exception ignored) {
+            // kein verwertbarer Link
+        }
+        return "";
+    }
+
     private void rememberTap(Intent intent, boolean notifyJs) {
-        if (intent == null || !intent.hasExtra(EXTRA_ID)) return;
-        String id = intent.getStringExtra(EXTRA_ID);
-        intent.removeExtra(EXTRA_ID); // nicht nochmal auslösen (z. B. nach Drehen des Geräts)
+        if (intent == null) return;
+        String id = "";
+        if (intent.hasExtra(EXTRA_ID)) {
+            id = intent.getStringExtra(EXTRA_ID);
+            intent.removeExtra(EXTRA_ID); // nicht nochmal auslösen (z. B. nach Drehen des Geräts)
+        } else {
+            String spool = spoolFromLink(intent);
+            if (!spool.isEmpty()) {
+                id = "spool:" + spool;
+                intent.setData(null); // nur einmal auswerten
+            }
+        }
         if (id == null || id.isEmpty()) return;
         pendingId = id;
         if (notifyJs) {
@@ -131,10 +159,9 @@ public class FilamentNotifyPlugin extends Plugin {
                 // Eigene Anfrage-Nummer je Meldung, sonst überschreibt eine neue Meldung die ID der alten
                 pi = PendingIntent.getActivity(ctx, tag.hashCode(), launch, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
             }
-            int icon = ctx.getApplicationInfo().icon;
-            if (icon == 0) icon = android.R.drawable.ic_dialog_info;
             NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL)
-                .setSmallIcon(icon)
+                .setSmallIcon(FilamentKeepAliveService.smallIcon(ctx))
+                .setColor(0xFF168A47)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
@@ -152,6 +179,27 @@ public class FilamentNotifyPlugin extends Plugin {
         } catch (Exception e) {
             call.reject(String.valueOf(e.getMessage()));
         }
+    }
+
+    // Hintergrund-Dienst ein/aus: hält die App am Leben, damit Meldungen auch bei geschlossener App kommen
+    @PluginMethod
+    public void keepAlive(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        JSObject r = new JSObject();
+        try {
+            Context ctx = getContext();
+            Intent svc = new Intent(ctx, FilamentKeepAliveService.class);
+            if (on) {
+                ContextCompat.startForegroundService(ctx, svc);
+            } else {
+                ctx.stopService(svc);
+            }
+            r.put("running", on);
+        } catch (Exception e) {
+            r.put("running", false);
+            r.put("error", String.valueOf(e.getMessage()));
+        }
+        call.resolve(r);
     }
 
     @PluginMethod

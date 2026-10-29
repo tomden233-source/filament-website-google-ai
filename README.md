@@ -2,21 +2,28 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **2.01 (Mitteilungen & neues Verbindungen-Menü)**. Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.102 (App & Desktop getrennt, Seitenleiste, neues Design)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.102 im Paket 2.0.102, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Inhalt
 
-1. [Starten](#starten)
-2. [Spulen verwalten](#spulen-verwalten)
-3. [NFC-Leser im AMS](#nfc-leser-im-ams)
-4. [Mitteilungen](#mitteilungen)
-5. [Verbindungen](#verbindungen)
-6. [Cloud-Speicher (privater GitHub-Gist)](#cloud-speicher-privater-github-gist)
-7. [Webseite, Android, Windows](#webseite-android-windows)
-8. [Umgebungsvariablen](#umgebungsvariablen)
-9. [Zugangsdaten und Sicherheit](#zugangsdaten-und-sicherheit)
-10. [Projektstruktur](#projektstruktur)
-11. [Prüfen](#prüfen)
+1. [App und Desktop](#app-und-desktop)
+2. [Starten](#starten)
+3. [Spulen verwalten](#spulen-verwalten)
+4. [NFC-Leser im AMS](#nfc-leser-im-ams)
+5. [Mitteilungen](#mitteilungen)
+6. [Verbindungen](#verbindungen)
+7. [Cloud-Speicher (privater GitHub-Gist)](#cloud-speicher-privater-github-gist)
+8. [Webseite, Android, Windows](#webseite-android-windows)
+9. [Umgebungsvariablen](#umgebungsvariablen)
+10. [Zugangsdaten und Sicherheit](#zugangsdaten-und-sicherheit)
+11. [Projektstruktur](#projektstruktur)
+12. [Prüfen](#prüfen)
+
+## App und Desktop
+
+- **Android-App** zeigt nur App-Dinge: Spulen (Kacheln), KI, Tools, Einstellungen, Logs, NFC, Foto. Ohne Backups, G-Code-Rechner, Material-Einstellungen, Schnellaktionen, Abzug und untere Menüleiste.
+- **Desktop/Browser** behält alles inkl. Umschalter App/Desktop. Auf breiten Bildschirmen (ab 1100 px) steht das Menü dauerhaft an der Seite (einklappbar, wird gemerkt).
+- **Dunkelmodus:** „4. Graphit“ (Blaugrau) und „5. Nacht“.
 
 ## Starten
 
@@ -95,11 +102,19 @@ Die Glocke oben öffnet das Postfach. Dort stehen alle Mitteilungen mit Details:
 
 - **Einstellungen** (Reiter im selben Fenster): jede Mitteilungsart einzeln an oder aus, Grenze für „fast leer“, Benachrichtigung aufs Gerät an oder aus.
 - **Tipp auf die Benachrichtigung** öffnet die App direkt bei dieser Mitteilung (Android-App, Windows-App, installierte Web-App). Für Android braucht das die APK ab 2.01, die App lädt sie selbst.
-- Mitteilungen kommen, solange die App läuft oder im Hintergrund offen ist und mit dem Drucker verbunden bleibt.
+- **Trocknen gestoppt** kommt, wenn die Trocknung vor dem Ende ausgeht (mit Laufzeit und fehlender Restzeit), einzeln abschaltbar.
+- **Test-Mitteilung:** im Reiter Einstellungen die Art wählen und „Senden“.
+- **Hintergrund-Dienst (Android, schaltbar):** eine kleine dauerhafte Anzeige hält die App wach, damit „Trocknen fertig“ auch bei geschlossener App aufs Handy kommt. Braucht die APK ab 1.102 (`NATIVE_API` = 5).
+- Ohne Hintergrund-Dienst kommen Mitteilungen, solange die App läuft oder im Hintergrund offen ist und mit dem Drucker verbunden bleibt.
+- Etiketten drucken steht unter **Werkstatt** (Schraubenschlüssel oben).
+
+## QR und NFC öffnen die Spule
+
+Scan von NFC-Tag oder QR-Code öffnet die App direkt bei dieser Spule (`filamenthub://spool/ID`). Im Android-Browser erscheint oben „In der App öffnen“. Ist die App offen und der Leser meldet einen Tag, springt sie ebenfalls zur Spule.
 
 ## Verbindungen
 
-Menü → Einstellungen → **Verbindungen** zeigt eine Liste mit dem Stand auf einen Blick: Bambu-Drucker, Home Assistant, Cloud & Geräte-Sync, NFC-Leser, Mitteilungen und (nur Windows und Browser) Handy koppeln. Details klappen beim Tippen auf. Anleitungen erscheinen nur, solange etwas nicht eingerichtet ist.
+Menü → Einstellungen → **Verbindungen** zeigt eine Liste mit dem Stand auf einen Blick: Bambu-Drucker, Home Assistant, Cloud & Geräte-Sync, NFC-Leser, Mitteilungen und (nur Windows und Browser) Handy koppeln. Details klappen beim Tippen auf. Der Drucker-Status ist live (online, verbindet, offline; Cloud, Heimnetz oder direkt über die App). Anleitungen erscheinen nur, solange etwas nicht eingerichtet ist.
 
 ## Cloud-Speicher (privater GitHub-Gist)
 

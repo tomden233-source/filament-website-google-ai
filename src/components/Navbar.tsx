@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Menu,
-  Disc,
   Undo2,
   Redo2,
-  QrCode,
   History,
   PlusCircle,
   Smartphone,
@@ -12,8 +10,6 @@ import {
   ChevronDown,
   Tag,
   FileText,
-  Globe,
-  ExternalLink,
   Wrench,
   Bell
 } from 'lucide-react';
@@ -27,6 +23,8 @@ export type DeviceMode = 'app' | 'desktop';
 
 interface NavbarProps {
   onOpenMenu: () => void;
+  /** Menü ist als feste Seitenleiste offen: dann braucht es keinen Menü-Knopf */
+  menuDocked?: boolean;
   deviceMode: DeviceMode;
   onSetDeviceMode: (mode: DeviceMode) => void;
   viewMode: ViewMode;
@@ -57,6 +55,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenMenu,
+  menuDocked = false,
   deviceMode,
   onSetDeviceMode,
   viewMode,
@@ -65,7 +64,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   canRedo,
   onUndo,
   onRedo,
-  onOpenQr,
   onOpenHistory,
   onOpenWorkshop,
   historyCount,
@@ -104,23 +102,30 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-2">
         {/* Zone 1: Brand & Menu Trigger & Eingebettete Version oben */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenMenu}
-            title="Seitenmenü öffnen (KI-Agent, G-Code, Rechner, Themes, Versionen)"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition shadow-sm cursor-pointer"
-            style={{
-              backgroundColor: 'var(--app-card-sub)',
-              borderColor: 'var(--app-border)',
-              color: 'var(--app-text)'
-            }}
-          >
-            <Menu className="w-4 h-4 text-orange-400" />
-            <span className="text-xs font-bold hidden sm:inline">Menü</span>
-          </button>
+          {!menuDocked && (
+            <button
+              onClick={onOpenMenu}
+              title="Menü: KI-Assistent, Tools, Einstellungen, Versionen"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition shadow-sm cursor-pointer"
+              style={{
+                backgroundColor: 'var(--app-card-sub)',
+                borderColor: 'var(--app-border)',
+                color: 'var(--app-text)'
+              }}
+            >
+              <Menu className="w-4 h-4 text-orange-400" />
+              <span className="text-xs font-bold hidden sm:inline">Menü</span>
+            </button>
+          )}
 
-          <div className="hidden sm:flex w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
-            <Disc className="w-4 h-4 text-white" />
-          </div>
+          <img
+            src={`${import.meta.env.BASE_URL || '/'}pwa-192x192.png`}
+            alt=""
+            width={32}
+            height={32}
+            className="w-8 h-8 rounded-[10px] shrink-0 shadow-md"
+            draggable={false}
+          />
 
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-sm sm:text-base font-extrabold tracking-tight whitespace-nowrap" style={{ color: 'var(--app-text)' }}>
@@ -232,45 +237,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Zone 3: App/QR Kombi, Undo/Redo & Neu-Dropdown */}
         <div className="flex flex-wrap items-center gap-1.5">
-          {!appShell && (
-            <>
-          {/* DIREKTE ECHTE WEBSEITE ÖFFNEN */}
-          <a
-            href={typeof window !== 'undefined' ? window.location.href.split('?')[0].split('#')[0] : '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Echte Webseite im neuen Browser-Tab öffnen & dauerhaft als Lesezeichen speichern"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-sm hover:scale-[1.02]"
-            style={{
-              backgroundColor: 'var(--app-card-sub)',
-              borderColor: 'var(--app-border)',
-              color: 'var(--app-text)'
-            }}
-          >
-            <Globe className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[11px] font-bold hidden md:inline">Webseite öffnen</span>
-            <ExternalLink className="w-3 h-3 text-[var(--app-text-muted)]" />
-          </a>
-
-          {/* KOMBINIERTES APP- & QR-SYMBOL */}
-          <button
-            onClick={onOpenQr}
-            title="App installieren & Smartphone per QR-Code koppeln"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-sm"
-            style={{
-              backgroundColor: 'var(--app-card-sub)',
-              borderColor: 'var(--app-border)',
-              color: 'var(--app-accent-text)'
-            }}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <QrCode className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-bold hidden sm:inline">App / QR</span>
-          </button>
-
-            </>
-          )}
-
           {/* Undo / Redo */}
           <div
             className="inline-flex items-center rounded-xl border overflow-hidden"
@@ -338,7 +304,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {onOpenWorkshop && (
             <button
               onClick={onOpenWorkshop}
-              title="Werkstatt: Meldungen und Helfer"
+              title="Werkstatt: Etiketten drucken"
               className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer"
               style={{
                 backgroundColor: 'var(--app-card-sub)',

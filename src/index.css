@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* "dark:" folgt dem App-Theme (Dämmerung/Nacht), nicht der Handy-/PC-Einstellung */
+/* "dark:" folgt dem App-Theme (Graphit/Nacht), nicht der Handy-/PC-Einstellung */
 @custom-variant dark (&:where([data-theme="slate"], [data-theme="slate"] *, [data-theme="midnight"], [data-theme="midnight"] *));
 
 /* Die Akzentfarbe steuert auch alle bisherigen "orange"-Klassen (Tailwind), damit Blau, Grün usw. überall greifen */
@@ -129,30 +129,30 @@
   --app-input-bg: #d6dce6;
 }
 
-/* 4. DÄMMERUNG (ca. 35 % Dunkel) */
+/* 4. GRAPHIT (ca. 20 % Hell): dunkles Graphit mit leichtem Blauton, Karten heben sich klar vom Grund ab */
 [data-theme="slate"] {
   --app-accent-text: var(--a-300);
   --app-danger-text: #fda4af;
-  --app-bg: #3d4859;
-  --app-card: #4a566a;
-  --app-card-sub: #424e61;
-  --app-border: #637085;
-  --app-text: #f8fafc;
-  --app-text-muted: #d3dae5;
-  --app-input-bg: #3b4659;
+  --app-bg: #1c202b;
+  --app-card: #272c3a;
+  --app-card-sub: #212634;
+  --app-border: #3b4256;
+  --app-text: #f4f6fb;
+  --app-text-muted: #aab3c7;
+  --app-input-bg: #181c26;
 }
 
-/* 5. NACHT (ca. 6 % fast schwarz) */
+/* 5. NACHT (ca. 6 % fast schwarz): tiefes Blau, Ränder und Kartenflächen jetzt gut erkennbar */
 [data-theme="midnight"] {
   --app-accent-text: var(--a-400);
   --app-danger-text: #f87171;
-  --app-bg: #0b111e;
-  --app-card: #141c2c;
-  --app-card-sub: #0d1422;
-  --app-border: #1e293b;
+  --app-bg: #080c15;
+  --app-card: #131a2b;
+  --app-card-sub: #0e1423;
+  --app-border: #27324c;
   --app-text: #f1f5f9;
-  --app-text-muted: #94a3b8;
-  --app-input-bg: #090e18;
+  --app-text-muted: #9aa8c4;
+  --app-input-bg: #0a101d;
 }
 
 /* AKZENTFARBEN & SYNCHRONE BALKEN */

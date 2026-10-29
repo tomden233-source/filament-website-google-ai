@@ -22,7 +22,7 @@ import type { HistoryEntry, Spool } from '../types/filament';
 import { INITIAL_VERSION_PROFILES } from '../data/defaultSpools';
 import { STORAGE_KEY_HISTORY } from '../utils/storageKeys';
 import { printerApi, type PrintTask } from '../api/printerApi';
-import { APP_VERSION } from '../utils/env';
+import { APP_REVISION } from '../utils/env';
 
 interface FunFactsModalProps {
   isOpen: boolean;
@@ -37,11 +37,11 @@ interface FunFactsModalProps {
 //  SCHÄTZUNG = ungefähr, genauer geht es nicht
 type Source = 'LIVE' | 'BAUEN' | 'GEZÄHLT' | 'SCHÄTZUNG';
 
-// Von Claude beim Update auf v2.01 gezählt
+// Von Claude beim Update auf v1.102 gezählt
 const CHATS = 5; // Chats im Projekt „filament webseite“
-const MESSAGES = 147; // deine Nachrichten in diesen Chats (ca.)
-const WORDS = 16800; // deine Wörter (ca., lange Sprachnachrichten zählen voll)
-const COMMITS = 74; // Commits auf GitHub (main)
+const MESSAGES = 148; // deine Nachrichten in diesen Chats (ca.)
+const WORDS = 17900; // deine Wörter (ca., lange Sprachnachrichten zählen voll)
+const COMMITS = 75; // Commits auf GitHub (main)
 const PROJECT_START = new Date('2026-10-19T00:00:00');
 
 const fmt = (n: number, digits = 0) => n.toLocaleString('de-DE', { maximumFractionDigits: digits, minimumFractionDigits: digits });
@@ -200,7 +200,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose, s
       icon: Layers,
       title: 'Versionen',
       value: `${INITIAL_VERSION_PROFILES.length} Versionen`,
-      desc: `Von v1.00 bis v${APP_VERSION.replace(/\.0$/, '')}. Jede lässt sich im Revisionsmenü wiederherstellen.`,
+      desc: `Von v1.00 bis v${APP_REVISION}. Jede lässt sich im Revisionsmenü wiederherstellen.`,
       source: 'LIVE'
     },
     {
@@ -243,7 +243,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose, s
               <div>
                 <h3 className="font-extrabold text-lg leading-tight flex items-center gap-2">
                   Fun Facts
-                  <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">v{APP_VERSION.replace(/\.0$/, '')}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">v{APP_REVISION}</span>
                 </h3>
                 <p className="text-[11px] text-white/85">Echte Zahlen aus deinen Spulen, deinem Drucker und unserem Projekt</p>
               </div>

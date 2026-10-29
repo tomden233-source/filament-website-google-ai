@@ -63,7 +63,7 @@ async function createWindow() {
     minHeight: 600,
     title: 'FilamentHub',
     backgroundColor: '#062116',
-    icon: path.join(__dirname, '..', 'public', 'pwa-512x512.png'),
+    icon: path.join(__dirname, '..', 'public', process.platform === 'win32' ? 'icon.ico' : 'pwa-512x512.png'),
     autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, 'preload.cjs') }
   });
@@ -267,6 +267,8 @@ if (!lock) {
     }
   });
   app.whenReady().then(() => {
+    // Windows: Taskleisten-Symbol und Benachrichtigungen gehören zu FilamentHub (nicht zu „Electron“)
+    if (process.platform === 'win32') app.setAppUserModelId('de.filamenthub.desktop');
     // Meldungen (Druck fertig, Trocknung fertig) erlauben
     session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'notifications' || permission === 'clipboard-sanitized-write'));
     setupCloudBridge();
