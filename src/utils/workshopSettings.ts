@@ -20,6 +20,10 @@ export interface WorkshopSettings {
   ntfyTopic: string;
   /** Erinnerung an ein Backup */
   backupReminder: boolean;
+  /** NFC-Leser im AMS (ESPHome über Home Assistant) nutzen */
+  amsNfcOn: boolean;
+  /** Bei erkannter Spule Material/Farbe an den Drucker senden */
+  amsNfcToPrinter: boolean;
 }
 
 export const WORKSHOP_SETTINGS_KEY = 'filamenthub_workshop_settings';
@@ -32,7 +36,9 @@ export const DEFAULT_WORKSHOP_SETTINGS: WorkshopSettings = {
   finishPhoto: true,
   ntfyOn: false,
   ntfyTopic: '',
-  backupReminder: true
+  backupReminder: true,
+  amsNfcOn: true,
+  amsNfcToPrinter: true
 };
 
 let cache: WorkshopSettings | null = null;

@@ -110,6 +110,25 @@ export const NoticesTab: React.FC<{ extra?: React.ReactNode }> = ({ extra }) => 
 
       <Card>
         <div className="flex items-center gap-2 text-xs font-extrabold">
+          <BellRing className="w-4 h-4 text-sky-400" />
+          <span>NFC-Leser im AMS</span>
+        </div>
+        <Toggle
+          on={s.amsNfcOn}
+          onChange={v => update({ amsNfcOn: v })}
+          label="Spulen per NFC-Leser im AMS automatisch zuordnen"
+          hint="Braucht die ESPHome-Leser (hardware/ams-nfc) und die Home-Assistant-Verbindung."
+        />
+        <Toggle
+          on={s.amsNfcToPrinter}
+          onChange={v => update({ amsNfcToPrinter: v })}
+          label="Material und Farbe an den Drucker senden"
+          hint="Nur wenn der Slot im Drucker nicht passt. Entwickler-Modus nötig."
+        />
+      </Card>
+
+      <Card>
+        <div className="flex items-center gap-2 text-xs font-extrabold">
           <Bell className="w-4 h-4 text-orange-400" />
           <span>Benachrichtigung aufs Gerät</span>
         </div>

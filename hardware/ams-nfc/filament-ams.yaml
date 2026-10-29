@@ -1,0 +1,162 @@
+# FilamentHub: NFC-Leser im AMS 2 Pro (ESP32 + 5x RC522)
+# Slot 1-4 = AMS-Slots, Slot 5 = externe Spule.
+# In Home Assistant erscheinen die Sensoren sensor.filament_ams_slot_1_tag … slot_5_tag.
+# Die FilamentHub-App findet sie automatisch und ordnet Spule ↔ Slot zu.
+#
+# Pins funktionieren auf ESP32-Boards mit 30 UND 38 Pins (DevKitC / NodeMCU, WROOM-32).
+
+substitutions:
+  name: filament-ams
+  friendly_name: Filament AMS
+  # Wie lange ein Tag „weg“ sein darf, bevor der Slot als leer gilt.
+  # Die Spule dreht sich beim Drucken, der Tag ist dann kurz nicht vor dem Leser.
+  remove_after: 10min
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: !secret filament_ams_api_key
+
+ota:
+  - platform: esphome
+    password: !secret filament_ams_ota
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Filament-AMS Setup"
+
+captive_portal:
+
+# Gemeinsamer SPI-Bus (VSPI) für alle 5 Leser
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
+# Je Leser eine eigene CS-Leitung (SDA am RC522). RST aller Leser an GPIO22.
+rc522_spi:
+  - id: reader_1
+    cs_pin: GPIO5
+    reset_pin: GPIO22
+    update_interval: 1s
+    on_tag:
+      then:
+        - script.stop: clear_1
+        - text_sensor.template.publish: { id: slot_1_tag, state: !lambda "return x;" }
+    on_tag_removed:
+      then:
+        - script.execute: clear_1
+  - id: reader_2
+    cs_pin: GPIO17
+    update_interval: 1s
+    on_tag:
+      then:
+        - script.stop: clear_2
+        - text_sensor.template.publish: { id: slot_2_tag, state: !lambda "return x;" }
+    on_tag_removed:
+      then:
+        - script.execute: clear_2
+  - id: reader_3
+    cs_pin: GPIO16
+    update_interval: 1s
+    on_tag:
+      then:
+        - script.stop: clear_3
+        - text_sensor.template.publish: { id: slot_3_tag, state: !lambda "return x;" }
+    on_tag_removed:
+      then:
+        - script.execute: clear_3
+  - id: reader_4
+    cs_pin: GPIO4
+    update_interval: 1s
+    on_tag:
+      then:
+        - script.stop: clear_4
+        - text_sensor.template.publish: { id: slot_4_tag, state: !lambda "return x;" }
+    on_tag_removed:
+      then:
+        - script.execute: clear_4
+  - id: reader_5
+    cs_pin: GPIO13
+    update_interval: 1s
+    on_tag:
+      then:
+        - script.stop: clear_5
+        - text_sensor.template.publish: { id: slot_5_tag, state: !lambda "return x;" }
+    on_tag_removed:
+      then:
+        - script.execute: clear_5
+
+# Slot erst nach "remove_after" als leer melden (Spule dreht sich beim Drucken)
+script:
+  - id: clear_1
+    mode: restart
+    then:
+      - delay: ${remove_after}
+      - text_sensor.template.publish: { id: slot_1_tag, state: "" }
+  - id: clear_2
+    mode: restart
+    then:
+      - delay: ${remove_after}
+      - text_sensor.template.publish: { id: slot_2_tag, state: "" }
+  - id: clear_3
+    mode: restart
+    then:
+      - delay: ${remove_after}
+      - text_sensor.template.publish: { id: slot_3_tag, state: "" }
+  - id: clear_4
+    mode: restart
+    then:
+      - delay: ${remove_after}
+      - text_sensor.template.publish: { id: slot_4_tag, state: "" }
+  - id: clear_5
+    mode: restart
+    then:
+      - delay: ${remove_after}
+      - text_sensor.template.publish: { id: slot_5_tag, state: "" }
+
+text_sensor:
+  - platform: template
+    id: slot_1_tag
+    name: "Slot 1 Tag"
+    icon: mdi:nfc-variant
+  - platform: template
+    id: slot_2_tag
+    name: "Slot 2 Tag"
+    icon: mdi:nfc-variant
+  - platform: template
+    id: slot_3_tag
+    name: "Slot 3 Tag"
+    icon: mdi:nfc-variant
+  - platform: template
+    id: slot_4_tag
+    name: "Slot 4 Tag"
+    icon: mdi:nfc-variant
+  - platform: template
+    id: slot_5_tag
+    name: "Slot 5 Tag"
+    icon: mdi:nfc-variant
+  - platform: wifi_info
+    ip_address:
+      name: "IP"
+
+sensor:
+  - platform: wifi_signal
+    name: "WLAN Signal"
+    update_interval: 60s
+  - platform: internal_temperature
+    name: "ESP32 Temperatur"
+    update_interval: 60s

@@ -30,6 +30,7 @@ export interface AmsSectionProps {
   setAmsDryTemp: ParentProps['setAmsDryTemp'];
   handleToggleAmsDrying: ParentProps['handleToggleAmsDrying'];
   dryLoading: ParentProps['dryLoading'];
+  nfcInfo?: { readers: number; unknown: number[] };
 }
 
 export const AmsSection: React.FC<AmsSectionProps> = ({
@@ -49,7 +50,8 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
   amsDryHours,
   setAmsDryTemp,
   handleToggleAmsDrying,
-  dryLoading
+  dryLoading,
+  nfcInfo
 }) => {
   const connected = Boolean(liveState.connected);
   const [pickSlot, setPickSlot] = useState<number | null>(null);
@@ -96,6 +98,17 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                   <RefreshCw className="w-3 h-3" />
                   <span>Mit Drucker synchronisieren</span>
                 </button>
+                {nfcInfo && nfcInfo.readers > 0 && (
+                  <span
+                    className="px-2 py-0.5 rounded-lg border text-[10px] font-bold flex items-center gap-1"
+                    style={{ borderColor: 'var(--app-accent)', color: 'var(--app-accent-text)', backgroundColor: 'var(--app-accent-sub)' }}
+                    title="NFC-Leser im AMS ordnen Spulen automatisch zu"
+                  >
+                    <Nfc className="w-3 h-3" />
+                    NFC-Leser: {nfcInfo.readers}
+                    {nfcInfo.unknown.length > 0 ? ` · ${nfcInfo.unknown.length} unbekannt` : ''}
+                  </span>
+                )}
               </div>
             </div>
 

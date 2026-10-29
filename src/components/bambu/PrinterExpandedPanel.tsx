@@ -55,6 +55,7 @@ export interface PrinterExpandedPanelProps {
   amsDryHours: any;
   setAmsDryTemp: any;
   handleToggleAmsDrying: (...args: any[]) => any;
+  nfcInfo?: { readers: number; unknown: number[] };
   dryLoading: any;
 }
 
@@ -99,6 +100,7 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
   amsDryHours,
   setAmsDryTemp,
   handleToggleAmsDrying,
+  nfcInfo,
   dryLoading
 }) => {
   return (
@@ -242,7 +244,7 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
           </div>
 
           {/* SECTION 4: AMS 1-4 SLOTS, TELEMETRIE & SPULEN-EDITOR */}
-          <AmsSection compact={compact} setAmsSlots={setAmsSlots} setActionToast={setActionToast} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} liveState={liveState} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />
+          <AmsSection compact={compact} setAmsSlots={setAmsSlots} setActionToast={setActionToast} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} liveState={liveState} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} nfcInfo={nfcInfo} />
         </div>
   );
 };

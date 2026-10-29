@@ -1368,5 +1368,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.98',
+    label: '1.98 (NFC-Leser im AMS)',
+    releaseDate: '29.10.2026',
+    description: 'Vorbereitung für eigene NFC-Leser im AMS 2 Pro: ESPHome-Datei, Pin-Plan und App-Anbindung. Spule rein, App erkennt sie und setzt den Slot automatisch.',
+    features: [
+      '📡 ESPHome-Datei für ESP32 + 5× RC522 (4 Slots + extern), geprüft mit esphome config',
+      '🔌 Pin-Plan für ESP32 mit 30 und 38 Pins, Anleitung in hardware/ams-nfc/README.md',
+      '🤖 App findet die Leser über Home Assistant selbst, ordnet Spule ↔ Slot zu und setzt Material/Farbe am Drucker, wenn es nicht passt',
+      '🧠 Unbekannter Tag: einmal im Slot die Spule wählen, die App merkt sich den Tag',
+      '🔄 Geräte-Sync überträgt jetzt auch Tag-Zuordnungen und Home-Assistant-Zugang',
+      '⚙️ Schalter im Meldungen-Tab: NFC-Leser an/aus, an Drucker senden an/aus',
+      '🔢 Aktualisierte Zahlen-FunFacts: 71 Commits und 98 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

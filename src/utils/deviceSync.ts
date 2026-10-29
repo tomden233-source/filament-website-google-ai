@@ -21,8 +21,18 @@ export const PRINTER_KEYS = [
   'bambu_lan_ip',
   'bambu_lan_code'
 ];
-const SETTING_KEYS = [STORAGE_KEY_SETTINGS, 'filamenthub_workshop_settings', 'filamenthub_ams_slots_x2d', 'bambu_job_grams', 'bambu_auto_deduct'];
-const ALL_KEYS = [...PRINTER_KEYS, ...SETTING_KEYS];
+const SETTING_KEYS = [
+  STORAGE_KEY_SETTINGS,
+  'filamenthub_workshop_settings',
+  'filamenthub_ams_slots_x2d',
+  'bambu_job_grams',
+  'bambu_auto_deduct',
+  // NFC-Tag ↔ Spule (damit jedes Gerät die Tags im AMS erkennt)
+  'filamenthub_nfc_tag_mappings_v1'
+];
+// Home Assistant (für Kamera, Steckdose und NFC-Leser im AMS)
+export const HA_KEYS = ['ha_nabu_url', 'ha_url', 'ha_long_lived_token', 'ha_token', 'ha_camera_entity', 'ha_switch_entity'];
+const ALL_KEYS = [...PRINTER_KEYS, ...SETTING_KEYS, ...HA_KEYS];
 
 export type SyncResult = 'pushed' | 'applied' | 'same' | 'nopass' | 'badpass' | 'error';
 

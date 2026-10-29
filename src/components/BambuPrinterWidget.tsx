@@ -41,6 +41,7 @@ import { useAutoDeduct } from './bambu/useAutoDeduct';
 import { readTrays } from '../utils/amsMatch';
 import { usePrinterAlerts } from '../hooks/usePrinterAlerts';
 import { useLanDeduct } from '../hooks/useLanDeduct';
+import { useAmsNfcReaders } from '../hooks/useAmsNfcReaders';
 import { LanDeductPrompt } from './bambu/LanDeductPrompt';
 import type { PendingDeduct } from '../utils/printUsage';
 
@@ -150,6 +151,21 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
   // Home Assistant & Steckdosen State (Unified haClient)
   // Auto-Abzug braucht nur den Cloud-Login (Aufträge kommen aus der Bambu Cloud), nicht die Live-Verbindung
+  // NFC-Leser im AMS (ESPHome über Home Assistant): Spule ↔ Slot automatisch
+  const nfcReaders = useAmsNfcReaders({
+    spools,
+    amsSlots,
+    handleSetAmsSlot,
+    ams: liveState.data.ams,
+    printerConnected: Boolean(liveState.connected),
+    notify: setActionToast
+  });
+  const handleSetAmsSlotNfc = (slot: number, spoolId: string) => {
+    nfcReaders.learn(slot, spoolId); // unbekannten Tag in diesem Slot mit der gewählten Spule verknüpfen
+    handleSetAmsSlot(slot, spoolId);
+  };
+  const nfcInfo = { readers: Object.keys(nfcReaders.entities).length, unknown: Object.keys(nfcReaders.unknown).map(Number) };
+
   useAutoDeduct({ spools, amsSlots, onDeductWeight, isConnected: Boolean(liveState.connected || liveState.hasToken), gcodeState: liveState.data.gcode_state, notify: setActionToast });
 
   // LAN-Modus: kein Cloud-Auftrag mit Gewicht → gemerktes Gewicht je Auftrag oder kurze Frage nach dem Druck
@@ -856,7 +872,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {isExpanded && isCameraOpen && <PrinterCameraPanel setCameraSnapshotKey={setCameraSnapshotKey} handleToggleLight={handleToggleLight} isLightOn={isLightOn} isSocketOff={isSocketOff} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} cameraSource={cameraSource} haCameraBlobUrl={haCameraBlobUrl} haCreds={haCreds} cameraSnapshotKey={cameraSnapshotKey} printerLocalIp={printerLocalIp} haSwitchState={haSwitchState} />}
 
       {/* AUSGEKLAPPTE VOLLANSICHT */}
-      {isExpanded && <PrinterExpandedPanel compact={compact} isSocketOff={isSocketOff} haCreds={haCreds} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} isPrinterPowerOff={isPrinterPowerOff} isPrinterConnected={isPrinterAlive} liveState={liveState} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} inlineNozzle1Temp={inlineNozzle1Temp} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} isPrinting={isPrinting} handleSendCommand={handleSendCommand} setShowStopPinModal={setShowStopPinModal} setAmsSlots={setAmsSlots} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlot} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />}
+      {isExpanded && <PrinterExpandedPanel compact={compact} isSocketOff={isSocketOff} haCreds={haCreds} handleToggleSwitch={handleToggleSwitch} haSwitchLoading={haSwitchLoading} isPrinterPowerOff={isPrinterPowerOff} isPrinterConnected={isPrinterAlive} liveState={liveState} setActionToast={setActionToast} setTempModalTarget={setTempModalTarget} setTempModalValue={setTempModalValue} inlineNozzle1Temp={inlineNozzle1Temp} setInlineNozzle1Temp={setInlineNozzle1Temp} handleSendGcodeLine={handleSendGcodeLine} actionLoading={actionLoading} inlineNozzle2Temp={inlineNozzle2Temp} setInlineNozzle2Temp={setInlineNozzle2Temp} inlineBedTemp={inlineBedTemp} setInlineBedTemp={setInlineBedTemp} isPrinting={isPrinting} handleSendCommand={handleSendCommand} setShowStopPinModal={setShowStopPinModal} setAmsSlots={setAmsSlots} activeSlot={activeSlot} amsSlots={amsSlots} spools={spools} handleSetActiveSlot={handleSetActiveSlot} setEditingAmsSlot={setEditingAmsSlot} setAmsEditColor={setAmsEditColor} setAmsEditMaterial={setAmsEditMaterial} handleSetAmsSlot={handleSetAmsSlotNfc} nfcInfo={nfcInfo} onApplyDryingCredit={onApplyDryingCredit} amsDryTemp={amsDryTemp} isDryingActive={isDryingActive} getHumidityDisplay={getHumidityDisplay} calcRemainingTime={calcRemainingTime} setAmsDryHours={setAmsDryHours} amsDryHours={amsDryHours} setAmsDryTemp={setAmsDryTemp} handleToggleAmsDrying={handleToggleAmsDrying} dryLoading={dryLoading} />}
 
       {/* MODAL 1: TEMPERATUR ANPASSEN BEI KLICK AUF HOTEND ODER BETT */}
       {tempModalTarget && <TemperatureModal setTempModalTarget={setTempModalTarget} tempModalTarget={tempModalTarget} setTempModalValue={setTempModalValue} tempModalValue={tempModalValue} handleSetTemperature={handleSetTemperature} actionLoading={actionLoading} />}
