@@ -1085,5 +1085,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.80',
+    label: '1.80 (Mehr Trocknungs-Optionen)',
+    releaseDate: '29.10.2026',
+    description: 'Mehr Auswahl bei der AMS-Trocknung: 8 Zeiten und 7 Temperaturen, trotzdem übersichtlich in zwei Reihen mit Zusammenfassung.',
+    features: [
+      '⏱️ Dauer: 1, 2, 4, 6, 8, 12, 16 oder 24 Stunden',
+      '🌡️ Temperatur: 45° bis 80° in 7 Stufen, mit Materialtipp (TPU, PLA, PETG, ABS/ASA, PA/PC)',
+      '📋 Zeile „Gewählt“ zeigt Zeit, Temperatur und Material auf einen Blick',
+      '⚠️ Hinweis: 70° und 80° gehen nur mit AMS HT, das AMS 2 Pro schafft bis 65°',
+      '🔢 Aktualisierte Zahlen-FunFacts: 53 Commits und 80 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
