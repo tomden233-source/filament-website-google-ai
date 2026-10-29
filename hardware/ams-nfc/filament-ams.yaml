@@ -3,7 +3,7 @@
 # In Home Assistant erscheinen die Sensoren sensor.filament_ams_slot_1_tag … slot_5_tag.
 # Die FilamentHub-App findet sie automatisch und ordnet Spule ↔ Slot zu.
 #
-# Optional: Feuchte-/Temperatur-Sensor SHT40 (oder AHT20), I2C, 3,3 V, z. B. in der Filament-Lagerbox:
+# Optional: Feuchte-/Temperatur-Sensor SHT31-D (oder SHT40 / AHT20), I2C, 3,3 V, z. B. in der Filament-Lagerbox:
 #   SDA → GPIO21, SCL → GPIO32, VCC → 3V3, GND → GND
 #   → sensor.filament_ams_box_feuchte und sensor.filament_ams_box_temperatur (die App nutzt sie für den Feuchte-Alarm).
 #   Ohne angeschlossenen Sensor läuft alles andere normal weiter (im Log steht dann nur eine Warnung).
@@ -171,14 +171,23 @@ sensor:
   - platform: internal_temperature
     name: "ESP32 Temperatur"
     update_interval: 60s
-  # Optional: SHT40 (auch SHT41/SHT45) für Luftfeuchte und Temperatur in der Lagerbox
-  - platform: sht4x
+  # Optional: SHT31-D (auch SHT30/SHT35) für Luftfeuchte und Temperatur in der Lagerbox
+  - platform: sht3xd
+    address: 0x44
     update_interval: 60s
     temperature:
       name: "Box Temperatur"
     humidity:
       name: "Box Feuchte"
-  # Statt SHT40 ein AHT20? Dann den Block oben löschen und diesen nehmen (# vorne entfernen):
+  # Anderer Sensor? Block oben löschen und den passenden nehmen (# vorne entfernen):
+  # SHT40 / SHT41 / SHT45:
+  # - platform: sht4x
+  #   update_interval: 60s
+  #   temperature:
+  #     name: "Box Temperatur"
+  #   humidity:
+  #     name: "Box Feuchte"
+  # AHT20:
   # - platform: aht10
   #   variant: AHT20
   #   update_interval: 60s

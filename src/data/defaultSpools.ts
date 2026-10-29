@@ -1564,5 +1564,19 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.108',
+    label: '1.108 (SHT31-Sensor)',
+    releaseDate: '29.10.2026',
+    description: 'ESPHome-Datei auf den gekauften Feuchte-Sensor SHT31-D umgestellt (SHT40 und AHT20 bleiben als Alternative drin).',
+    features: [
+      '🌡️ ESPHome: SHT31-D (platform sht3xd, Adresse 0x44) an GPIO21/32, geprüft mit ESPHome 2026.10.1',
+      '📝 Anleitung und Übersicht auf SHT31-D angepasst',
+      '🔢 Aktualisierte Zahlen-FunFacts: 81 Commits und 108 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

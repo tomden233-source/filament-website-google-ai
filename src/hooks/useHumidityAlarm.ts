@@ -10,7 +10,7 @@ import { armDryPlan, dryPlanFor, getDryPlan } from '../utils/dryAfterPrint';
 import { addSystemLog } from '../utils/logService';
 
 // Feuchte-Alarm: AMS (Messwert vom Drucker) und optional ein externer Sensor über Home Assistant
-// (z. B. SHT40 am ESP32 des NFC-Lesers, siehe hardware/ams-nfc). Über der Grenze → Mitteilung.
+// (z. B. SHT31 am ESP32 des NFC-Lesers, siehe hardware/ams-nfc). Über der Grenze → Mitteilung.
 //  - Wert muss 5 Minuten über der Grenze liegen (kurze Spitzen zählen nicht)
 //  - danach erst wieder, wenn er 3 % unter die Grenze fiel, oder nach 12 Stunden
 //  - während die AMS-Trocknung läuft, kein Alarm fürs AMS

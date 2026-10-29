@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.107 (Auto-Trocknen & Übersicht)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.107 im Paket 2.0.107, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.108 (SHT31-Sensor)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.108 im Paket 2.0.108, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -44,7 +44,7 @@ Aktuelle Version: **1.107 (Auto-Trocknen & Übersicht)**. Die Zählung läuft ab
 
 **Vorbereitet, wartet auf Hardware**
 - 🟡 **NFC-Leser im AMS** · liest die Spulen im AMS selbst (ESP32 + 5× RC522), Code fertig, Teile kommen
-- 🟡 **Feuchte-Sensor** · SHT40 am ESP32 für die Lagerbox, Code fertig, Sensor bestellen
+- 🟡 **Feuchte-Sensor** · SHT31-D am ESP32 für die Lagerbox, Code fertig, Sensor bestellt
 - 🟡 **Halter und Gehäuse** · STL-Dateien fertig, noch drucken
 
 **Noch offen**
@@ -177,7 +177,7 @@ Während ein Druck läuft, steht bei der Drucksteuerung **„Nach Druck aus“**
 
 - **Druckerfehler:** jede HMS-Meldung und jeder Druckfehler als Klartext aufs Handy (`src/hooks/useHmsAlerts.ts`, Texte in `public/hms_de.json` aus ha-bambulab, MIT-Lizenz).
 - **Spulen-Check beim Start** (`src/utils/printChecks.ts`): reicht das Filament, fehlt ein Material im AMS, passt das Material laut Drucker zur Spule laut App.
-- **Feuchte-Alarm** (`src/hooks/useHumidityAlarm.ts`): AMS-Messwert und externer Sensor (`sensor.filament_ams_box_feuchte`, SHT40 am ESP32). Melden ab 25 %, AMS automatisch trocknen ab 30 % (10 Minuten darüber, höchstens einmal am Tag; läuft ein Druck: danach). Einstellbar unter Mitteilungen → Einstellungen.
+- **Feuchte-Alarm** (`src/hooks/useHumidityAlarm.ts`): AMS-Messwert und externer Sensor (`sensor.filament_ams_box_feuchte`, SHT31 am ESP32). Melden ab 25 %, AMS automatisch trocknen ab 30 % (10 Minuten darüber, höchstens einmal am Tag; läuft ein Druck: danach). Einstellbar unter Mitteilungen → Einstellungen.
 - **Trocknen-Vorschlag beim Einlegen** (`src/hooks/useDryAfterPrint.ts`): Spule, die trocknen sollte, kommt ins AMS → Mitteilung + Frage „Nach dem Druck trocknen / Jetzt trocknen“. Die Temperatur passt für alle Spulen im AMS (niedrigste).
 - **Werkstatt → Drucke:** Druck-Verlauf mit Foto vom Ende (Kamera über Home Assistant, Fotos in IndexedDB), Dauer, Verbrauch, Kosten.
 - **Werkstatt → Statistik:** Gramm und Euro pro Woche/Monat/gesamt, letzte 8 Wochen, Lieblingsfarben und Materialien, Ø-Kosten je Druck.

@@ -132,7 +132,7 @@ export const NoticesTab: React.FC = () => {
             style={inputStyle}
           />
           <span className="block text-[11px] font-normal leading-snug" style={{ color: 'var(--app-text-muted)' }}>
-            Der SHT40 am ESP32 des NFC-Lesers heißt so von selbst. Leer lassen = kein externer Sensor.
+            Der SHT31 am ESP32 des NFC-Lesers heißt so von selbst. Leer lassen = kein externer Sensor.
           </span>
         </label>
       </Card>

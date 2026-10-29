@@ -28,11 +28,11 @@ Gilt für ESP32-Boards mit 30 und mit 38 Pins (WROOM-32, DevKitC / NodeMCU).
 - Gemeinsame Leitungen sternförmig oder als Kette verlöten, Lötstellen mit Schrumpfschlauch sichern.
 - Erst **einen** Leser anschließen und testen, dann die anderen dazu.
 
-## Feuchte-Sensor (optional, SHT40)
+## Feuchte-Sensor (optional, SHT31-D)
 
 Ein kleiner I2C-Sensor misst Luftfeuchte und Temperatur, z. B. in der Filament-Lagerbox. Die App meldet sich, wenn die Feuchte über der Grenze liegt (Mitteilungen → Einstellungen → Luftfeuchte, Standard 25 %, AMS automatisch trocknen ab 30 %).
 
-**Kaufen:** SHT40-Modul (auch SHT41/SHT45), ca. 3–6 €. Auf dem Modul müssen die Pins **VCC/VIN, GND, SCL, SDA** stehen (I2C). Günstiger geht ein AHT20 (ca. 2–3 €), dann in der YAML den AHT20-Block nehmen. DHT22 nicht nehmen (ungenauer, anderes Protokoll).
+**Gekauft:** ARCELI SHT31-D (5 Stück, Pins VIN, GND, SCL, SDA). In der YAML ist er eingestellt (`platform: sht3xd`, Adresse 0x44). SHT40 oder AHT20 gehen auch, dafür stehen auskommentierte Blöcke in der YAML. DHT22 nicht nehmen.
 
 | Sensor-Pin | ESP32-Pin |
 |---|---|
