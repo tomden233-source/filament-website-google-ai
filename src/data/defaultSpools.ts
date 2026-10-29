@@ -1162,5 +1162,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.85',
+    label: '1.85 (Dunkelgrün-Design)',
+    releaseDate: '29.10.2026',
+    description: 'Die App ist jetzt standardmäßig in einem satten Dunkelgrün, passend zum neuen Logo. Der Knopf für die neueste APK steht oben im Menü.',
+    features: [
+      '🌲 Neues Dunkelgrün als Akzentfarbe: tiefe Knöpfe, grüne Verläufe und Leisten, gut lesbar auf hell und dunkel',
+      '🎨 Einmalig automatisch umgestellt, danach kannst du unter Design wieder jede andere Farbe wählen',
+      '📲 „Neueste APK herunterladen“ oben im Menü, automatische Oberflächen-Updates bleiben an',
+      '🔢 Aktualisierte Zahlen-FunFacts: 58 Commits und 85 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

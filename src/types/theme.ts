@@ -77,7 +77,7 @@ export interface AccentOption {
 export const ACCENT_OPTIONS: AccentOption[] = [
   { id: 'orange', name: 'Industrie-Orange', colorHex: '#f97316' },
   { id: 'blue', name: 'Klassisch-Blau', colorHex: '#3b82f6' },
-  { id: 'emerald', name: 'Smaragd-Grün', colorHex: '#10b981' },
+  { id: 'emerald', name: 'Dunkelgrün (Logo)', colorHex: '#168a47' },
   { id: 'cyan', name: 'Tech-Cyan', colorHex: '#06b6d4' },
   { id: 'violet', name: 'Neon-Violett', colorHex: '#8b5cf6' },
   { id: 'mono', name: 'Minimal-Silber', colorHex: '#94a3b8' }

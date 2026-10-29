@@ -38,12 +38,12 @@
   --app-accent-gradient: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
 }
 [data-accent="emerald"] {
-  --a-100: #d1fae5;
-  --a-300: #6ee7b7;
-  --a-400: #34d399;
-  --a-500: #10b981;
-  --a-600: #059669;
-  --a-700: #047857;
+  --a-100: #d3f5e1;
+  --a-300: #5fd68f;
+  --a-400: #2fb866;
+  --a-500: #168a47;
+  --a-600: #0f6e39;
+  --a-700: #0a5a2e;
 }
 [data-accent="cyan"] {
   --a-100: #cffafe;
@@ -164,11 +164,11 @@
   --app-accent-gradient: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
 }
 [data-accent="emerald"] {
-  --app-accent: #10b981;
-  --app-accent-hover: #059669;
-  --app-accent-sub: rgba(16, 185, 129, 0.15);
-  --app-accent-bar: #10b981;
-  --app-accent-gradient: linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%);
+  --app-accent: #168a47;
+  --app-accent-hover: #0f6e39;
+  --app-accent-sub: rgba(22, 138, 71, 0.18);
+  --app-accent-bar: #1a9a50;
+  --app-accent-gradient: linear-gradient(90deg, #0a5a2e 0%, #168a47 55%, #2fb866 100%);
 }
 [data-accent="cyan"] {
   --app-accent: #06b6d4;

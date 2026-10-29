@@ -17,7 +17,13 @@ export function useThemeSettings() {
   });
 
   const [themeAccent, setThemeAccent] = useState<ThemeAccent>(() => {
-    return (safeStorage.getItem(STORAGE_KEY_THEME_ACCENT) as ThemeAccent) || 'orange';
+    // Einmalig auf das neue Dunkelgrün (passt zum Logo) umstellen; danach bleibt die eigene Wahl bestehen
+    if (safeStorage.getItem('filamenthub_theme_green_v1') !== '1') {
+      safeStorage.setItem('filamenthub_theme_green_v1', '1');
+      safeStorage.setItem(STORAGE_KEY_THEME_ACCENT, 'emerald');
+      return 'emerald';
+    }
+    return (safeStorage.getItem(STORAGE_KEY_THEME_ACCENT) as ThemeAccent) || 'emerald';
   });
 
   useEffect(() => {
