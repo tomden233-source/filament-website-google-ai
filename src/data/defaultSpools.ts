@@ -1008,5 +1008,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.75',
+    label: '1.75 (LAN-Modus)',
+    releaseDate: '29.10.2026',
+    description: 'Neuer LAN-Modus: Die App spricht jetzt direkt mit dem Drucker im Heimnetz, ganz ohne Bambu Cloud. Mit Tailscale klappt dieselbe IP auch unterwegs.',
+    features: [
+      '📡 LAN-Modus: IP, Zugangscode und Seriennummer eintragen, die App verbindet direkt mit dem Drucker (MQTT, Port 8883). Läuft, wenn am Drucker „Nur LAN“ an ist und Bambu Cloud und Handy-App aus sind',
+      '🛡️ Sicher begrenzt: Erlaubt sind nur Adressen im Heimnetz (192.168.x, 10.x, 172.16-31.x) und Tailscale (100.64-127.x), nie ein Server im Internet',
+      '🛠️ Entwicklermodus nutzbar: Im LAN darf die App Slots setzen und Temperaturen steuern, wenn der Entwicklermodus am Drucker an ist',
+      '🔁 Cloud oder LAN: Neuer Tab „LAN“ in den Bambu-Einstellungen. Wer sich wieder per Cloud verbindet, wechselt automatisch zurück',
+      '🔢 Aktualisierte Zahlen-FunFacts: 29.500+ Codezeilen, ca. 14.250 Wörter, 5 Chats, 48 Commits und 75 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

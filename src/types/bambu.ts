@@ -7,7 +7,10 @@ export interface BambuLiveState {
   userId: string;
   brokerHost: string;
   hasAdminPin: boolean;
-  /** Cloud-Login vorhanden */
+  /** LAN-Modus: direkt zum Drucker im Heimnetz, ohne Bambu Cloud */
+  lanMode?: boolean;
+  lanIp?: string;
+  /** Login (Cloud) oder LAN-Daten vorhanden */
   hasToken?: boolean;
   /** Sekunden bis zum nächsten automatischen Verbindungsversuch */
   retryInSec?: number | null;

@@ -8,7 +8,12 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
@@ -25,6 +30,32 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 public class FilamentMqttPlugin extends Plugin {
 
     private final Map<String, MqttAsyncClient> clients = new ConcurrentHashMap<>();
+
+    /**
+     * Nur für den LAN-Modus: Der Drucker im Heimnetz hat ein selbstsigniertes Zertifikat, das Android nicht kennt.
+     * Die Web-App erlaubt diesen Modus nur für Adressen im Heimnetz oder Tailscale (nie für Server im Internet).
+     */
+    private static SSLSocketFactory trustAllFactory() throws Exception {
+        TrustManager[] trustAll = new TrustManager[] {
+            new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }
+        };
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        ctx.init(null, trustAll, new SecureRandom());
+        return ctx.getSocketFactory();
+    }
 
     private void emit(String id, String type, String topic, String payload, int code, String message) {
         JSObject o = new JSObject();
@@ -72,6 +103,7 @@ public class FilamentMqttPlugin extends Plugin {
         final String username = call.getString("username");
         final String password = call.getString("password");
         final String clientId = call.getString("clientId");
+        final boolean insecure = Boolean.TRUE.equals(call.getBoolean("insecure"));
         if (id == null || url == null || clientId == null) {
             call.reject("id, url und clientId sind erforderlich");
             return;
@@ -89,7 +121,10 @@ public class FilamentMqttPlugin extends Plugin {
             options.setAutomaticReconnect(true);
             options.setMaxReconnectDelay(60000);
             // TLS mit den Zertifikaten des Systems (Bambu Cloud hat ein öffentliches Zertifikat)
-            if (url.startsWith("ssl://")) options.setSocketFactory(SSLSocketFactory.getDefault());
+            if (url.startsWith("ssl://")) {
+                options.setSocketFactory(insecure ? trustAllFactory() : SSLSocketFactory.getDefault());
+                if (insecure) options.setHttpsHostnameVerificationEnabled(false);
+            }
 
             client.setCallback(new MqttCallbackExtended() {
                 @Override

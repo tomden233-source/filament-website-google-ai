@@ -14,10 +14,11 @@ import {
   Zap,
   Info,
   ArrowRight,
-  BookOpen
+  BookOpen,
+  Wifi
 } from 'lucide-react';
 import { safeStorage } from '../utils/safeStorage';
-import { IS_STATIC } from '../utils/env';
+import { IS_STATIC, IS_NATIVE } from '../utils/env';
 import { bambuLogin, resolveBambuUserId, type BambuLoginInput, type BambuLoginResult } from '../utils/bambuCloudLogin';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 
@@ -33,7 +34,9 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
   onConnected
 }) => {
   // Standard-Tab: Direkt das Token- & MQTTS-Formular
-  const [activeTab, setActiveTab] = useState<'token' | 'guide' | 'login'>('token');
+  const [activeTab, setActiveTab] = useState<'lan' | 'token' | 'guide' | 'login'>(() =>
+    safeStorage.getItem('bambu_lan_mode') === '1' ? 'lan' : 'token'
+  );
 
   // Felder für Token-Verbindung
   const [serialNumber, setSerialNumber] = useState(() => {
@@ -52,6 +55,10 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
   const [adminPin, setAdminPin] = useState(() => {
     return safeStorage.getItem('bambu_admin_pin') || '1234';
   });
+
+  // Felder für den LAN-Modus (direkt zum Drucker, ohne Cloud)
+  const [lanIp, setLanIp] = useState(() => safeStorage.getItem('bambu_lan_ip') || '');
+  const [lanCode, setLanCode] = useState(() => safeStorage.getItem('bambu_lan_code') || '');
 
   // Felder für Login-Tab
   const [loginEmail, setLoginEmail] = useState('');
@@ -143,6 +150,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
           safeStorage.setItem('bambu_user_id', String(data.userId));
         }
         safeStorage.setItem('bambu_broker_host', 'us.mqtt.bambulab.com');
+        safeStorage.setItem('bambu_lan_mode', '0');
         setBrokerHost('us.mqtt.bambulab.com');
 
         setFeedback({
@@ -203,6 +211,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
           safeStorage.setItem('bambu_user_id', data.status.userId);
         }
         safeStorage.setItem('bambu_access_token', accessToken.trim());
+        safeStorage.setItem('bambu_lan_mode', '0');
         safeStorage.setItem('bambu_broker_host', brokerHost.trim());
         safeStorage.setItem('bambu_admin_pin', adminPin.trim() || '1234');
 
@@ -226,6 +235,51 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
         type: 'error',
         message: 'Netzwerkfehler: Backend-Endpunkt /api/printer/connect nicht erreichbar.'
       });
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // 2b. LAN-Modus: direkt mit dem Drucker verbinden (Heimnetz oder Tailscale), ohne Bambu Cloud
+  const handleConnectLan = async () => {
+    if (!serialNumber.trim()) {
+      setFeedback({ type: 'error', message: 'Bitte die Drucker-Seriennummer (SN) eingeben.' });
+      return;
+    }
+    if (!lanIp.trim()) {
+      setFeedback({ type: 'error', message: 'Bitte die IP-Adresse des Druckers eingeben (am Drucker unter Einstellungen → Nur LAN).' });
+      return;
+    }
+    if (!lanCode.trim()) {
+      setFeedback({ type: 'error', message: 'Bitte den Zugangscode eingeben (am Drucker unter Einstellungen → Nur LAN).' });
+      return;
+    }
+    setIsConnecting(true);
+    setFeedback(null);
+    try {
+      const res = await printerApi.connectLan({
+        serialNumber: serialNumber.trim(),
+        lanIp: lanIp.trim(),
+        lanCode: lanCode.trim(),
+        adminPin: adminPin.trim() || '1234'
+      });
+      const data = res.data;
+      if (data.success) {
+        safeStorage.setItem('bambu_serial_number', serialNumber.trim());
+        safeStorage.setItem('bambu_lan_ip', lanIp.trim());
+        safeStorage.setItem('bambu_lan_code', lanCode.trim());
+        safeStorage.setItem('bambu_lan_mode', '1');
+        setFeedback({ type: 'success', message: data.message || 'Direkt mit dem Drucker verbunden!' });
+        if (onConnected) onConnected();
+        setTimeout(() => onClose(), 1200);
+      } else {
+        setFeedback({
+          type: 'error',
+          message: data.error || data.message || 'LAN-Verbindung fehlgeschlagen. IP, Zugangscode und WLAN prüfen.'
+        });
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Netzwerkfehler: LAN-Verbindung konnte nicht aufgebaut werden.' });
     } finally {
       setIsConnecting(false);
     }
@@ -343,7 +397,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
                 </span>
               </h3>
               <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                Direkte Cloud-Telemetrie, Dual-Extruder & Steuerung per MQTT
+                Live-Telemetrie, Dual-Extruder & Steuerung per MQTT (Cloud oder LAN)
               </p>
             </div>
           </div>
@@ -356,14 +410,28 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Tab-Navigation: 3 übersichtliche Tabs */}
+        {/* Tab-Navigation: 4 übersichtliche Tabs */}
         <div
-          className="grid grid-cols-3 gap-1 p-1 rounded-xl border text-[11px] font-bold transition-colors"
+          className="grid grid-cols-4 gap-1 p-1 rounded-xl border text-[11px] font-bold transition-colors"
           style={{
             backgroundColor: 'var(--app-card-sub)',
             borderColor: 'var(--app-border)'
           }}
         >
+          <button
+            onClick={() => setActiveTab('lan')}
+            className={`py-2 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 truncate ${
+              activeTab === 'lan' ? 'shadow-sm text-white' : 'hover:opacity-80'
+            }`}
+            style={{
+              backgroundColor: activeTab === 'lan' ? 'var(--app-accent)' : 'transparent',
+              color: activeTab === 'lan' ? '#ffffff' : 'var(--app-text-muted)'
+            }}
+          >
+            <Wifi className="w-3.5 h-3.5 shrink-0" />
+            <span>LAN</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('token')}
             className={`py-2 px-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 truncate ${
@@ -375,7 +443,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
             }}
           >
             <Key className="w-3.5 h-3.5 shrink-0" />
-            <span>1. Token & MQTT</span>
+            <span>Cloud</span>
           </button>
 
           <button
@@ -389,7 +457,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
             }}
           >
             <BookOpen className="w-3.5 h-3.5 shrink-0" />
-            <span>2. Woher Tokens?</span>
+            <span>Hilfe</span>
           </button>
 
           <button
@@ -403,7 +471,7 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
             }}
           >
             <Mail className="w-3.5 h-3.5 shrink-0" />
-            <span>3. E-Mail Login</span>
+            <span>E-Mail</span>
           </button>
         </div>
 
@@ -426,6 +494,112 @@ export const BambuSettingsModal: React.FC<BambuSettingsModalProps> = ({
               <Info className="w-4 h-4 shrink-0 mt-0.5 text-sky-400" />
             )}
             <span className="leading-relaxed">{feedback.message}</span>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB LAN: DIREKT ZUM DRUCKER (HEIMNETZ ODER TAILSCALE), OHNE CLOUD  */}
+        {/* ================================================================= */}
+        {activeTab === 'lan' && (
+          <div className="space-y-3.5 text-xs">
+            <div
+              className="p-3 rounded-xl border space-y-1.5 text-[11px] leading-relaxed"
+              style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)', color: 'var(--app-text-muted)' }}
+            >
+              <p className="font-bold" style={{ color: 'var(--app-text)' }}>So geht's:</p>
+              <p>1. Am Drucker: Einstellungen → Nur LAN einschalten, auch Entwicklermodus (sonst lehnt der Drucker Slot-Befehle ab).</p>
+              <p>2. IP-Adresse und Zugangscode von dort hier eintragen.</p>
+              <p>3. Unterwegs: Tailscale am Handy an und der Raspberry Pi als Subnetz-Router. Dann klappt dieselbe IP von überall.</p>
+              {!IS_NATIVE && (
+                <p className="font-bold text-amber-400">Der LAN-Modus läuft in der Handy-App (APK) oder über den eigenen Server, nicht im Browser auf GitHub Pages.</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold flex items-center justify-between" style={{ color: 'var(--app-text)' }}>
+                <span className="flex items-center gap-1.5">
+                  <Wifi className="w-3.5 h-3.5 text-orange-400" />
+                  <span>1. IP-Adresse des Druckers</span>
+                </span>
+                <span className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>z. B. 192.168.1.50</span>
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="IP aus Einstellungen → Nur LAN"
+                value={lanIp}
+                onChange={e => setLanIp(e.target.value.trim())}
+                className="w-full px-3 py-2 rounded-xl border text-xs font-mono-num font-bold outline-none"
+                style={{ backgroundColor: 'var(--app-input-bg)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold flex items-center gap-1.5" style={{ color: 'var(--app-text)' }}>
+                <Key className="w-3.5 h-3.5 text-orange-400" />
+                <span>2. Zugangscode</span>
+              </label>
+              <input
+                type="password"
+                autoComplete="off"
+                placeholder="8 Zeichen aus Einstellungen → Nur LAN"
+                value={lanCode}
+                onChange={e => setLanCode(e.target.value.trim())}
+                className="w-full px-3 py-2 rounded-xl border text-xs font-mono-num font-bold outline-none"
+                style={{ backgroundColor: 'var(--app-input-bg)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold flex items-center gap-1.5" style={{ color: 'var(--app-text)' }}>
+                <Cpu className="w-3.5 h-3.5 text-orange-400" />
+                <span>3. Seriennummer (SN)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Seriennummer deines Bambu Lab X2D"
+                value={serialNumber}
+                onChange={e => setSerialNumber(e.target.value.toUpperCase().trim())}
+                className="w-full px-3 py-2 rounded-xl border text-xs font-mono-num font-bold outline-none uppercase"
+                style={{ backgroundColor: 'var(--app-input-bg)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+              />
+              <p className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
+                Steht am Drucker unter <em>Einstellungen → Allgemein → Geräteinfo</em>. Wenn du schon mit der Cloud verbunden warst, ist sie schon eingetragen.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold flex items-center justify-between" style={{ color: 'var(--app-text)' }}>
+                <span className="flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-amber-400" />
+                  <span>Admin-PIN (Stopp/Pause):</span>
+                </span>
+                <span className="text-[9px]" style={{ color: 'var(--app-text-muted)' }}>Standard: 1234</span>
+              </label>
+              <input
+                type="password"
+                maxLength={8}
+                placeholder="1234"
+                value={adminPin}
+                onChange={e => setAdminPin(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border text-xs font-mono-num outline-none"
+                style={{ backgroundColor: 'var(--app-input-bg)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleConnectLan}
+                disabled={isConnecting}
+                className="w-full py-2.5 px-4 rounded-xl text-white font-extrabold text-xs shadow-lg transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ backgroundColor: 'var(--app-accent)' }}
+              >
+                {isConnecting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                <span>{isConnecting ? 'Verbinde direkt mit dem Drucker...' : 'Direkt mit dem Drucker verbinden'}</span>
+              </button>
+            </div>
           </div>
         )}
 

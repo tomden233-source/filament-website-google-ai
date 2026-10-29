@@ -31,7 +31,15 @@ export class NativeMqttClient implements MqttLike {
     // Paho erwartet ssl:// statt mqtts://
     const paho = url.replace(/^mqtts?:\/\//, 'ssl://').replace(/^(?!ssl:|tcp:)/, 'ssl://');
     plugin
-      .call('connect', { id: this.id, url: paho, username: options.username, password: options.password, clientId: options.clientId })
+      .call('connect', {
+        id: this.id,
+        url: paho,
+        username: options.username,
+        password: options.password,
+        clientId: options.clientId,
+        // LAN-Modus: der Drucker hat ein selbstsigniertes Zertifikat
+        insecure: options.lan === true
+      })
       .catch(err => this.emit('error', err));
   }
 

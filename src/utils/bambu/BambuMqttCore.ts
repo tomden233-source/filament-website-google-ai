@@ -19,6 +19,20 @@ export interface MqttConnectOptions {
   clientId: string;
   /** Zertifikat prüfen (Cloud: ja, LAN mit selbstsigniertem Zertifikat: nein) */
   tlsVerify: boolean;
+  /** Direkt zum Drucker im Heimnetz (LAN-Modus): selbstsigniertes Zertifikat, kein Cloud-Server */
+  lan?: boolean;
+}
+
+/**
+ * Darf diese Adresse für den LAN-Modus genutzt werden? Nur IPv4 im Heimnetz (10.x, 172.16-31.x, 192.168.x)
+ * oder Tailscale (100.64-127.x). So kann der LAN-Modus nie an einen fremden Server im Internet geleitet werden.
+ */
+export function isLanAddress(raw: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(String(raw || '').trim());
+  if (!m) return false;
+  const o = m.slice(1).map(Number);
+  if (o.some(n => n > 255)) return false;
+  return o[0] === 10 || (o[0] === 172 && o[1] >= 16 && o[1] <= 31) || (o[0] === 192 && o[1] === 168) || (o[0] === 100 && o[1] >= 64 && o[1] <= 127);
 }
 
 export interface SavedBambuConfig {
@@ -27,6 +41,10 @@ export interface SavedBambuConfig {
   accessToken?: string;
   brokerHost?: string;
   adminPin?: string;
+  /** LAN-Modus: direkt zum Drucker statt über die Bambu Cloud */
+  lanMode?: boolean;
+  lanIp?: string;
+  lanCode?: string;
 }
 
 function baseName(p: string): string {
@@ -63,6 +81,9 @@ export interface BambuPrinterStatusResponse {
   userId: string;
   brokerHost: string;
   hasAdminPin: boolean;
+  /** LAN-Modus aktiv (direkt zum Drucker im Heimnetz, ohne Bambu Cloud) */
+  lanMode: boolean;
+  lanIp: string;
   /** Cloud-Token vorhanden (Login ok), auch wenn MQTT gerade nicht verbunden ist */
   hasToken: boolean;
   /** Sekunden bis zum nächsten automatischen Verbindungsversuch (null = keiner geplant) */
@@ -87,6 +108,9 @@ export abstract class BambuMqttCore {
   private accessToken: string = '';
   private brokerHost: string = 'us.mqtt.bambulab.com';
   private adminPin: string = '1234';
+  private lanMode: boolean = false;
+  private lanIp: string = '';
+  private lanCode: string = '';
 
   private connected: boolean = false;
   private connecting: boolean = false;
@@ -195,6 +219,9 @@ export abstract class BambuMqttCore {
           this.adminPin = parsed.adminPin;
           this.loadedPin = true;
         }
+        if (parsed.lanIp) this.lanIp = parsed.lanIp;
+        if (parsed.lanCode) this.lanCode = parsed.lanCode;
+        this.lanMode = Boolean(parsed.lanMode) && isLanAddress(this.lanIp);
       }
     } catch (e) {
       console.warn('Konnte gespeicherte Bambu-Zugangsdaten nicht lesen:', e);
@@ -221,7 +248,7 @@ export abstract class BambuMqttCore {
     if (env.adminPin) this.adminPin = env.adminPin;
 
     // 3. Wenn Zugangsdaten vorliegen, nach 1 Sekunde automatisch verbinden (ohne Seriennummer: Drucker im Konto suchen)
-    if (this.accessToken) {
+    if (this.hasCredentials()) {
       setTimeout(() => this.ensureConnected(), 1000);
     }
   }
@@ -233,8 +260,13 @@ export abstract class BambuMqttCore {
   public async ensureConnected(force = false): Promise<{ success: boolean; message: string }> {
     if (this.connected) return { success: true, message: 'Drucker ist verbunden.' };
     if (this.connecting) return { success: false, message: 'Verbindung wird gerade aufgebaut …' };
-    if (!this.accessToken) {
-      return { success: false, message: 'Nicht bei Bambu angemeldet. Bitte im Drucker-Menü (Zahnrad) anmelden.' };
+    if (!this.hasCredentials()) {
+      return {
+        success: false,
+        message: this.lanMode
+          ? 'LAN-Daten unvollständig. Bitte im Drucker-Menü (Zahnrad) IP, Zugangscode und Seriennummer eintragen.'
+          : 'Nicht bei Bambu angemeldet. Bitte im Drucker-Menü (Zahnrad) anmelden.'
+      };
     }
     if (this.authRejected && !force) return { success: false, message: this.lastError || 'Zugangsdaten abgelehnt.' };
     if (force) {
@@ -243,6 +275,15 @@ export abstract class BambuMqttCore {
     }
     this.clearRetry();
     try {
+      if (this.lanMode) {
+        const r = await this.connectLan({
+          serialNumber: this.serialNumber,
+          lanIp: this.lanIp,
+          lanCode: this.lanCode,
+          adminPin: this.adminPin
+        });
+        return { success: r.success, message: r.message };
+      }
       if (!this.serialNumber) {
         const r = await this.autoConnectByToken(this.accessToken);
         return { success: r.success, message: r.success ? r.message : r.error || r.message };
@@ -260,11 +301,17 @@ export abstract class BambuMqttCore {
       this.lastError = message;
       this.connecting = false;
       // abgelaufener Token o. Ä.: nicht endlos wiederholen
-      if (/abgelaufen|ungültig|lehnt|User ID|User-ID/i.test(message)) this.authRejected = true;
+      if (/abgelaufen|ungültig|lehnt|User ID|User-ID|Zugangscode|IP-Adresse/i.test(message)) this.authRejected = true;
       else this.scheduleRetry();
       this.notifyChange();
       return { success: false, message };
     }
+  }
+
+  /** Sind genug Zugangsdaten für den gewählten Weg da? (LAN: IP, Code, Seriennummer; Cloud: Token) */
+  private hasCredentials(): boolean {
+    if (this.lanMode) return Boolean(this.lanIp && this.lanCode && this.serialNumber);
+    return Boolean(this.accessToken);
   }
 
   private clearRetry() {
@@ -275,7 +322,7 @@ export abstract class BambuMqttCore {
 
   /** Nächsten Versuch mit wachsender Pause planen (5 s, 15 s, 30 s, 1 min, dann alle 2 min) */
   private scheduleRetry() {
-    if (this.retryTimer || this.authRejected || !this.accessToken) return;
+    if (this.retryTimer || this.authRejected || !this.hasCredentials()) return;
     const delays = BambuMqttCore.RETRY_DELAYS_MS;
     const delay = delays[Math.min(this.retryCount, delays.length - 1)];
     this.retryCount++;
@@ -293,6 +340,15 @@ export abstract class BambuMqttCore {
     const code = err?.code;
     const raw = String(err?.message || '').trim();
     const rejected = code === 4 || code === 5 || /not authori[sz]ed|bad user ?name or password|Nicht autorisiert/i.test(raw);
+    if (this.lanMode) {
+      let lanHint = `Drucker unter ${this.lanIp} nicht erreichbar. Ist der Drucker an und das Handy im selben WLAN (oder Tailscale an)?`;
+      if (rejected) lanHint = 'Der Drucker lehnt den Zugangscode ab. Code am Drucker prüfen (Einstellungen → Nur LAN) und neu eintragen.';
+      else if (code === 32000 || /timed? ?out|Zeitlimit/i.test(raw)) lanHint = `Der Drucker unter ${this.lanIp} antwortet nicht (Zeitüberschreitung). Gleiches WLAN oder Tailscale an?`;
+      else if (/SSL|TLS|certificate|Zertifikat|handshake|trust/i.test(raw)) lanHint = 'Sichere Verbindung zum Drucker fehlgeschlagen. Neueste App installieren.';
+      else if (code === 32109 || /connection lost|reset/i.test(raw)) lanHint = 'Verbindung zum Drucker wurde getrennt.';
+      const lanTech = raw ? ` (${raw}${code != null && !raw.includes(String(code)) ? `, Code ${code}` : ''})` : code != null ? ` (Code ${code})` : '';
+      return { rejected, message: lanHint + lanTech };
+    }
     if (rejected) {
       return {
         rejected,
@@ -322,7 +378,9 @@ export abstract class BambuMqttCore {
       userId: this.userId,
       brokerHost: this.brokerHost,
       hasAdminPin: Boolean(this.adminPin),
-      hasToken: Boolean(this.accessToken),
+      lanMode: this.lanMode,
+      lanIp: this.lanIp,
+      hasToken: this.hasCredentials(),
       retryInSec: this.retryAt ? Math.max(0, Math.round((this.retryAt - Date.now()) / 1000)) : null,
       receivingData: this.printerOnline(),
       lastUpdated: this.lastUpdated,
@@ -354,7 +412,7 @@ export abstract class BambuMqttCore {
       };
     }
 
-    // Mit der Cloud verbunden, aber vom Drucker kommt nichts: nicht „Bereit“ anzeigen
+    // Verbunden, aber vom Drucker kommt nichts: nicht „Bereit“ anzeigen
     if (!this.printerOnline()) {
       return {
         remainingTimeStr: '--',
@@ -518,6 +576,58 @@ export abstract class BambuMqttCore {
       this.adminPin = adminPin.trim() || '1234';
     }
 
+    this.lanMode = false;
+    return this.openMqtt({
+      brokerUrl: `mqtts://${this.brokerHost}:8883`,
+      username: `u_${this.userId}`,
+      password: this.accessToken,
+      clientId: `bbl_${this.userId}_${Math.random().toString(16).substring(2, 8)}`,
+      lan: false
+    });
+  }
+
+  /**
+   * LAN-Modus: direkt mit dem Drucker im Heimnetz (oder über Tailscale) verbinden, ganz ohne Bambu Cloud.
+   * Der Drucker erwartet MQTT über TLS auf Port 8883, Benutzer „bblp“ und den Zugangscode aus „Einstellungen → Nur LAN“.
+   */
+  public async connectLan(params: {
+    serialNumber: string;
+    lanIp: string;
+    lanCode: string;
+    adminPin?: string;
+  }): Promise<{ success: boolean; message: string; status: BambuPrinterStatusResponse }> {
+    const serial = String(params.serialNumber || '').trim().toUpperCase();
+    const ip = String(params.lanIp || '').trim();
+    const code = String(params.lanCode || '').trim();
+    if (!serial) throw new Error('Seriennummer ist erforderlich (steht in den Bambu-Einstellungen unter Geräteinfo).');
+    if (!isLanAddress(ip)) {
+      throw new Error('Bitte die IP-Adresse des Druckers eingeben (z. B. 192.168.1.50). Erlaubt sind Heimnetz- und Tailscale-Adressen.');
+    }
+    if (!code) throw new Error('Zugangscode fehlt (am Drucker unter Einstellungen → Nur LAN).');
+
+    this.serialNumber = serial;
+    this.lanMode = true;
+    this.lanIp = ip;
+    this.lanCode = code;
+    if (params.adminPin !== undefined) this.adminPin = params.adminPin.trim() || '1234';
+
+    return this.openMqtt({
+      brokerUrl: `mqtts://${ip}:8883`,
+      username: 'bblp',
+      password: code,
+      clientId: `filament_${Math.random().toString(16).substring(2, 10)}`,
+      lan: true
+    });
+  }
+
+  /** Gemeinsamer Verbindungsaufbau für Cloud und LAN: MQTT öffnen, Topics abonnieren, Status mitlesen. */
+  private openMqtt(o: {
+    brokerUrl: string;
+    username: string;
+    password: string;
+    clientId: string;
+    lan: boolean;
+  }): Promise<{ success: boolean; message: string; status: BambuPrinterStatusResponse }> {
     // Vorherige Verbindung schließen
     if (this.client) {
       try {
@@ -534,9 +644,6 @@ export abstract class BambuMqttCore {
     this.connected = false;
     this.lastError = null;
     this.notifyChange();
-
-    const username = `u_${this.userId}`;
-    const brokerUrl = `mqtts://${this.brokerHost}:8883`;
 
     const myAttempt = ++this.attempt;
     return new Promise(resolve => {
@@ -573,16 +680,19 @@ export abstract class BambuMqttCore {
         }
         finishOnce(
           false,
-          `Die Bambu Cloud hat nicht rechtzeitig geantwortet (${this.brokerHost}). Neuer Versuch folgt automatisch.`
+          o.lan
+            ? `Der Drucker unter ${this.lanIp} hat nicht rechtzeitig geantwortet. Neuer Versuch folgt automatisch.`
+            : `Die Bambu Cloud hat nicht rechtzeitig geantwortet (${this.brokerHost}). Neuer Versuch folgt automatisch.`
         );
       }, 15000);
 
       try {
-        const c = this.createClient(brokerUrl, {
-          username,
-          password: this.accessToken,
-          tlsVerify: this.tlsVerify(),
-          clientId: `bbl_${this.userId}_${Math.random().toString(16).substring(2, 8)}`
+        const c = this.createClient(o.brokerUrl, {
+          username: o.username,
+          password: o.password,
+          tlsVerify: o.lan ? false : this.tlsVerify(),
+          lan: o.lan,
+          clientId: o.clientId
         });
 
         client = c;
@@ -607,7 +717,10 @@ export abstract class BambuMqttCore {
               userId: this.userId,
               accessToken: this.accessToken,
               brokerHost: this.brokerHost,
-              adminPin: this.adminPin
+              adminPin: this.adminPin,
+              lanMode: this.lanMode,
+              lanIp: this.lanIp,
+              lanCode: this.lanCode
             });
           } catch (e) {
             console.warn('Konnte Bambu-Zugangsdaten nicht speichern:', e);
@@ -644,7 +757,9 @@ export abstract class BambuMqttCore {
           this.notifyChange();
           finishOnce(
             true,
-            `Erfolgreich mit Bambu Cloud (${this.brokerHost}) für X2D (${this.serialNumber}) verbunden!`
+            o.lan
+              ? `Erfolgreich direkt mit dem Drucker (${this.lanIp}) für X2D (${this.serialNumber}) verbunden! Ohne Cloud.`
+              : `Erfolgreich mit Bambu Cloud (${this.brokerHost}) für X2D (${this.serialNumber}) verbunden!`
           );
         });
 
@@ -837,7 +952,7 @@ export abstract class BambuMqttCore {
    */
   public async sendCommand(cmd: 'pause' | 'resume' | 'stop', pin?: string) {
     if (!this.client || !this.connected) {
-      throw new Error('Drucker ist aktuell nicht über Bambu Cloud MQTT verbunden.');
+      throw new Error('Drucker ist aktuell nicht verbunden.');
     }
 
     // Bei "stop" oder wenn Admin-PIN gesetzt ist, PIN nur prüfen wenn explizit eine PIN übergeben wurde

@@ -45,7 +45,7 @@ function bambuStatusCompat(svc: BambuMqttCore, query: URLSearchParams): RouteRes
       success: true,
       serialNumber: current.serialNumber,
       model: 'Bambu Lab X2D',
-      source: 'Bambu Cloud MQTT (Port 8883)',
+      source: current.lanMode ? 'LAN direkt (Port 8883)' : 'Bambu Cloud MQTT (Port 8883)',
       status: current.data.gcode_state === 'RUNNING' ? 'printing' : 'idle',
       nozzleTemp: current.data.nozzle_temper,
       targetNozzleTemp: current.data.nozzle_target_temper,
@@ -138,6 +138,15 @@ export async function handlePrinterRoute(
         return ok(result);
       } catch (error: any) {
         return fail(400, { success: false, error: errText(error) || 'Verbindungsaufbau fehlgeschlagen' });
+      }
+    }
+
+    case '/api/printer/connect-lan': {
+      try {
+        const { serialNumber, lanIp, lanCode, adminPin } = b;
+        return ok(await svc.connectLan({ serialNumber, lanIp, lanCode, adminPin }));
+      } catch (error: any) {
+        return fail(400, { success: false, error: errText(error) || 'LAN-Verbindung fehlgeschlagen' });
       }
     }
 

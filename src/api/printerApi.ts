@@ -104,6 +104,14 @@ export const printerApi = {
     adminPin?: string;
   }): Promise<ApiResult<ConnectResponse>> => apiPost<ConnectResponse>('/api/printer/connect', payload),
 
+  /** LAN-Modus: direkt zum Drucker im Heimnetz (oder über Tailscale), ohne Bambu Cloud */
+  connectLan: (payload: {
+    serialNumber: string;
+    lanIp: string;
+    lanCode: string;
+    adminPin?: string;
+  }): Promise<ApiResult<ConnectResponse>> => apiPost<ConnectResponse>('/api/printer/connect-lan', payload, { timeoutMs: 30000 }),
+
   /** E-Mail-Login über den lokalen Server (in der App läuft der Login direkt, siehe utils/bambuCloudLogin.ts) */
   login: (payload: BambuLoginInput) => apiPost<BambuLoginResult | { status?: undefined; error?: string; message?: string }>('/api/printer/login', payload),
 

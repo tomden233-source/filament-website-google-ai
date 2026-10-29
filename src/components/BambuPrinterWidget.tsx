@@ -513,7 +513,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
   // Anmelden statt „Neu verbinden“: noch kein Login oder die Cloud lehnt den gespeicherten Login ab
   const needsLogin =
-    IS_NATIVE && (!liveState.hasToken || /abgelaufen|ung[üu]ltig|abgelehnt|neu anmelden/i.test(String(liveState.error || '')));
+    IS_NATIVE && (!liveState.hasToken || /abgelaufen|ung[üu]ltig|abgelehnt|neu anmelden|Zugangscode/i.test(String(liveState.error || '')));
 
   const isPrinting = isPrinterAlive && liveState.data.gcode_state === 'RUNNING';
   const isPaused = isPrinterAlive && liveState.data.gcode_state === 'PAUSE';
@@ -782,7 +782,9 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
           <div className="flex-1 min-w-0 space-y-0.5">
             <p className="font-bold break-words" style={{ color: 'var(--app-text)' }}>
               {liveState.connecting || reconnecting
-                ? 'Verbinde mit der Bambu Cloud …'
+                ? liveState.lanMode
+                  ? 'Verbinde direkt mit dem Drucker …'
+                  : 'Verbinde mit der Bambu Cloud …'
                 : !liveState.hasToken
                 ? 'Noch nicht bei Bambu angemeldet.'
                 : 'Drucker nicht verbunden.'}
@@ -822,7 +824,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
         <div className="px-3 py-2 border-b flex items-center gap-2 text-[11px]" style={{ borderColor: 'var(--app-border)', backgroundColor: 'var(--app-card-sub)' }}>
           <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0 text-amber-400" />
           <span className="flex-1 min-w-0 break-words" style={{ color: 'var(--app-text-muted)' }}>
-            Mit der Bambu Cloud verbunden, warte auf Daten vom Drucker … Ist er eingeschaltet und im WLAN?
+            {liveState.lanMode ? 'Direkt mit dem Drucker verbunden' : 'Mit der Bambu Cloud verbunden'}, warte auf Daten vom Drucker … Ist er eingeschaltet und im WLAN?
           </span>
         </div>
       )}
