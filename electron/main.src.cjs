@@ -81,7 +81,44 @@ async function createWindow() {
 // Automatische Updates (wie bei der Handy-App): neue Version im Hintergrund laden, beim Beenden oder per Klick installieren
 // Cloud-Datenbank über den Netzwerk-Stack von Windows/Chromium abrufen. Der nutzt die Windows-Zertifikate
 // (wichtig, wenn ein Virenscanner HTTPS prüft: Node kennt dessen Zertifikat nicht → UNABLE_TO_VERIFY_LEAF_SIGNATURE).
+// Zertifikat, das auf diesem PC für die Cloud-Datenbank ankommt (z. B. vom Virenscanner/Router). Nur wenn du es ausdrücklich
+// bestätigst, wird genau dieses eine Zertifikat (per Fingerabdruck) für api.npoint.io akzeptiert. Alles andere bleibt streng geprüft.
+const CLOUD_HOST = 'api.npoint.io';
+let lastCloudCert = null;
+function trustFile() {
+  return path.join(app.getPath('userData'), 'trusted-certs.json');
+}
+function trustedList() {
+  try {
+    return JSON.parse(fs.readFileSync(trustFile(), 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
 function setupCloudBridge() {
+  session.defaultSession.setCertificateVerifyProc((request, callback) => {
+    if (request.hostname !== CLOUD_HOST || request.verificationResult === 'net::OK') return callback(-3);
+    const c = request.certificate;
+    lastCloudCert = {
+      error: request.verificationResult,
+      issuer: (c && c.issuerName) || '',
+      subject: (c && c.subjectName) || '',
+      fingerprint: (c && c.fingerprint) || '',
+      validTo: c && c.validExpiry ? new Date(c.validExpiry * 1000).toISOString().slice(0, 10) : ''
+    };
+    if (lastCloudCert.fingerprint && trustedList().includes(lastCloudCert.fingerprint)) return callback(0);
+    return callback(-3);
+  });
+  ipcMain.handle('cloud:cert-info', () => lastCloudCert);
+  ipcMain.handle('cloud:trust-cert', (_e, fp) => {
+    if (!lastCloudCert || fp !== lastCloudCert.fingerprint) return false;
+    const list = trustedList();
+    if (!list.includes(fp)) list.push(fp);
+    fs.writeFileSync(trustFile(), JSON.stringify(list));
+    return true;
+  });
+
   ipcMain.handle('cloud:fetch', async (_e, req) => {
     const url = String((req && req.url) || '');
     if (!/^https:\/\/api\.npoint\.io\/[A-Za-z0-9_-]+$/.test(url)) return { status: 400, text: JSON.stringify({ error: 'Nur api.npoint.io erlaubt.' }) };

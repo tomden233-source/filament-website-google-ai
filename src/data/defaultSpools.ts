@@ -1335,5 +1335,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.96',
+    label: '1.96 (Zertifikat-Hilfe)',
+    releaseDate: '29.10.2026',
+    description: 'Wenn auf dem PC ein Virenscanner oder Netzfilter die Cloud-Verbindung mit eigenem Zertifikat abfängt, zeigt die Windows-App jetzt den Aussteller und erlaubt, genau diesem Zertifikat zu vertrauen.',
+    features: [
+      '🔎 Zeigt den Aussteller des fremden Zertifikats (z. B. Virenscanner, Router-Filter) und das Ablaufdatum',
+      '✅ Knopf „Diesem Zertifikat vertrauen“: gilt nur für die Cloud-Datenbank und nur für genau dieses Zertifikat (Fingerabdruck)',
+      '🔐 Drucker-Zugang und Passwörter bleiben Ende-zu-Ende verschlüsselt, alle anderen Seiten werden weiter streng geprüft',
+      '🔢 Aktualisierte Zahlen-FunFacts: 69 Commits und 96 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
