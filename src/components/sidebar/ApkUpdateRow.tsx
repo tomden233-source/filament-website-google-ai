@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Download, ChevronRight } from 'lucide-react';
 import { APK_URL, IS_NATIVE, IS_DESKTOP, DESKTOP_URL, APP_VERSION } from '../../utils/env';
 import { installApkInApp } from '../../utils/liveUpdate';
@@ -9,7 +9,26 @@ export const ApkUpdateRow: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
 
+  // Windows-App ab 1.93: Update direkt im Programm suchen, laden und installieren (Brücke window.desktop)
+  const bridge = typeof window !== 'undefined' ? (window as any).desktop : undefined;
+  const [upd, setUpd] = useState<{ state: string; version?: string; percent?: number; message?: string } | null>(null);
+  useEffect(() => {
+    if (!bridge?.onStatus) return;
+    return bridge.onStatus((s: any) => setUpd(s));
+  }, [bridge]);
+
   const run = async () => {
+    if (bridge?.checkUpdate) {
+      if (upd?.state === 'ready') {
+        void bridge.installNow();
+        return;
+      }
+      setBusy(true);
+      const r = await bridge.checkUpdate();
+      setUpd(r);
+      setBusy(false);
+      return;
+    }
     if (IS_DESKTOP) {
       window.open(DESKTOP_URL, '_blank');
       setNote('Installer wird geladen. Danach ausführen, die App aktualisiert sich.');
@@ -47,9 +66,31 @@ export const ApkUpdateRow: React.FC = () => {
           <Download className={`w-5 h-5 ${busy ? 'animate-bounce' : ''}`} />
         </span>
         <span className="min-w-0 flex-1 leading-tight">
-          <span className="block text-xs font-extrabold">{busy ? 'Lade neueste App …' : IS_DESKTOP ? 'Windows-App-Update holen' : 'App-Update holen'}</span>
+          <span className="block text-xs font-extrabold">{bridge?.checkUpdate
+              ? upd?.state === 'ready'
+                ? `Jetzt installieren (v${upd.version})`
+                : upd?.state === 'downloading'
+                ? `Lade Update … ${upd.percent ?? 0} %`
+                : busy || upd?.state === 'checking'
+                ? 'Suche Update …'
+                : 'Nach Update suchen'
+              : busy
+              ? 'Lade neueste App …'
+              : IS_DESKTOP
+              ? 'Windows-App-Update holen'
+              : 'App-Update holen'}</span>
           <span className="block text-[10px] truncate" style={{ color: 'var(--app-text-muted)' }}>
-            {note || `Installiert: v${APP_VERSION} · Auto-Updates bleiben an`}
+            {bridge?.checkUpdate
+              ? upd?.state === 'current'
+                ? `Aktuell: v${APP_VERSION}. Du hast die neueste Version.`
+                : upd?.state === 'ready'
+                ? 'Fertig geladen. Tippen: App startet neu und aktualisiert.'
+                : upd?.state === 'error'
+                ? `Fehler: ${upd.message || 'Update nicht möglich'}`
+                : upd?.state === 'dev'
+                ? upd.message
+                : `Installiert: v${APP_VERSION} · prüft auch automatisch`
+              : note || `Installiert: v${APP_VERSION} · Auto-Updates bleiben an`}
           </span>
         </span>
         <ChevronRight className="w-4 h-4 shrink-0 opacity-60" />

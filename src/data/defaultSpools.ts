@@ -1290,5 +1290,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.93',
+    label: '1.93 (Update-Knopf Windows)',
+    releaseDate: '29.10.2026',
+    description: 'Die Windows-App hat einen Knopf „Nach Update suchen“: sucht, lädt mit Fortschrittsanzeige und installiert per Klick, ganz ohne Browser.',
+    features: [
+      '🔎 Knopf unten im Menü: „Nach Update suchen“, dann „Lade Update … 45 %“, dann „Jetzt installieren“',
+      '✅ Meldet auch „Du hast die neueste Version“ oder den genauen Fehler',
+      '🔁 Automatische Prüfung (Start und alle 30 Minuten) bleibt zusätzlich aktiv',
+      '🔢 Aktualisierte Zahlen-FunFacts: 66 Commits und 93 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

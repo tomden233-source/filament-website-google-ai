@@ -1,5 +1,5 @@
 // FilamentHub für Windows: startet den eingebauten Server (spricht per LAN/MQTT mit dem Drucker) und zeigt die App im Fenster.
-const { app, BrowserWindow, Menu, shell, session, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, session, dialog, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const { spawn } = require('child_process');
 const http = require('http');
@@ -63,7 +63,7 @@ async function createWindow() {
     backgroundColor: '#062116',
     icon: path.join(__dirname, '..', 'public', 'pwa-512x512.png'),
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false }
+    webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, 'preload.cjs') }
   });
   Menu.setApplicationMenu(null);
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -79,11 +79,44 @@ async function createWindow() {
 }
 
 // Automatische Updates (wie bei der Handy-App): neue Version im Hintergrund laden, beim Beenden oder per Klick installieren
+function sendStatus(s) {
+  if (win && !win.isDestroyed()) win.webContents.send('update:status', s);
+}
+
 function setupAutoUpdate() {
+  // Knopf in der App: jetzt nach Update suchen / installieren
+  ipcMain.handle('update:check', async () => {
+    if (!app.isPackaged) return { state: 'dev', message: 'Entwicklungsmodus: kein Update möglich.' };
+    try {
+      sendStatus({ state: 'checking' });
+      const r = await autoUpdater.checkForUpdates();
+      const v = r && r.updateInfo && r.updateInfo.version;
+      if (!v || v === app.getVersion()) {
+        const s = { state: 'current', version: app.getVersion() };
+        sendStatus(s);
+        return s;
+      }
+      return { state: 'downloading', version: v };
+    } catch (e) {
+      const s = { state: 'error', message: String((e && e.message) || e).slice(0, 160) };
+      sendStatus(s);
+      return s;
+    }
+  });
+  ipcMain.handle('update:install', () => {
+    app.isQuitting = true;
+    if (server) server.kill();
+    autoUpdater.quitAndInstall(true, true);
+  });
+
   if (!app.isPackaged) return;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('update-available', info => sendStatus({ state: 'downloading', version: info.version, percent: 0 }));
+  autoUpdater.on('download-progress', p => sendStatus({ state: 'downloading', percent: Math.round(p.percent) }));
+  autoUpdater.on('update-not-available', () => sendStatus({ state: 'current', version: app.getVersion() }));
   autoUpdater.on('update-downloaded', info => {
+    sendStatus({ state: 'ready', version: info.version });
     if (!win) return;
     dialog
       .showMessageBox(win, {
@@ -102,7 +135,10 @@ function setupAutoUpdate() {
         }
       });
   });
-  autoUpdater.on('error', e => console.error('Update-Fehler:', e && e.message));
+  autoUpdater.on('error', e => {
+    console.error('Update-Fehler:', e && e.message);
+    sendStatus({ state: 'error', message: String((e && e.message) || e).slice(0, 160) });
+  });
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
   setTimeout(check, 8000);
   setInterval(check, 30 * 60 * 1000);
