@@ -180,7 +180,7 @@ export const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ cloudDbUrl, 
         <Toggle on={settings.amsNfcOn} onChange={v => update({ amsNfcOn: v })} label="Spulen per Leser im AMS zuordnen" hint="Braucht die ESPHome-Leser (Ordner hardware/ams-nfc) und die Home-Assistant-Verbindung." />
         <Steps
           items={[
-            'ESP32 mit zwei RC522-Lesern bauen und in Home Assistant über ESPHome einbinden (Ordner hardware/ams-nfc, README dort).',
+            'ESP32 mit RC522-Lesern (1 bis 5) bauen und in Home Assistant über ESPHome einbinden (Ordner hardware/ams-nfc, README dort).',
             'Oben bei Home Assistant Adresse und Token eintragen und „Testen“ drücken.',
             'Schalter hier an lassen. Dann jeder Spule einen NFC-Tag geben (Spule öffnen → NFC) und sie ins AMS legen.',
             'Beim ersten Mal „Unbekannter Tag in Slot X“ antippen und die Spule wählen. Danach erkennt der Leser sie selbst.'
