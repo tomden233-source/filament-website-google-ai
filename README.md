@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.104 (ESP32-Gehäuse zum Drucken)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.104 im Paket 2.0.104, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.105 (Druck-Wächter & Auto-Aus)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.105 im Paket 2.0.105, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Inhalt
 
@@ -107,6 +107,19 @@ Die Glocke oben öffnet das Postfach. Dort stehen alle Mitteilungen mit Details:
 - **Hintergrund-Dienst (Android, schaltbar):** eine kleine dauerhafte Anzeige hält die App wach, damit „Trocknen fertig“ auch bei geschlossener App aufs Handy kommt. Braucht die APK ab 1.102 (`NATIVE_API` = 5).
 - Ohne Hintergrund-Dienst kommen Mitteilungen, solange die App läuft oder im Hintergrund offen ist und mit dem Drucker verbunden bleibt.
 - Etiketten drucken steht unter **Werkstatt** (Schraubenschlüssel oben).
+
+### Druck-Wächter (ab 1.105)
+
+Die App verfolgt jeden Druck, egal ob über Bambu Studio, Bambu Handy, das Drucker-Display oder die App gestartet. Der Stand wird im Gerät gespeichert (`src/utils/printSession.ts`, `src/hooks/usePrintWatch.ts`).
+
+- **Druck gestartet:** Mitteilung mit Auftrag, Spule im aktiven Slot und Fertig-Uhrzeit. Geht die App erst mitten im Druck auf, heißt sie „Druck läuft“.
+- **Druck fertig / fehlgeschlagen:** kommt auch, wenn die App beim Ende zu war (beim nächsten Öffnen).
+- **Abzug (LAN-Modus):** Ende live gesehen und Gewicht bekannt → automatisch. Ende verpasst → Frage „Spule abziehen? Ja/Nein“ mit vorgeschlagener Spule und Gramm. Abgebrochen → Gramm anteilig nach Fortschritt.
+- Drucke, die vor dem ersten Start von 1.105 begannen, werden nie nachträglich abgezogen.
+
+### Nach dem Druck ausschalten (ab 1.105)
+
+Während ein Druck läuft, steht bei der Drucksteuerung **„Nach Druck aus“** (eingeklappt oben neben „Strom“). Ist der Druck fertig, wartet die App mindestens 1 Minute und bis die Düse unter 60 °C ist (spätestens 20 Minuten), dann schaltet sie die Steckdose über Home Assistant aus und schickt eine Mitteilung. Bei einem fehlgeschlagenen Druck bleibt der Drucker an. Läuft auf jedem Gerät mit offener App (Android: Hintergrund-Dienst an lassen). Strom von Hand ausschalten fragt während eines Drucks jetzt nach.
 
 ## QR und NFC öffnen die Spule
 

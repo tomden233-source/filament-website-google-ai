@@ -44,7 +44,8 @@ export const NoticesTab: React.FC = () => {
           <span>Welche Mitteilungen willst du?</span>
         </div>
         <div className="space-y-3">
-          <Toggle on={s.alertPrintDone} onChange={v => update({ alertPrintDone: v })} label="Druck fertig" hint="Sobald der Drucker das Ende meldet." />
+          <Toggle on={s.alertPrintStart} onChange={v => update({ alertPrintStart: v })} label="Druck gestartet" hint="Auch wenn du über Bambu Studio, Handy oder Display startest." />
+          <Toggle on={s.alertPrintDone} onChange={v => update({ alertPrintDone: v })} label="Druck fertig" hint="Sobald der Drucker das Ende meldet. War die App zu, kommt die Meldung beim nächsten Öffnen." />
           <Toggle on={s.alertPrintFail} onChange={v => update({ alertPrintFail: v })} label="Druck fehlgeschlagen oder abgebrochen" />
           <Toggle on={s.alertDryDone} onChange={v => update({ alertDryDone: v })} label="Trocknung fertig" hint="Mit Dauer, Temperatur und den getrockneten Spulen." />
           <Toggle on={s.alertDryStop} onChange={v => update({ alertDryStop: v })} label="Trocknung gestoppt" hint="Wenn die Trocknung vor dem Ende angehalten wird." />

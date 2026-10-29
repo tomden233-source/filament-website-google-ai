@@ -57,6 +57,11 @@ export interface PrinterExpandedPanelProps {
   handleToggleAmsDrying: (...args: any[]) => any;
   nfcInfo?: { readers: number; unknown: number[] };
   dryLoading: any;
+  /** Ein Druck läuft (auch vorbereiten/pausiert) */
+  printActive?: boolean;
+  /** „Nach Druck ausschalten“ ist gewählt */
+  autoOffArmed?: boolean;
+  onToggleAutoOff?: () => void;
 }
 
 export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
@@ -101,7 +106,10 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
   setAmsDryTemp,
   handleToggleAmsDrying,
   nfcInfo,
-  dryLoading
+  dryLoading,
+  printActive = false,
+  autoOffArmed = false,
+  onToggleAutoOff
 }) => {
   return (
 <div className="p-4 sm:p-5 space-y-4">
@@ -211,7 +219,19 @@ export const PrinterExpandedPanel: React.FC<PrinterExpandedPanelProps> = ({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {(printActive || autoOffArmed) && onToggleAutoOff && (
+                <button
+                  onClick={onToggleAutoOff}
+                  title={autoOffArmed ? 'Abwählen: Drucker bleibt nach dem Druck an' : 'Steckdose ausschalten, wenn der Druck fertig und die Düse abgekühlt ist'}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    autoOffArmed ? 'border-sky-500/60 bg-sky-500/20 text-sky-300' : 'border-[var(--app-border)] text-[var(--app-text-muted)] hover:bg-sky-500/10'
+                  }`}
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  <span>{autoOffArmed ? 'Aus nach Druck ✓' : 'Nach Druck aus'}</span>
+                </button>
+              )}
               {isPrinting ? (
                 <button
                   onClick={() => handleSendCommand('pause')}

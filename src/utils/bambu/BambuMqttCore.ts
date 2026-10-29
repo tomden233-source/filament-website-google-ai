@@ -55,6 +55,8 @@ export interface BambuPrinterData {
   gcode_state: string;
   subtask_name: string;
   gcode_file: string;
+  /** Startzeit des Druckauftrags (Unix-Sekunden als Text, vom Drucker). Leer = unbekannt. */
+  gcode_start_time: string;
   mc_percent: number;
   mc_remaining_time: number; // Minuten
   layer_num: number;
@@ -138,6 +140,7 @@ export abstract class BambuMqttCore {
     gcode_state: 'IDLE',
     subtask_name: '',
     gcode_file: '',
+    gcode_start_time: '',
     mc_percent: 0,
     mc_remaining_time: 0,
     layer_num: 0,
@@ -847,6 +850,10 @@ export abstract class BambuMqttCore {
     if (delta.gcode_state !== undefined) this.printData.gcode_state = String(delta.gcode_state);
     if (delta.subtask_name !== undefined) this.printData.subtask_name = String(delta.subtask_name);
     if (delta.gcode_file !== undefined) this.printData.gcode_file = String(delta.gcode_file);
+    if (delta.gcode_start_time !== undefined && delta.gcode_start_time !== null) {
+      const st = String(delta.gcode_start_time).trim();
+      this.printData.gcode_start_time = st === '0' ? '' : st;
+    }
     if (delta.mc_percent !== undefined) this.printData.mc_percent = Number(delta.mc_percent);
     if (delta.mc_remaining_time !== undefined) this.printData.mc_remaining_time = Number(delta.mc_remaining_time);
     if (delta.layer_num !== undefined) this.printData.layer_num = Number(delta.layer_num);
@@ -1026,6 +1033,7 @@ export abstract class BambuMqttCore {
       gcode_state: 'RUNNING',
       subtask_name: 'FilamentHub_X2D_DualMount.3mf',
       gcode_file: '/sdcard/FilamentHub_X2D_DualMount.gcode',
+      gcode_start_time: String(Math.floor(Date.now() / 1000) - 3600),
       mc_percent: 68,
       mc_remaining_time: 47,
       layer_num: 142,
@@ -1505,6 +1513,7 @@ export abstract class BambuMqttCore {
     this.printData.gcode_state = 'PREPARE';
     this.printData.subtask_name = subtaskName || baseName(cleanFileName);
     this.printData.gcode_file = cleanFileName;
+    this.printData.gcode_start_time = String(Math.floor(Date.now() / 1000));
     this.notifyChange();
 
     this.schedulePushall(1500);

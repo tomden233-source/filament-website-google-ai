@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { safeStorage } from './safeStorage';
 
-export type InboxKind = 'print-done' | 'print-fail' | 'dry-due' | 'dry-done' | 'dry-stop' | 'low' | 'info';
+export type InboxKind = 'print-start' | 'print-done' | 'print-fail' | 'dry-due' | 'dry-done' | 'dry-stop' | 'low' | 'info';
 
 export interface InboxItem {
   id: string;

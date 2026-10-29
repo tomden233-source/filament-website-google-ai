@@ -1510,5 +1510,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.105',
+    label: '1.105 (Druck-Wächter & Auto-Aus)',
+    releaseDate: '29.10.2026',
+    description: 'Die App erkennt jeden Druck, auch aus Bambu Studio, Handy oder Display. Meldung beim Start, beim Öffnen nach dem Druck die Frage „Spule abziehen?“. Neu: Drucker nach dem Druck automatisch ausschalten.',
+    features: [
+      '▶️ Mitteilung „Druck gestartet“ (oder „Druck läuft“, wenn die App erst mitten im Druck aufgeht), mit Spule und Fertig-Uhrzeit',
+      '🧾 Druck lief ohne App: beim Öffnen „Spule abziehen? Ja/Nein“, Spule aus dem aktiven Slot und Gramm vorgeschlagen',
+      '⚠️ Abgebrochener Druck: Abzug wird anteilig nach Fortschritt vorgeschlagen',
+      '🔌 „Nach Druck aus“: Steckdose geht aus, sobald der Druck fertig und die Düse unter 60 °C ist (spätestens 20 min)',
+      '🛡️ Strom ausschalten während eines Drucks nur noch mit Rückfrage',
+      '🧩 Abzug-Fenster für mehrere Spulen (mehrfarbige Drucke)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 78 Commits und 105 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

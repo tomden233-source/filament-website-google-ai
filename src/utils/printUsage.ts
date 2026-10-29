@@ -95,4 +95,10 @@ export interface PendingDeduct {
   material: string;
   colorHex: string;
   at: string;
+  /** Warum gefragt wird: Gewicht unbekannt, Ende verpasst (App war zu) oder Druck abgebrochen */
+  reason?: 'unknown' | 'missed' | 'failed';
+  /** Fortschritt beim Abbruch (%) */
+  percent?: number;
+  /** Vorschlag je Spule (aus Druckdatei oder gemerktem Gewicht) */
+  parts?: { spoolId: string; grams: number }[];
 }

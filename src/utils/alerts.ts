@@ -6,6 +6,7 @@ import { addSystemLog } from './logService';
 import { getWorkshopSettings, type WorkshopSettings } from './workshopSettings';
 
 const KIND_SETTING: Record<InboxKind, keyof WorkshopSettings | null> = {
+  'print-start': 'alertPrintStart',
   'print-done': 'alertPrintDone',
   'print-fail': 'alertPrintFail',
   'dry-due': 'alertDryDue',
@@ -49,6 +50,7 @@ export const TEST_KINDS: { kind: InboxKind; label: string }[] = [
   { kind: 'dry-done', label: 'Trocknung fertig' },
   { kind: 'dry-stop', label: 'Trocknung gestoppt' },
   { kind: 'dry-due', label: 'Trocknen fällig' },
+  { kind: 'print-start', label: 'Druck gestartet' },
   { kind: 'print-done', label: 'Druck fertig' },
   { kind: 'print-fail', label: 'Druck fehlgeschlagen' },
   { kind: 'low', label: 'Spule fast leer' }
@@ -88,6 +90,13 @@ function sample(kind: InboxKind): Pick<InboxItem, 'title' | 'text' | 'facts' | '
         title: 'Test: Trocknen fällig',
         text: 'Trocknen fällig: Sunlu PETG Schwarz (65 °C, 8 h).',
         items: [{ title: 'Sunlu PETG Schwarz', sub: 'PETG · 65 °C · 8 h', color: '#1f2937' }]
+      };
+    case 'print-start':
+      return {
+        title: 'Test: Druck gestartet',
+        text: 'Benchy.3mf läuft. Fertig ca. 21:40 Uhr.',
+        facts: [{ label: 'Auftrag', value: 'Benchy.3mf' }, { label: 'Gestartet', value: sampleTime() }, { label: 'Fertig ca.', value: '21:40 Uhr' }],
+        items: [spools[0]]
       };
     case 'print-done':
       return { title: 'Test: Druck fertig', text: 'Benchy.3mf ist fertig.', facts: [{ label: 'Auftrag', value: 'Benchy.3mf' }, { label: 'Beendet', value: sampleTime() }, { label: 'Dauer', value: '1 h 12 min' }] };

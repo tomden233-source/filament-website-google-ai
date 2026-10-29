@@ -9,6 +9,8 @@ export interface WorkshopSettings {
   /** Ab diesem Restgewicht (Gramm) gilt eine Spule als fast leer */
   lowWeightG: number;
   /** Welche Mitteilungen kommen sollen */
+  /** Druck gestartet (auch wenn er nicht über die App gestartet wurde) */
+  alertPrintStart: boolean;
   alertPrintDone: boolean;
   alertPrintFail: boolean;
   alertDryDue: boolean;
@@ -31,6 +33,7 @@ export const WORKSHOP_SETTINGS_KEY = 'filamenthub_workshop_settings';
 export const DEFAULT_WORKSHOP_SETTINGS: WorkshopSettings = {
   lowWarning: true,
   lowWeightG: 100,
+  alertPrintStart: true,
   alertPrintDone: true,
   alertPrintFail: true,
   alertDryDue: true,

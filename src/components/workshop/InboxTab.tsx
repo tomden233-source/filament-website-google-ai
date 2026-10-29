@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BellOff, CheckCheck, CheckCircle2, ChevronDown, Droplets, Info, PackageMinus, Trash2, XCircle, CircleSlash } from 'lucide-react';
+import { BellOff, CheckCheck, CheckCircle2, PlayCircle, ChevronDown, Droplets, Info, PackageMinus, Trash2, XCircle, CircleSlash } from 'lucide-react';
 import { clearInbox, markAllInboxRead, markInboxRead, removeInbox, useInbox, type InboxItem, type InboxKind } from '../../utils/inbox';
 import { Card, buttonStyle } from './ui';
 
 const KIND: Record<InboxKind, { icon: React.ComponentType<{ className?: string }>; tone: string; label: string }> = {
+  'print-start': { icon: PlayCircle, tone: 'text-sky-400 bg-sky-500/15 border-sky-500/30', label: 'Druck' },
   'print-done': { icon: CheckCircle2, tone: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30', label: 'Druck' },
   'print-fail': { icon: XCircle, tone: 'text-rose-400 bg-rose-500/15 border-rose-500/30', label: 'Druck' },
   'dry-due': { icon: Droplets, tone: 'text-amber-400 bg-amber-500/15 border-amber-500/30', label: 'Trocknen' },

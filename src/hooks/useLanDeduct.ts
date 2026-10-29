@@ -1,23 +1,22 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { Spool } from '../types/filament';
-import { readTrays, activeSlotFromPrinter, EXTERNAL_SLOT, baseMaterial, colorDistance } from '../utils/amsMatch';
+import { readTrays, EXTERNAL_SLOT, baseMaterial, colorDistance, activeSlotFromPrinter } from '../utils/amsMatch';
 import { printerApi } from '../api/printerApi';
 import { bestSpool, isAutoDeductOn, jobKey, readJobGrams, rememberJobGrams, PENDING_DEDUCT_KEY, type PendingDeduct } from '../utils/printUsage';
+import { mainSlot, type PrintSession } from '../utils/printSession';
+import type { PrintEndInfo } from './usePrintWatch';
 import { safeStorage } from '../utils/safeStorage';
 import { addSystemLog } from '../utils/logService';
 
-// Auto-Abzug im LAN-Modus (ohne Bambu Cloud):
-//  0) Windows-/Server-App: Gewicht je Filament direkt aus der Druckdatei auf dem Drucker (FTPS), komplett automatisch
-//  1) Auftragsname schon bekannt (Gewicht früher eingegeben/hochgeladen) → sofort automatisch abziehen
-//  2) sonst: Frage „Wie viele Gramm?" mit vorgewählter Spule (bleibt gespeichert, bis du bestätigst oder überspringst)
-// Spule: der AMS-Slot, der beim Druck aktiv war (zugewiesene Spule), sonst Material und Farbe.
-
-const ACTIVE = new Set(['RUNNING', 'PREPARE', 'PAUSE']);
+// Abzug im LAN-Modus (ohne Bambu Cloud), ausgelöst von usePrintWatch am Ende jedes Drucks:
+//  - Ende live gesehen + Gewicht bekannt (Druckdatei per FTPS in der Windows-App oder gemerkt) → automatisch abziehen
+//  - Ende verpasst (App war zu) → beim Öffnen fragen „Spule abziehen?“ mit vorgewählter Spule und Gramm
+//  - Druck abgebrochen → fragen, Gramm anteilig nach Fortschritt vorgeschlagen
+//  - Gewicht unbekannt → nach Gramm fragen
+// Spule: der AMS-Slot, der beim Druck am meisten aktiv war (zugewiesene Spule), sonst Material und Farbe.
 
 interface Params {
   enabled: boolean;
-  gcodeState: string | undefined;
-  jobName: string | undefined;
   ams: any;
   vtTray: any;
   amsSlots: Record<number, string>;
@@ -27,19 +26,11 @@ interface Params {
   onPending: (p: PendingDeduct) => void;
 }
 
+const round1 = (g: number) => Math.round(g * 10) / 10;
+
 export function useLanDeduct(p: Params) {
   const latest = useRef(p);
   latest.current = p;
-  const prev = useRef<string | null>(null);
-  const job = useRef({ name: '', slots: new Map<number, number>() });
-
-  // Während des Drucks merken, welcher Slot gerade zieht
-  useEffect(() => {
-    if (!p.enabled || !p.gcodeState || !ACTIVE.has(p.gcodeState)) return;
-    if (p.jobName) job.current.name = p.jobName;
-    const slot = activeSlotFromPrinter(p.ams);
-    if (slot) job.current.slots.set(slot, (job.current.slots.get(slot) || 0) + 1);
-  }, [p.enabled, p.gcodeState, p.jobName, p.ams]);
 
   // Beim App-Start noch offene Frage wieder anzeigen
   useEffect(() => {
@@ -54,24 +45,12 @@ export function useLanDeduct(p: Params) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.enabled]);
 
-  useEffect(() => {
-    const before = prev.current;
-    prev.current = p.gcodeState ?? null;
-    const { enabled } = latest.current;
-    if (!enabled || !isAutoDeductOn() || !before || !ACTIVE.has(before) || p.gcodeState !== 'FINISH') return;
-
-    const { spools, amsSlots, ams, vtTray, onDeductWeight, notify, onPending } = latest.current;
-    const name = job.current.name || p.jobName || 'Druckauftrag';
-    // Slot mit den meisten Messungen
-    let slot: number | null = null;
-    let top = 0;
-    job.current.slots.forEach((n, s) => {
-      if (n > top) {
-        top = n;
-        slot = s;
-      }
-    });
-    job.current = { name: '', slots: new Map() };
+  /** Am Druckende aufrufen (von usePrintWatch) */
+  const handleEnd = useCallback((session: PrintSession, info: PrintEndInfo) => {
+    const { enabled, spools, amsSlots, ams, vtTray, onDeductWeight, notify, onPending } = latest.current;
+    if (!enabled || !isAutoDeductOn()) return;
+    const name = session.name || 'Druckauftrag';
+    const slot = mainSlot(session) ?? activeSlotFromPrinter(ams);
 
     const trays = readTrays(ams);
     const hw = slot === EXTERNAL_SLOT ? null : trays.find(t => t.slot === slot);
@@ -79,22 +58,46 @@ export function useLanDeduct(p: Params) {
     const colorHex = (slot === EXTERNAL_SLOT ? '#' + String(vtTray?.tray_color || '888888').slice(0, 6) : hw?.colorHex) || '#888888';
     const assigned = slot ? amsSlots[slot] : '';
     const spoolId = assigned && spools.some(s => s.id === assigned) ? assigned : material ? bestSpool(spools, material, colorHex) : '';
+    const failed = info.state === 'FAILED';
+    const share = failed ? Math.min(1, Math.max(0, (session.lastPercent || 0) / 100)) : 1;
 
-    const fallback = () => {
-      const known = readJobGrams()[jobKey(name)];
-      if (known > 0 && spoolId) {
-        onDeductWeight(spoolId, known);
-        const s = spools.find(x => x.id === spoolId);
-        notify({ text: `Auto-Abzug „${name}“: ${known} g von ${s ? `${s.brand} ${s.name}` : 'Spule'}`, ok: true });
-        addSystemLog('spule', `Auto-Abzug (LAN) ${known} g`, name, 'success');
-        return;
-      }
-      const pending: PendingDeduct = { jobName: name, slot, spoolId, material, colorHex, at: new Date().toISOString() };
+    const ask = (parts: { spoolId: string; grams: number }[]) => {
+      const pending: PendingDeduct = {
+        jobName: name,
+        slot,
+        spoolId,
+        material,
+        colorHex,
+        at: new Date().toISOString(),
+        reason: failed ? 'failed' : info.missed ? 'missed' : 'unknown',
+        percent: failed ? Math.round(session.lastPercent || 0) : undefined,
+        parts: parts.length ? parts.map(x => ({ spoolId: x.spoolId, grams: round1(x.grams * share) })) : undefined
+      };
       safeStorage.setItem(PENDING_DEDUCT_KEY, JSON.stringify(pending));
       onPending(pending);
     };
 
-    // Datei vom Drucker holen (klappt in der Windows-/Server-App). Der Drucker braucht kurz nach Druckende, bis alles bereit ist.
+    const deductNow = (parts: { spoolId: string; grams: number }[], source: string) => {
+      const texts: string[] = [];
+      parts.forEach((x, i) => {
+        const grams = round1(x.grams);
+        setTimeout(() => onDeductWeight(x.spoolId, grams), i * 300);
+        const sp = spools.find(s => s.id === x.spoolId);
+        texts.push(`${grams} g von ${sp ? `${sp.brand} ${sp.name}` : 'Spule'}`);
+      });
+      notify({ text: `Auto-Abzug „${name}“${source}: ${texts.join(', ')}`, ok: true });
+      addSystemLog('spule', `Auto-Abzug (LAN)${source}`, `${name}: ${texts.join(', ')}`, 'success');
+    };
+
+    // Gewicht ohne Druckdatei: gemerkt zum Auftragsnamen
+    const fallback = () => {
+      const known = readJobGrams()[jobKey(name)];
+      const parts = known > 0 && spoolId ? [{ spoolId, grams: known }] : [];
+      if (parts.length && !info.missed && !failed) return deductNow(parts, '');
+      ask(parts);
+    };
+
+    // Druckdatei vom Drucker holen (klappt in der Windows-/Server-App). Der Drucker braucht kurz nach Druckende, bis alles bereit ist.
     void (async () => {
       try {
         const res = await printerApi.jobWeights({ jobName: name });
@@ -119,21 +122,15 @@ export function useLanDeduct(p: Params) {
           if (target) perSpool.set(target, (perSpool.get(target) || 0) + f.grams);
         }
         if (perSpool.size === 0) return fallback();
-        const parts: string[] = [];
-        let n = 0;
-        perSpool.forEach((g, id) => {
-          const grams = Math.round(g * 10) / 10;
-          setTimeout(() => onDeductWeight(id, grams), n * 300);
-          n++;
-          const sp = spools.find(x => x.id === id);
-          parts.push(`${grams} g von ${sp ? `${sp.brand} ${sp.name}` : 'Spule'}`);
-        });
-        rememberJobGrams(name, res.data!.totalGrams || fil.reduce((a, f) => a + f.grams, 0));
-        notify({ text: `Auto-Abzug „${name}“ (aus Druckdatei): ${parts.join(', ')}`, ok: true });
-        addSystemLog('spule', 'Auto-Abzug aus Druckdatei (LAN)', `${name}: ${parts.join(', ')}`, 'success');
+        const parts = Array.from(perSpool, ([id, g]) => ({ spoolId: id, grams: g }));
+        if (!failed) rememberJobGrams(name, res.data!.totalGrams || fil.reduce((a, f) => a + f.grams, 0));
+        if (info.missed || failed) return ask(parts);
+        deductNow(parts, ' (aus Druckdatei)');
       } catch {
         fallback();
       }
     })();
-  }, [p.gcodeState, p.jobName]);
+  }, []);
+
+  return { handleEnd };
 }

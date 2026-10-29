@@ -21,6 +21,8 @@ export interface BambuLiveState {
     gcode_state: string;
     subtask_name: string;
     gcode_file: string;
+    /** Startzeit des Auftrags (Unix-Sekunden als Text), leer = unbekannt */
+    gcode_start_time?: string;
     mc_percent: number;
     mc_remaining_time: number;
     layer_num: number;
