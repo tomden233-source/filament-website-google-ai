@@ -1131,5 +1131,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.83',
+    label: '1.83 (Dunkelgrünes Logo)',
+    releaseDate: '29.10.2026',
+    description: 'Neues App-Logo: dunkelgrüne Spule mit Leuchten und ablaufendem Faden, statt des alten orangen Logos.',
+    features: [
+      '🟢 Neues Logo: tiefgrüner Hintergrund, smaragdgrüne Spule mit aufgewickeltem Filament und leuchtendem Rand',
+      '🧵 Ablaufender Faden unten rechts als Blickfang',
+      '📱 Überall gleich: App-Symbol (neue APK), Browser-Tab, Startbildschirm und Web-App',
+      '🔢 Aktualisierte Zahlen-FunFacts: 56 Commits und 83 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

@@ -1,20 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f97316"/>
-      <stop offset="100%" stop-color="#ea580c"/>
+    <radialGradient id="bg" cx="35%" cy="25%" r="95%">
+      <stop offset="0%" stop-color="#0f3d26"/>
+      <stop offset="55%" stop-color="#062116"/>
+      <stop offset="100%" stop-color="#020d08"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#6ee7a8"/>
+      <stop offset="45%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
     </linearGradient>
-    <radialGradient id="hole" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#0b111e"/>
-      <stop offset="100%" stop-color="#162032"/>
+    <linearGradient id="wind" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#065f46"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hub" cx="40%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#0b2a1b"/>
+      <stop offset="100%" stop-color="#010604"/>
     </radialGradient>
   </defs>
-  <rect width="512" height="512" rx="128" fill="#0b111e"/>
-  <circle cx="256" cy="256" r="190" fill="url(#grad)" stroke="#ffffff" stroke-width="8" stroke-opacity="0.15"/>
-  <circle cx="256" cy="256" r="130" fill="#0b111e" stroke="#ffffff" stroke-width="6" stroke-opacity="0.1"/>
-  <circle cx="256" cy="256" r="70" fill="url(#grad)"/>
-  <circle cx="256" cy="256" r="32" fill="#0b111e"/>
-  <!-- Filament windings -->
-  <path d="M 256 96 A 160 160 0 0 1 416 256" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-dasharray="16 12" stroke-opacity="0.6"/>
-  <path d="M 256 120 A 136 136 0 0 1 392 256" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-dasharray="12 10" stroke-opacity="0.4"/>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="236" fill="url(#glow)"/>
+  <!-- Spulenflansch -->
+  <circle cx="256" cy="256" r="188" fill="url(#ring)"/>
+  <circle cx="256" cy="256" r="188" fill="none" stroke="#d1fae5" stroke-opacity="0.35" stroke-width="5"/>
+  <!-- aufgewickeltes Filament -->
+  <circle cx="256" cy="256" r="158" fill="#053b27"/>
+  <g fill="none" stroke="url(#wind)" stroke-width="9">
+    <circle cx="256" cy="256" r="150"/>
+    <circle cx="256" cy="256" r="132"/>
+    <circle cx="256" cy="256" r="114"/>
+    <circle cx="256" cy="256" r="96"/>
+  </g>
+  <g fill="none" stroke="#a7f3d0" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round">
+    <path d="M 128 200 A 140 140 0 0 1 220 126"/>
+    <path d="M 148 214 A 118 118 0 0 1 226 150"/>
+  </g>
+  <!-- Nabe -->
+  <circle cx="256" cy="256" r="74" fill="url(#ring)"/>
+  <circle cx="256" cy="256" r="46" fill="url(#hub)"/>
+  <circle cx="256" cy="256" r="46" fill="none" stroke="#6ee7a8" stroke-opacity="0.6" stroke-width="4"/>
+  <!-- Speichen -->
+  <g stroke="#022c1b" stroke-width="10" stroke-linecap="round" opacity="0.55">
+    <path d="M256 190 V 174"/><path d="M256 322 V 338"/><path d="M190 256 H 174"/><path d="M322 256 H 338"/>
+  </g>
+  <!-- ablaufender Faden -->
+  <path d="M 404 300 C 440 340 418 392 360 404 C 330 410 318 436 344 452" fill="none" stroke="#6ee7a8" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="344" cy="452" r="7" fill="#d1fae5"/>
 </svg>
