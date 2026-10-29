@@ -1395,36 +1395,46 @@ export abstract class BambuMqttCore {
     const duration = params.duration || 4;
     const temp = params.temp || 50;
 
+    // Echte AMS-ID aus dem Drucker-Report nehmen (AMS 2 Pro: 0-3, AMS HT: ab 128). Fest „0“ wurde still ignoriert.
+    const unit = () => (Array.isArray(this.printData.ams?.ams) ? this.printData.ams.ams[0] : null);
+    const unitId = unit()?.id !== undefined && unit()?.id !== '' ? Number(unit().id) : params.amsId || 0;
+    const dryTime = () => Number(unit()?.dry_time) || 0; // Restzeit in Minuten laut Drucker
+
     const reqTopic = `device/${this.serialNumber}/request`;
+    // Format laut ha-bambulab (getestet an AMS 2 Pro / AMS HT): Zieltemperatur steht in „temp“, nicht in „cooling_temp“
     const payload = {
       print: {
-        sequence_id: String(Date.now()),
+        sequence_id: '0',
         command: 'ams_filament_drying',
-        ams_id: params.amsId || 0,
+        ams_id: unitId,
         mode,
+        temp: mode === 1 ? temp : 0,
+        cooling_temp: mode === 1 ? 45 : 40,
         duration: mode === 1 ? duration : 0,
-        cooling_temp: temp,
-        rotate_tray: true
+        humidity: 0,
+        rotate_tray: false
       }
     };
 
     this.client.publish(reqTopic, JSON.stringify(payload));
+    this.schedulePushall(800);
 
-    // Optimistisch Telemetrie updaten
-    if (this.printData.ams?.ams?.[0]) {
-      this.printData.ams.ams[0].dry_setting = {
-        dry_duration: mode === 1 ? duration : -1,
-        dry_filament: 'PLA',
-        dry_temperature: mode === 1 ? temp : -1
-      };
-      this.notifyChange();
+    // Nicht blind „gestartet“ melden: warten, bis der Drucker die Trocknung wirklich im Report zeigt
+    const deadline = Date.now() + 9000;
+    while (Date.now() < deadline) {
+      await new Promise(res => setTimeout(res, 500));
+      const left = dryTime();
+      if (mode === 1 && left > 0) {
+        return { success: true, message: `AMS Trocknung läuft (${duration} Std. bei ${temp}°C, Drucker bestätigt)` };
+      }
+      if (mode === 0 && left === 0) {
+        return { success: true, message: 'AMS Trocknung gestoppt (Drucker bestätigt).' };
+      }
     }
-
-    this.schedulePushall(1000);
-
     return {
-      success: true,
-      message: mode === 1 ? `AMS Trocknung gestartet (${duration} Std. bei ${temp}°C)` : 'AMS Trocknung gestoppt.'
+      success: false,
+      error:
+        'Der Drucker hat die Trocknung nicht bestätigt. Prüfen: Entwickler-Modus am Drucker an? Trocknung wird nur von AMS 2 Pro / AMS HT unterstützt, und der Drucker darf nicht gerade drucken.'
     };
   }
 

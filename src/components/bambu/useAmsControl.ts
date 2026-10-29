@@ -172,9 +172,6 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
       durationHours: start ? amsDryHours : 0,
       targetTemp: start ? amsDryTemp : 50
     };
-    setLocalDrying(nextDrying);
-    safeStorage.setItem('filamenthub_ams_drying_state', JSON.stringify(nextDrying));
-    window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: nextDrying }));
 
     const revertDrying = () => {
       const off = { isDrying: false, startTimestamp: 0, durationHours: 0, targetTemp: 50 };
@@ -192,6 +189,9 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
       });
       const data = res.data;
       if (res.ok && data.success) {
+        setLocalDrying(nextDrying);
+        safeStorage.setItem('filamenthub_ams_drying_state', JSON.stringify(nextDrying));
+        window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: nextDrying }));
         setActionToast({ text: data.message, ok: true });
         handleRefreshLiveState();
         if (start) {

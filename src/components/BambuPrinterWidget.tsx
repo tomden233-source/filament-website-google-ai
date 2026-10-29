@@ -452,33 +452,26 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   // 8. AMS Spuleneinstellungen direkt am Drucker ändern
 
   // 9. AMS Trocknung starten / stoppen
-  const isDryingActive = Boolean(
-    localDrying.isDrying ||
-      (liveState.data.ams?.ams?.[0]?.dry_setting &&
-        liveState.data.ams.ams[0].dry_setting.dry_duration > 0)
-  );
+  // Nur was der Drucker selbst meldet (dry_time = Restminuten), keine geschätzten/lokalen Werte
+  const amsUnit0 = liveState.connected ? liveState.data.ams?.ams?.[0] : null;
+  const dryMinutesLeft = Number(amsUnit0?.dry_time) || 0;
+  const isDryingActive = dryMinutesLeft > 0;
 
   const calcRemainingTime = () => {
     if (!isDryingActive) return null;
-    const durationH = localDrying.isDrying ? localDrying.durationHours : amsDryHours;
-    const totalMs = durationH * 3600 * 1000;
-    const startMs = localDrying.isDrying && localDrying.startTimestamp ? localDrying.startTimestamp : Date.now();
-    const elapsedMs = Math.max(0, Date.now() - startMs);
-    const remMs = Math.max(0, totalMs - elapsedMs);
-    const h = Math.floor(remMs / (3600 * 1000));
-    const m = Math.floor((remMs % (3600 * 1000)) / (60 * 1000));
-    return `${h}h ${m}m`;
+    return `${Math.floor(dryMinutesLeft / 60)}h ${dryMinutesLeft % 60}m`;
   };
 
   const getHumidityDisplay = () => {
-    if (isDryingActive) return '17% rF (Aktiv)';
-    const rawH = liveState.data.ams?.ams?.[0]?.humidity;
-    if (rawH === undefined || rawH === null) return '17% rF';
-    const num = Number(rawH);
-    if (isNaN(num)) return `${rawH}% rF`;
-    if (num >= 10) return `${num}% rF`;
-    const map: Record<number, number> = { 1: 17, 2: 24, 3: 34, 4: 45, 5: 56 };
-    return `${map[num] || 17}% rF`;
+    if (!amsUnit0) return '–';
+    // AMS 2 Pro / HT melden den echten Wert in humidity_raw (%), sonst nur Stufe 1-5 (grob)
+    const raw = Number(amsUnit0.humidity_raw);
+    if (amsUnit0.humidity_raw !== undefined && amsUnit0.humidity_raw !== '' && Number.isFinite(raw) && raw > 0) return `${raw}% rF`;
+    const lvl = Number(amsUnit0.humidity);
+    if (!Number.isFinite(lvl) || amsUnit0.humidity === undefined || amsUnit0.humidity === '') return '–';
+    if (lvl >= 10) return `${lvl}% rF`;
+    const map: Record<number, string> = { 1: '≈ 20% rF (Stufe 1)', 2: '≈ 30% rF (Stufe 2)', 3: '≈ 40% rF (Stufe 3)', 4: '≈ 50% rF (Stufe 4)', 5: '≈ 60%+ rF (Stufe 5)' };
+    return map[lvl] || `Stufe ${lvl}`;
   };
 
   // Intelligente Strom- und Verbindungszustände (Kopplung mit Home Assistant Steckdose & MQTT)

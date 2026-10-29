@@ -1040,5 +1040,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.77',
+    label: '1.77 (Trocknung echt)',
+    releaseDate: '29.10.2026',
+    description: 'AMS-Trocknung sendet jetzt das richtige Befehlsformat und zeigt nur noch echte Werte vom Drucker. Keine geschätzte Restzeit oder feste Feuchte mehr.',
+    features: [
+      '🔥 Richtiger Befehl: Die Trocknungs-Temperatur lag im falschen Feld, deshalb ignorierte der Drucker den Start. Jetzt Format wie bei AMS 2 Pro/HT üblich, mit der echten AMS-Nummer aus dem Drucker',
+      '✅ Bestätigung: Die App meldet „läuft“ erst, wenn der Drucker die Trocknung wirklich zeigt. Sonst kommt eine klare Fehlermeldung mit Tipps',
+      '📊 Echte Zahlen: Restzeit kommt direkt vom Drucker (dry_time), Feuchte als echter Wert (humidity_raw) oder ehrlich als Stufe. Keine festen 17 % mehr',
+      '🔢 Aktualisierte Zahlen-FunFacts: 50 Commits und 77 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
