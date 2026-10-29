@@ -29,7 +29,11 @@ export const getSyncPass = () => safeStorage.getItem(PASS_KEY) || '';
 export const setSyncPass = (p: string) => safeStorage.setItem(PASS_KEY, p.trim());
 export const lastSyncAt = () => Number(safeStorage.getItem(AT_KEY)) || 0;
 
-const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
+const b64 = (u: Uint8Array) => {
+  let out = '';
+  for (let i = 0; i < u.length; i += 0x8000) out += String.fromCharCode(...u.subarray(i, i + 0x8000));
+  return btoa(out);
+};
 const unb64 = (s: string): Uint8Array<ArrayBuffer> => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 
 async function keyFrom(pass: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
@@ -112,15 +116,26 @@ export async function connectFromStored(): Promise<void> {
 }
 
 let busy = false;
+let lastDetail = '';
+/** Technischer Grund des letzten Fehlers (für die Anzeige) */
+export const syncDetail = () => lastDetail;
 
 export async function syncDevices(cloudUrl: string): Promise<SyncResult> {
   const pass = getSyncPass();
+  lastDetail = '';
   if (!pass) return 'nopass';
   if (busy) return 'same';
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    lastDetail = 'Verschlüsselung nicht verfügbar: Die Seite läuft ohne sichere Verbindung (http). Bitte die App/Windows-App oder https nutzen.';
+    return 'error';
+  }
   busy = true;
   try {
     const res = await fetch(cloudUrl, { cache: 'no-store' });
-    if (!res.ok) return 'error';
+    if (!res.ok) {
+      lastDetail = `Cloud antwortet mit HTTP ${res.status}.`;
+      return 'error';
+    }
     const doc: any = await res.json();
     const box = doc?.secure;
     const local = localBundle();
@@ -145,7 +160,10 @@ export async function syncDevices(cloudUrl: string): Promise<SyncResult> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...fresh, secure: { ...enc, at: Date.now() } })
       }).then(r => r.ok);
-      if (!ok) return 'error' as SyncResult;
+      if (!ok) {
+        lastDetail = 'Cloud hat das Speichern abgelehnt.';
+        return 'error' as SyncResult;
+      }
       safeStorage.setItem(BASE_HASH_KEY, localHash);
       safeStorage.setItem(AT_KEY, String(Date.now()));
       return 'pushed' as SyncResult;
@@ -175,7 +193,8 @@ export async function syncDevices(cloudUrl: string): Promise<SyncResult> {
     }
     window.dispatchEvent(new CustomEvent('filamenthub:device-synced', { detail: { printerChanged, settingsChanged } }));
     return 'applied';
-  } catch {
+  } catch (e: any) {
+    lastDetail = String(e?.message || e);
     return 'error';
   } finally {
     busy = false;

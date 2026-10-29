@@ -1244,5 +1244,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.90',
+    label: '1.90 (Sync-Diagnose)',
+    releaseDate: '29.10.2026',
+    description: 'Geräte-Sync zeigt bei einem Fehler jetzt den genauen Grund an und prüft, ob die Verschlüsselung auf dem Gerät verfügbar ist.',
+    features: [
+      '🔍 Grund-Zeile unter der Fehlermeldung: zeigt, warum der Abgleich nicht klappt (Cloud-Antwort, Verschlüsselung, Netzwerk)',
+      '🔐 Prüft vorher, ob die Seite sicher läuft (https oder App), sonst klare Erklärung statt „Cloud nicht erreichbar“',
+      '🛡️ Große Datenmengen beim Verschlüsseln sicherer verarbeitet',
+      '🔢 Aktualisierte Zahlen-FunFacts: 63 Commits und 90 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

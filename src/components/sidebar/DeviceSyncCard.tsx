@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RefreshCw, Lock, CheckCircle2 } from 'lucide-react';
-import { getSyncPass, setSyncPass, syncDevices, lastSyncAt, type SyncResult } from '../../utils/deviceSync';
+import { getSyncPass, setSyncPass, syncDevices, syncDetail, lastSyncAt, type SyncResult } from '../../utils/deviceSync';
 
 const MESSAGES: Record<SyncResult, { text: string; ok: boolean }> = {
   pushed: { text: 'Dieses Gerät ist jetzt die Quelle: Drucker-Zugang und Einstellungen sind verschlüsselt in der Cloud.', ok: true },
@@ -17,6 +17,7 @@ export const DeviceSyncCard: React.FC<{ cloudDbUrl: string }> = ({ cloudDbUrl })
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SyncResult | null>(null);
   const [at, setAt] = useState(lastSyncAt());
+  const [detail, setDetail] = useState('');
   const active = Boolean(getSyncPass());
 
   const run = async () => {
@@ -24,6 +25,7 @@ export const DeviceSyncCard: React.FC<{ cloudDbUrl: string }> = ({ cloudDbUrl })
     setSyncPass(pass);
     const r = await syncDevices(cloudDbUrl);
     setResult(r);
+    setDetail(r === 'error' ? syncDetail() : '');
     setAt(lastSyncAt());
     setBusy(false);
     window.dispatchEvent(new CustomEvent('filamenthub:sync-now'));
@@ -72,6 +74,7 @@ export const DeviceSyncCard: React.FC<{ cloudDbUrl: string }> = ({ cloudDbUrl })
       {result && (
         <p className={`text-[11px] font-bold ${MESSAGES[result].ok ? 'text-emerald-400' : 'text-amber-400'}`}>{MESSAGES[result].text}</p>
       )}
+      {detail && <p className="text-[10px] break-words" style={{ color: 'var(--app-text-muted)' }}>Grund: {detail}</p>}
       {at > 0 && (
         <p className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
           Zuletzt abgeglichen: {new Date(at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}
