@@ -1612,5 +1612,22 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.111',
+    label: '1.111 (Schneller & sparsamer)',
+    releaseDate: '29.10.2026',
+    description: 'Alte Bremsen raus: Die App zeichnet sich nicht mehr jede Sekunde komplett neu, und der Drucker-Status kommt nicht mehr doppelt. Spart Akku und macht alles flüssiger.',
+    features: [
+      '⚡ App tickt nur noch einmal pro Minute statt jede Sekunde (vorher wurden alle Spulen und das Drucker-Widget jede Sekunde neu gezeichnet)',
+      '⏱️ Der Sekunden-Countdown auf der Spulenkarte hat einen eigenen kleinen Ticker',
+      '📡 Windows-App: Drucker-Status nur noch über den Stream; Abfrage alle 3 s nur, wenn der Stream ausfällt, Stream baut sich selbst neu auf',
+      '💓 Server schickt alle 10 s ein Lebenszeichen: „Drucker aus“ wird zuverlässig erkannt',
+      '🔋 Android: Status-Abfrage alle 10 s statt 3 s (Daten kommen ohnehin direkt vom Drucker)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 84 Commits und 111 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

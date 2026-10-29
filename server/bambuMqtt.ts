@@ -55,13 +55,22 @@ class BambuMqttService extends BambuMqttCore {
     };
   }
 
+  /** Alle 10 s den Status schicken, auch ohne Änderung: so merkt die App, wenn der Drucker aus ist (keine frischen Daten),
+   *  und die Verbindung bleibt offen. Läuft nur, solange jemand zuhört. */
+  private sseHeartbeat: ReturnType<typeof setInterval> | null = null;
+
   public registerSseClient(res: Response) {
     this.sseClients.push(res);
     // Sofort ersten Status senden
     res.write(`data: ${JSON.stringify(this.getStatus())}\n\n`);
+    if (!this.sseHeartbeat) this.sseHeartbeat = setInterval(() => this.notifyChange(), 10_000);
 
     res.on('close', () => {
       this.sseClients = this.sseClients.filter(c => c !== res);
+      if (!this.sseClients.length && this.sseHeartbeat) {
+        clearInterval(this.sseHeartbeat);
+        this.sseHeartbeat = null;
+      }
     });
   }
 

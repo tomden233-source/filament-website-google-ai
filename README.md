@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.110 (Bambu-Chips erkennen)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.110 im Paket 2.0.110, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.111 (Schneller & sparsamer)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.111 im Paket 2.0.111, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.110 (Bambu-Chips erkennen)**. Die Zählung läuft ab 1.100
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29.10.2026 (1.105 bis 1.110)
+## Neu am 29.10.2026 (1.105 bis 1.111)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -65,6 +65,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.108 | Feuchte-Sensor SHT31-D in der ESPHome-Datei |
 | 1.109 | Neue Spulen-Kacheln (Spulen-Symbol in Filamentfarbe, durchgehender Balken), zweiter Sensor im Raum zum Vergleich, Mini-Box für den Sensor, Abzug mehrerer Spulen repariert |
 | 1.110 | Bambu-Chips: eigene NFC-Leser ignorieren sie, die App erkennt Bambu-Spulen über den RFID-Chip, den das AMS selbst liest |
+| 1.111 | Schneller & sparsamer: App tickt nur noch einmal pro Minute statt jede Sekunde, Drucker-Status nicht mehr doppelt (Stream + Abfrage), Lebenszeichen vom Server |
 
 ### Druck-Wächter (1.105)
 
@@ -117,7 +118,7 @@ Links ein Spulen-Symbol in der Filamentfarbe; wie dick das Filament darauf ist, 
 ## Inhalt
 
 1. [Was die App kann](#was-die-app-kann-kurzüberblick)
-1. [Neu am 29.10.2026](#neu-am-29102026-1105-bis-1110)
+1. [Neu am 29.10.2026](#neu-am-29102026-1105-bis-1111)
 1. [App und Desktop](#app-und-desktop)
 2. [Starten](#starten)
 3. [Spulen verwalten](#spulen-verwalten)

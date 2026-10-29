@@ -1,3 +1,4 @@
+import { useNow } from './hooks/useNow';
 import { UpdateBanner } from './components/UpdateBanner';
 import { isAppShell } from './utils/env';
 import { peekIdleTag } from './utils/nativeNfc';
@@ -92,12 +93,10 @@ const LEGACY_SPOOL_KEYS = [
 ];
 
 export default function App() {
-  // Zeit-Ticker für sekündliche Live-Countdowns
-  const [now, setNow] = useState<number>(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // Zeit für Trocknungs-Status und Sortierung: einmal pro Minute reicht.
+  // (Vorher jede Sekunde: dann wurde die ganze App mit allen Spulen und dem Drucker-Widget jede Sekunde neu gezeichnet.)
+  // Der Sekunden-Countdown auf der Spulenkarte hat einen eigenen Ticker (DryCountdown in SpoolCard).
+  const now = useNow(60_000);
 
   // 5 Helligkeitsstufen & Akzente (Standard: Soft). Alte Werte aus früheren Versionen werden einmalig auf Soft gesetzt.
   const { themeBrightness, themeAccent, setThemeBrightness, setThemeAccent } = useThemeSettings();
@@ -126,7 +125,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.110';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.111';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.

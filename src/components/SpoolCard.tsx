@@ -1,4 +1,5 @@
 import { LabelPrintButton } from './LabelPrintButton';
+import { useNow } from '../hooks/useNow';
 import React, { useState, useEffect } from 'react';
 import {
   ExternalLink,
@@ -35,6 +36,17 @@ interface SpoolCardProps {
   onWriteNfc?: (spoolId: string) => void;
   appSettings?: AppSettings;
 }
+
+/** Sekunden-Countdown bis zum nächsten Trocknen: tickt selbst, damit nicht die ganze App jede Sekunde neu zeichnet */
+const DryCountdown: React.FC<{ spool: Spool }> = ({ spool }) => {
+  const t = useNow(1000);
+  const d = getDryingStatus(spool, t);
+  return (
+    <span className={`font-mono-num ${d.isOverdue ? 'text-rose-500 font-bold' : 'font-semibold'}`}>
+      {d.isOverdue ? `⚠️ Überfällig seit ${d.days}d ${d.hours}h ${d.mins}m ${d.secs}s` : `🔥 Trocknung in ${d.days}d ${d.hours}h ${d.mins}m ${d.secs}s`}
+    </span>
+  );
+};
 
 export const SpoolCard: React.FC<SpoolCardProps> = ({
   spool,
@@ -692,15 +704,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
         )}
 
         <div className="flex justify-between items-center">
-          <span
-            className={`font-mono-num ${
-              dry.isOverdue ? 'text-rose-500 font-bold' : 'font-semibold'
-            }`}
-          >
-            {dry.isOverdue
-              ? `⚠️ Überfällig seit ${dry.days}d ${dry.hours}h ${dry.mins}m ${dry.secs}s`
-              : `🔥 Trocknung in ${dry.days}d ${dry.hours}h ${dry.mins}m ${dry.secs}s`}
-          </span>
+          <DryCountdown spool={spool} />
           <span className="text-[10px] font-mono-num" style={{ color: 'var(--app-text-muted)' }}>
             {spool.dryTemp || 50}°C / {spool.dryHours || 5}h
           </span>

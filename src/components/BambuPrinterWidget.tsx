@@ -461,67 +461,89 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     }
   }, [actionToast]);
 
-  // 1. SSE Stream Verbindung für Live-Telemetrie
+  // 1. Live-Status vom Drucker
+  //  - Windows-/Server-App: Server-Stream (SSE). Nur wenn der Stream ausfällt, alle 3 s abfragen; der Stream wird
+  //    mit wachsender Pause (5 s … 60 s) neu aufgebaut. Vorher liefen Stream und Abfrage immer gleichzeitig (doppelte Updates).
+  //  - Android-App: Status kommt direkt vom nativen MQTT; eine Abfrage alle 10 s hält „Drucker aus?“ aktuell.
   useEffect(() => {
+    let stopped = false;
     let eventSource: EventSource | null = null;
-    let pollInterval: NodeJS.Timeout | null = null;
-
-    const connectSSE = () => {
-      try {
-        eventSource = new EventSource('/api/printer/stream');
-        eventSource.onmessage = event => {
-          try {
-            const data: BambuLiveState = JSON.parse(event.data);
-            if (data && data.data) {
-              setLiveState(data);
-            }
-          } catch (e) {
-            console.error('SSE Parse Fehler:', e);
-          }
-        };
-
-        eventSource.onerror = () => {
-          if (eventSource) eventSource.close();
-        };
-      } catch {}
-    };
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 5000;
 
     const fetchStatus = async () => {
       try {
         const res = await printerApi.status();
-        if (res.ok && res.data?.data) {
-          setLiveState(res.data);
-        }
-      } catch {}
+        if (!stopped && res.ok && res.data?.data) setLiveState(res.data);
+      } catch {
+        /* Server gerade nicht erreichbar */
+      }
+    };
+    const startPolling = (ms: number) => {
+      if (pollInterval) return;
+      void fetchStatus();
+      pollInterval = setInterval(fetchStatus, ms);
+    };
+    const stopPolling = () => {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = null;
     };
 
     // Auf GitHub Pages gibt es keinen Server: kein Polling, kein Stream
     if (IS_STATIC && !IS_NATIVE) return;
 
-    // Android-App: Status kommt direkt vom nativen MQTT, kein Server-Stream
     if (IS_NATIVE) {
       let off: (() => void) | undefined;
-      let stopped = false;
       import('../utils/bambu/NativeBambuService').then(m => {
         if (stopped) return;
-        off = m.subscribeNativePrinter(s => setLiveState(s as any));
+        off = m.subscribeNativePrinter(st => setLiveState(st as any));
       });
-      fetchStatus();
-      pollInterval = setInterval(fetchStatus, 3000);
+      startPolling(10_000);
       return () => {
         stopped = true;
         off?.();
-        if (pollInterval) clearInterval(pollInterval);
+        stopPolling();
       };
     }
 
-    fetchStatus();
+    const connectSSE = () => {
+      if (stopped) return;
+      try {
+        eventSource = new EventSource('/api/printer/stream');
+        eventSource.onopen = () => {
+          retryDelay = 5000;
+          stopPolling(); // Stream läuft: keine zusätzliche Abfrage
+        };
+        eventSource.onmessage = event => {
+          try {
+            const data: BambuLiveState = JSON.parse(event.data);
+            if (data && data.data) setLiveState(data);
+          } catch {
+            /* kaputtes Paket überspringen */
+          }
+        };
+        eventSource.onerror = () => {
+          eventSource?.close();
+          eventSource = null;
+          startPolling(3000); // bis der Stream wieder läuft
+          if (retryTimer) clearTimeout(retryTimer);
+          retryTimer = setTimeout(connectSSE, retryDelay);
+          retryDelay = Math.min(60_000, retryDelay * 2);
+        };
+      } catch {
+        startPolling(3000);
+      }
+    };
+
+    void fetchStatus();
     connectSSE();
-    pollInterval = setInterval(fetchStatus, 3000);
 
     return () => {
-      if (eventSource) eventSource.close();
-      if (pollInterval) clearInterval(pollInterval);
+      stopped = true;
+      eventSource?.close();
+      stopPolling();
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
 
