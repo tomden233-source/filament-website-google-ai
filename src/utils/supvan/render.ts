@@ -23,6 +23,8 @@ export interface LabelOptions {
 
 /** Freier Rand, damit Ränder des Druckkopfs/Bandes nie durch den QR-Code oder den Text laufen */
 export const LABEL_MARGIN_DOTS = 10; // 1,25 mm
+export const LABEL_LEAD_DOTS = 16; // 2 mm leerer Anfang (Bandanfang druckt unsauber)
+const QR_GAP_DOTS = 8;
 export const LABEL_MIN_MM = 20;
 export const AUTO_MAX_MM = 40;
 
@@ -73,9 +75,9 @@ export function renderSpoolLabel(spool: Spool, o: LabelOptions): Bitmap {
   const avail = h - 2;
   const scale = Math.max(1, Math.floor(avail / (n + quiet * 2)));
   const side = (n + quiet * 2) * scale;
-  const qx = 3;
   const qy = Math.floor((h - side) / 2);
-  const tx = qx + side + 6;
+  // QR sitzt am ENDE des Etiketts, Text vorne. Der Anfang des Bands hatte einen Strich durch den QR.
+  const tx = LABEL_LEAD_DOTS;
 
   const lines: { text: string; px: number; weight: number }[] = [
     { text: spool.name || 'Spule', px: 28, weight: 800 },
@@ -100,10 +102,11 @@ export function renderSpoolLabel(spool: Spool, o: LabelOptions): Bitmap {
       m.font = `${l.weight} ${l.px}px ${FONT}`;
       return m.measureText(l.text).width;
     }));
-    const need = Math.ceil(tx + textW + LABEL_MARGIN_DOTS);
+    const need = Math.ceil(tx + textW + QR_GAP_DOTS + side + LABEL_MARGIN_DOTS);
     w = Math.max(LABEL_MIN_MM * DOTS_PER_MM, Math.min(w, need));
   }
   const { ctx } = makeCanvas(w, h);
+  const qx = w - LABEL_MARGIN_DOTS - side;
 
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
@@ -112,7 +115,7 @@ export function renderSpoolLabel(spool: Spool, o: LabelOptions): Bitmap {
   }
 
   // Text rechts (mit freiem Rand am Ende)
-  const maxW = w - tx - LABEL_MARGIN_DOTS;
+  const maxW = qx - QR_GAP_DOTS - tx;
   if (maxW > 20) {
     ctx.textBaseline = 'top';
     ctx.textAlign = 'left';

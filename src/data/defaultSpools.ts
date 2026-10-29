@@ -1055,5 +1055,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.78',
+    label: '1.78 (QR am Ende)',
+    releaseDate: '29.10.2026',
+    description: 'Auf dem Etikett steht der QR-Code jetzt am Ende, der Text vorne. So läuft der Strich vom Bandanfang nicht mehr durch den QR.',
+    features: [
+      '🔳 QR am Ende: Text links, QR-Code rechts am Etikettenende mit sauberem Rand',
+      '↔️ 2 mm freier Anfang: Der Bandanfang druckt unsauber und bleibt jetzt leer',
+      '📏 Automatische Länge passt sich an (Text + QR)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 51 Commits und 78 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
