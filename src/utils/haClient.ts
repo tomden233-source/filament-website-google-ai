@@ -196,21 +196,6 @@ export async function toggleHaSwitch(targetState?: 'on' | 'off'): Promise<{ succ
 }
 
 /**
- * Bauraum-Licht schalten
- */
-export async function toggleHaLight(targetState?: 'on' | 'off'): Promise<{ success: boolean; message: string }> {
-  const service = targetState === 'on' ? 'turn_on' : targetState === 'off' ? 'turn_off' : 'toggle';
-  return await callHaService('light', service, { entity_id: 'light.x2d_chamber_light' });
-}
-
-/**
- * Automation triggern (z.B. automation.filament_website_auto_pull_github)
- */
-export async function triggerHaAutomation(entityId = 'automation.filament_website_auto_pull_github'): Promise<{ success: boolean; message: string }> {
-  return await callHaService('automation', 'trigger', { entity_id: entityId });
-}
-
-/**
  * Steckdosen-Status abfragen (Direkt oder über Proxy)
  */
 export async function fetchHaSwitchStatus(): Promise<{ configured: boolean; state: 'on' | 'off' | 'unknown' | 'error'; power: number | null; friendly_name: string }> {

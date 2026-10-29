@@ -52,7 +52,9 @@ import { LowStockBanner } from './components/workshop/LowStockBanner';
 import type { WorkshopTab } from './components/workshop/WorkshopModal';
 import { getLocationStats } from './utils/spoolAlerts';
 import { getWorkshopSettings } from './utils/workshopSettings';
-import { localNotify } from './utils/notify';
+import { raiseAlert } from './utils/alerts';
+import { OPEN_WORKSHOP_EVENT, type OpenWorkshopDetail } from './utils/uiEvents';
+import { listenNotificationTaps } from './utils/notify';
 import { useDeviceSync } from './hooks/useDeviceSync';
 import { gistUrlOf, parseGistPair, setGistToken } from './utils/gistStore';
 
@@ -121,7 +123,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v2.00';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v2.01';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
@@ -236,8 +238,44 @@ export default function App() {
   const [sortBy, setSortBy] = useState<string>('drying_urgent');
   const [activeLocationFilter, setActiveLocationFilter] = useState<string>('ALL');
   const [isWorkshopOpen, setIsWorkshopOpen] = useState<boolean>(false);
-  const [workshopTab, setWorkshopTab] = useState<WorkshopTab>('notices');
+  const [workshopTab, setWorkshopTab] = useState<WorkshopTab>('inbox');
   const [labelSpoolId, setLabelSpoolId] = useState<string | null>(null);
+  const [inboxFocusId, setInboxFocusId] = useState<string | null>(null);
+
+  // Mitteilungen öffnen: von der Glocke, aus dem Menü, per Tipp auf eine Benachrichtigung (Android, Windows, installierte Web-App)
+  useEffect(() => {
+    const open = (tab: WorkshopTab, id?: string) => {
+      setWorkshopTab(tab);
+      setInboxFocusId(id || null);
+      setIsWorkshopOpen(true);
+    };
+    const onEvent = (e: Event) => {
+      const d = (e as CustomEvent<OpenWorkshopDetail>).detail;
+      if (d) open(d.tab, d.focusId);
+    };
+    window.addEventListener(OPEN_WORKSHOP_EVENT, onEvent);
+    const onSw = (e: MessageEvent) => {
+      if (e.data?.type === 'filamenthub-open-inbox' && e.data.id) open('inbox', String(e.data.id));
+    };
+    navigator.serviceWorker?.addEventListener?.('message', onSw);
+    try {
+      const url = new URL(window.location.href);
+      const id = url.searchParams.get('inbox');
+      if (id) {
+        open('inbox', id);
+        url.searchParams.delete('inbox');
+        window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      }
+    } catch {
+      /* ohne Adressleiste egal */
+    }
+    const stopTaps = listenNotificationTaps(id => open('inbox', id));
+    return () => {
+      window.removeEventListener(OPEN_WORKSHOP_EVENT, onEvent);
+      navigator.serviceWorker?.removeEventListener?.('message', onSw);
+      stopTaps();
+    };
+  }, []);
 
   // Schnell-Scanner
   const [quickLinkText, setQuickLinkText] = useState<string>('');
@@ -653,9 +691,21 @@ export default function App() {
       const ws = getWorkshopSettings();
       if (ws.lowWarning && ws.lowWeightG > 0 && prevRemaining > ws.lowWeightG && newRemaining <= ws.lowWeightG) {
         const warn = `${spool.brand} ${spool.name}: nur noch ${newRemaining} g übrig.`;
-        showToast(`⚠️ Fast leer! ${warn}`);
-        void localNotify('Spule fast leer', warn, { tag: 'low-' + spool.id });
-        addSystemLog('spule', `Spule fast leer: ${spool.brand} ${spool.name}`, `${newRemaining} g übrig`, 'warn');
+        void raiseAlert(
+          {
+            kind: 'low',
+            key: 'low-' + spool.id,
+            title: 'Spule fast leer',
+            text: warn,
+            toast: `⚠️ Fast leer! ${warn}`,
+            facts: [
+              { label: 'Rest', value: `${newRemaining} g` },
+              { label: 'Warnung ab', value: `${ws.lowWeightG} g` }
+            ],
+            items: [{ title: `${spool.brand} ${spool.name}`, sub: `${spool.material}${spool.location ? ' · ' + spool.location : ''}`, color: spool.colorHex }]
+          },
+          showToast
+        );
       }
       showToast(`${Math.abs(deltaGrams)}g abgezogen (${newRemaining}g übrig).`);
       addSystemLog('spule', `${Math.abs(deltaGrams)}g abgezogen von ${spool.brand} ${spool.name} (${newRemaining}g verbleibend)`, spool.name, 'info');
@@ -1195,6 +1245,7 @@ export default function App() {
           onTabChange={setWorkshopTab}
           spools={spools}
           labelSpoolId={labelSpoolId}
+          focusId={inboxFocusId}
         />
         </Suspense>
       )}

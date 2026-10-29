@@ -14,11 +14,14 @@ import {
   FileText,
   Globe,
   ExternalLink,
-  Wrench
+  Wrench,
+  Bell
 } from 'lucide-react';
 import { ThreeDPrinterIcon } from './ThreeDPrinterIcon';
 import { ViewMode, VersionProfile } from '../types/filament';
 import { isAppShell } from '../utils/env';
+import { useUnreadCount } from '../utils/inbox';
+import { openWorkshop } from '../utils/uiEvents';
 
 export type DeviceMode = 'app' | 'desktop';
 
@@ -74,6 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   // Installierte Web-App oder Android-App: Browser-Hilfen (Umschalter, Webseite öffnen, QR) sind dort überflüssig
   const appShell = isAppShell();
+  const unread = useUnreadCount();
   const [showNewDropdown, setShowNewDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -314,7 +318,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="font-mono-num text-[11px]">{historyCount}</span>
           </button>
 
-          {/* Werkstatt: Meldungen und Helfer */}
+          {/* Mitteilungen: Postfach mit Zähler */}
+          <button
+            onClick={() => openWorkshop('inbox')}
+            title="Mitteilungen: Trocknen fertig, Druck fertig, ..."
+            aria-label={unread > 0 ? `${unread} ungelesene Mitteilungen` : 'Mitteilungen öffnen'}
+            className="relative inline-flex items-center gap-1 px-2 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer"
+            style={{ backgroundColor: 'var(--app-card-sub)', borderColor: unread > 0 ? 'var(--app-accent)' : 'var(--app-border)', color: 'var(--app-text)' }}
+          >
+            <Bell className="w-3.5 h-3.5" style={{ color: unread > 0 ? 'var(--app-accent-text)' : undefined }} />
+            {unread > 0 && (
+              <span className="min-w-4 h-4 px-1 rounded-full text-[10px] leading-4 text-center font-extrabold text-white" style={{ backgroundColor: 'var(--app-accent)' }}>
+                {unread}
+              </span>
+            )}
+          </button>
+
+          {/* Werkstatt: Etiketten und Helfer */}
           {onOpenWorkshop && (
             <button
               onClick={onOpenWorkshop}

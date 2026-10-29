@@ -1,6 +1,7 @@
 // Meldungen aufs Gerät (Benachrichtigung). Funktioniert im Browser und in der installierten Web-App.
 // In der Android-App läuft es über das eigene Plugin FilamentNotify (braucht die APK ab v1.82), sonst bleibt die Meldung in der App.
-import { IS_NATIVE } from './env';
+import { IS_NATIVE, IS_DESKTOP } from './env';
+import { openWorkshop } from './uiEvents';
 
 export type NotifyPermission = 'granted' | 'denied' | 'default' | 'unsupported';
 
@@ -72,13 +73,61 @@ export interface LocalNotifyOptions {
   tag?: string;
   /** Adresse eines Bildes (z. B. Kamerabild), wird wenn möglich angezeigt */
   image?: string;
+  /** Mitteilung im Postfach: Ein Tipp auf die Benachrichtigung öffnet sie in der App */
+  inboxId?: string;
+}
+
+// --- Tipp auf eine Benachrichtigung ---
+type TapHandler = (inboxId: string) => void;
+
+/** Android-App: Hat der Nutzer auf eine Benachrichtigung getippt (auch beim Kaltstart), wird die ID gemeldet.
+ *  Gibt eine Aufräum-Funktion zurück. Braucht die APK ab 2.01, bei älteren passiert einfach nichts. */
+export function listenNotificationTaps(handler: TapHandler): () => void {
+  if (!IS_NATIVE) return () => {};
+  let stopped = false;
+  const consume = async () => {
+    try {
+      const r = await nativeCall<{ id?: string }>('consumeTap');
+      if (!stopped && r?.id) handler(r.id);
+    } catch {
+      /* alte APK ohne consumeTap */
+    }
+  };
+  void consume();
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') void consume();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  let handle: { remove?: () => void } | undefined;
+  try {
+    const plugin = (window as any).Capacitor?.Plugins?.FilamentNotify;
+    const p = plugin?.addListener?.('notificationTap', (e: { id?: string }) => {
+      if (!e?.id) return;
+      handler(e.id);
+      void nativeCall('consumeTap').catch(() => {}); // gemerkte ID löschen, sonst öffnet sie sich beim nächsten Zurückkehren nochmal
+    });
+    Promise.resolve(p).then((h: any) => {
+      handle = h;
+    });
+  } catch {
+    /* kein Listener möglich */
+  }
+  return () => {
+    stopped = true;
+    document.removeEventListener('visibilitychange', onVisible);
+    try {
+      handle?.remove?.();
+    } catch {
+      /* egal */
+    }
+  };
 }
 
 /** Zeigt eine Benachrichtigung. Gibt false zurück, wenn das nicht möglich oder nicht erlaubt ist. */
 export async function localNotify(title: string, body: string, opts: LocalNotifyOptions = {}): Promise<boolean> {
   if (IS_NATIVE) {
     try {
-      const r = await nativeCall<{ shown: boolean }>('show', { title, body, tag: opts.tag || 'fh' });
+      const r = await nativeCall<{ shown: boolean }>('show', { title, body, tag: opts.tag || 'fh', id: opts.inboxId || '' });
       return Boolean(r?.shown);
     } catch {
       return false;
@@ -86,15 +135,38 @@ export async function localNotify(title: string, body: string, opts: LocalNotify
   }
   if (notifyPermission() !== 'granted') return false;
   const icon = `${import.meta.env.BASE_URL || '/'}pwa-192x192.png`;
-  const options = { body, tag: opts.tag, icon, badge: icon, image: opts.image } as NotificationOptions;
+  const options = { body, tag: opts.tag, icon, badge: icon, image: opts.image, data: { inboxId: opts.inboxId || '' } } as NotificationOptions;
   try {
+    // Windows-App (Electron) und Desktop-Browser: direkte Benachrichtigung, Klick bringt das Fenster nach vorn und öffnet die Mitteilung
+    if (IS_DESKTOP) {
+      const n = new Notification(title, options);
+      n.onclick = () => {
+        try {
+          window.focus();
+        } catch {
+          /* egal */
+        }
+        if (opts.inboxId) openWorkshop('inbox', opts.inboxId);
+        n.close();
+      };
+      return true;
+    }
     // Android-Chrome erlaubt "new Notification" nicht, dort geht es nur über den Service Worker
     const reg = await navigator.serviceWorker?.getRegistration?.();
     if (reg && typeof reg.showNotification === 'function') {
       await reg.showNotification(title, options);
       return true;
     }
-    new Notification(title, options);
+    const n = new Notification(title, options);
+    n.onclick = () => {
+      try {
+        window.focus();
+      } catch {
+        /* egal */
+      }
+      if (opts.inboxId) openWorkshop('inbox', opts.inboxId);
+      n.close();
+    };
     return true;
   } catch {
     return false;

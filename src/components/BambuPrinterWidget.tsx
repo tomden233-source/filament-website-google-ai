@@ -231,18 +231,23 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   }, [isCameraOpen, cameraSnapshotKey]);
 
   // Statuswechsel für Live-Logs erfassen (z.B. Leerlauf, Drucken, Pausiert)
-  const prevStatusRef = useRef<string>('');
+  // Nur echte, stabile Wechsel loggen: Ein Status muss 15 s gelten, kurzes Flackern (Verbinden, Daten fehlen kurz) wird ignoriert.
+  const loggedStatusRef = useRef<string>('');
   useEffect(() => {
     const currentStatus = liveState.formatted.statusText;
-    if (currentStatus && prevStatusRef.current && prevStatusRef.current !== currentStatus) {
+    if (!currentStatus) return;
+    const timer = setTimeout(() => {
+      const prev = loggedStatusRef.current;
+      loggedStatusRef.current = currentStatus;
+      if (!prev || prev === currentStatus) return; // erster Wert oder keine Änderung
       addSystemLog(
         'drucker',
         `Bambu Lab X2D: ${currentStatus}`,
-        liveState.data.subtask_name ? `Auftrag: ${liveState.data.subtask_name}` : 'Bereit für neuen Druckauftrag',
+        liveState.data.subtask_name ? `Auftrag: ${liveState.data.subtask_name}` : undefined,
         currentStatus.toLowerCase().includes('druck') ? 'success' : 'info'
       );
-    }
-    prevStatusRef.current = currentStatus;
+    }, 15000);
+    return () => clearTimeout(timer);
   }, [liveState.formatted.statusText, liveState.data.subtask_name]);
 
   // Home Assistant Steckdose umschalten (direkt ohne störendes Popup)
@@ -499,6 +504,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     gcodeState: liveState.data.gcode_state,
     jobName: liveState.data.subtask_name,
     dryMinutesLeft,
+    spools,
     showToast: (text: string) => setActionToast({ text, ok: true })
   });
 

@@ -15,7 +15,10 @@ import {
   Settings,
   Check,
   LayoutGrid,
-  ChevronDown
+  ChevronDown,
+  Palette,
+  FlaskConical,
+  Plug
 } from 'lucide-react';
 import {
   AppSettings,
@@ -30,17 +33,15 @@ import { ThemeBrightness, ThemeAccent } from '../types/theme';
 
 import { SettingsThemesPanel } from './sidebar/SettingsThemesPanel';
 import { SettingsPresetsPanel } from './sidebar/SettingsPresetsPanel';
-import { SettingsConnectionsPanel } from './sidebar/SettingsConnectionsPanel';
-import { SettingsHomeAssistantPanel } from './sidebar/SettingsHomeAssistantPanel';
+import { ConnectionsPanel } from './sidebar/ConnectionsPanel';
 import { ConnectTab } from './sidebar/ConnectTab';
 import { ApkUpdateRow } from './sidebar/ApkUpdateRow';
 import { AiAgentTab } from './sidebar/AiAgentTab';
 import { GcodeCalcTab } from './sidebar/GcodeCalcTab';
 import { ToolsTab } from './sidebar/ToolsTab';
-import { isAppShell } from '../utils/env';
+import { isAppShell, IS_DESKTOP } from '../utils/env';
 
 import { useCalculator } from './sidebar/useCalculator';
-import { useHomeAssistantPanel } from './sidebar/useHomeAssistantPanel';
 import { usePresetSettings } from './sidebar/usePresetSettings';
 import { useGcodeImport } from './sidebar/useGcodeImport';
 import { useAgentChat } from './sidebar/useAgentChat';
@@ -216,40 +217,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [showBambuSettings, setShowBambuSettings] = useState<boolean>(false);
   const [settingsSubTab, setSettingsSubTab] = useState<'themes' | 'presets' | 'connections'>('themes');
 
-  // Home Assistant Bambu Lab X2D Telemetrie & Sensor-Pfade (60 Entitäten)
-  const {
-    setHaActionToast,
-    haTelemetry,
-    sensorCategoryFilter,
-    sensorSearchQuery,
-    isNabuVaultOpen,
-    setIsNabuVaultOpen,
-    nabuUrlInput,
-    setNabuUrlInput,
-    showNabuToken,
-    nabuTokenInput,
-    setNabuTokenInput,
-    setShowNabuToken,
-    nabuTestResult,
-    haTriggerResult,
-    handleSaveNabuVault,
-    nabuSavedSuccess,
-    handleTestNabuConnection,
-    nabuTesting,
-    handleTriggerHaPullAutomation,
-    haTriggering,
-    fetchHaTelemetry,
-    haLoading,
-    haActionToast,
-    haLightActive,
-    handleToggleHaLight,
-    ventilationDryerPath,
-    setVentilationDryerPath,
-    setCopiedEntityId,
-    copiedEntityId,
-    setSensorSearchQuery,
-    setSensorCategoryFilter
-  } = useHomeAssistantPanel({ activeTab, settingsSubTab });
+  // Kurze Rückmeldung unten im Menü (z. B. G-Code vom Drucker geholt)
+  const [haActionToast, setHaActionToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!haActionToast) return;
+    const t = setTimeout(() => setHaActionToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [haActionToast]);
 
   // Mapped Sensor Paths
 
@@ -564,15 +538,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <div
             className="grid gap-1"
-            style={{ gridTemplateColumns: `repeat(${isAppShell() ? 4 : 5}, minmax(0, 1fr))` }}
+            style={{ gridTemplateColumns: `repeat(${isAppShell() || IS_DESKTOP ? 4 : 5}, minmax(0, 1fr))` }}
           >
             {[
               { id: 'ai', icon: Bot, label: 'KI' },
               { id: 'gcode', icon: FileCode2, labelLine1: 'G-Code', labelLine2: 'Rechner' },
               { id: 'tools', icon: Wrench, label: 'Tools' },
               { id: 'settings', icon: Settings, label: 'Einst.' },
-              // "Handy" (App installieren, QR) ist in der installierten App überflüssig
-              ...(isAppShell() ? [] : [{ id: 'connect', icon: Smartphone, label: 'Handy' }])
+              // "Handy" (App installieren, QR) ist in den Apps überflüssig: dort steckt es unter Einstellungen → Verbindungen
+              ...(isAppShell() || IS_DESKTOP ? [] : [{ id: 'connect', icon: Smartphone, label: 'Handy' }])
             ].map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id || (item.id === 'gcode' && activeTab === 'calc');
@@ -619,48 +593,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="space-y-3">
               {/* Einstellungs-Sub-Navigation: 3 aufgeräumte Hauptbereiche */}
               <div
-                className="grid grid-cols-3 gap-1.5 p-1 rounded-xl border text-[11px] font-bold transition-colors"
-                style={{
-                  backgroundColor: 'var(--app-card-sub)',
-                  borderColor: 'var(--app-border)'
-                }}
+                className="grid grid-cols-3 gap-1 p-1 rounded-xl border text-[11px] font-bold transition-colors"
+                style={{ backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)' }}
+                role="tablist"
               >
-                <button
-                  onClick={() => setSettingsSubTab('themes')}
-                  className={`py-1.5 px-1 rounded-lg transition cursor-pointer truncate text-center font-bold ${
-                    settingsSubTab === 'themes' ? 'shadow' : 'hover:opacity-80'
-                  }`}
-                  style={{
-                    backgroundColor: settingsSubTab === 'themes' ? 'var(--app-accent)' : 'transparent',
-                    color: settingsSubTab === 'themes' ? '#ffffff' : 'var(--app-text-muted)'
-                  }}
-                >
-                  🎨 Aussehen
-                </button>
-                <button
-                  onClick={() => setSettingsSubTab('presets')}
-                  className={`py-1.5 px-1 rounded-lg transition cursor-pointer truncate text-center font-bold ${
-                    settingsSubTab === 'presets' ? 'shadow' : 'hover:opacity-80'
-                  }`}
-                  style={{
-                    backgroundColor: settingsSubTab === 'presets' ? 'var(--app-accent)' : 'transparent',
-                    color: settingsSubTab === 'presets' ? '#ffffff' : 'var(--app-text-muted)'
-                  }}
-                >
-                  🧪 Material & Tara
-                </button>
-                <button
-                  onClick={() => setSettingsSubTab('connections')}
-                  className={`py-1.5 px-1 rounded-lg transition cursor-pointer truncate text-center font-bold ${
-                    settingsSubTab === 'connections' ? 'shadow' : 'hover:opacity-80'
-                  }`}
-                  style={{
-                    backgroundColor: settingsSubTab === 'connections' ? 'var(--app-accent)' : 'transparent',
-                    color: settingsSubTab === 'connections' ? '#ffffff' : 'var(--app-text-muted)'
-                  }}
-                >
-                  🔌 Verbindungen
-                </button>
+                {([
+                  { id: 'themes', label: 'Aussehen', icon: Palette },
+                  { id: 'presets', label: 'Material', icon: FlaskConical },
+                  { id: 'connections', label: 'Verbindungen', icon: Plug }
+                ] as const).map(t => {
+                  const Icon = t.icon;
+                  const on = settingsSubTab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      role="tab"
+                      aria-selected={on}
+                      onClick={() => setSettingsSubTab(t.id)}
+                      className={`py-1.5 px-1 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 font-bold ${on ? 'shadow' : 'hover:opacity-80'}`}
+                      style={{ backgroundColor: on ? 'var(--app-accent)' : 'transparent', color: on ? '#ffffff' : 'var(--app-text-muted)' }}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{t.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* BEREICH 1: THEMES & DESIGN */}
@@ -773,8 +730,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {/* BEREICH 2: MATERIAL & TARA (PRESETS) */}
               {settingsSubTab === 'presets' && <SettingsPresetsPanel selectedMaterial={selectedMaterial} setSelectedMaterial={setSelectedMaterial} appSettings={appSettings} matInterval={matInterval} setMatInterval={setMatInterval} matTemp={matTemp} setMatTemp={setMatTemp} matHours={matHours} setMatHours={setMatHours} handleSaveMaterial={handleSaveMaterial} matSavedSuccess={matSavedSuccess} handleResetMaterial={handleResetMaterial} eibosTaraInput={eibosTaraInput} setEibosTaraInput={setEibosTaraInput} handleSaveEibosTara={handleSaveEibosTara} eibosSavedSuccess={eibosSavedSuccess} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand} brandTara={brandTara} setBrandTara={setBrandTara} brandDefaultPrice={brandDefaultPrice} setBrandDefaultPrice={setBrandDefaultPrice} handleSaveBrand={handleSaveBrand} brandSavedSuccess={brandSavedSuccess} handleResetBrand={handleResetBrand} />}
 
-              {/* BEREICH 3: HOME ASSISTANT BAMBU LAB X2D TELEMETRIE & 60 ENTITÄTEN */}
-              {settingsSubTab === 'connections' && <SettingsConnectionsPanel haUrl={nabuUrlInput} cloudDbUrl={cloudDbUrl} onCloudUrlChange={onCloudUrlChange} onOpenBambu={() => setShowBambuSettings(true)} onOpenApp={() => setActiveTab('connect')} haPanel={<SettingsHomeAssistantPanel haTelemetry={haTelemetry} sensorCategoryFilter={sensorCategoryFilter} sensorSearchQuery={sensorSearchQuery} isNabuVaultOpen={isNabuVaultOpen} setIsNabuVaultOpen={setIsNabuVaultOpen} nabuUrlInput={nabuUrlInput} setNabuUrlInput={setNabuUrlInput} showNabuToken={showNabuToken} nabuTokenInput={nabuTokenInput} setNabuTokenInput={setNabuTokenInput} setShowNabuToken={setShowNabuToken} nabuTestResult={nabuTestResult} haTriggerResult={haTriggerResult} handleSaveNabuVault={handleSaveNabuVault} nabuSavedSuccess={nabuSavedSuccess} handleTestNabuConnection={handleTestNabuConnection} nabuTesting={nabuTesting} handleTriggerHaPullAutomation={handleTriggerHaPullAutomation} haTriggering={haTriggering} fetchHaTelemetry={fetchHaTelemetry} haLoading={haLoading} haActionToast={haActionToast} setHaActionToast={setHaActionToast} haLightActive={haLightActive} handleToggleHaLight={handleToggleHaLight} ventilationDryerPath={ventilationDryerPath} setVentilationDryerPath={setVentilationDryerPath} setCopiedEntityId={setCopiedEntityId} copiedEntityId={copiedEntityId} setSensorSearchQuery={setSensorSearchQuery} setSensorCategoryFilter={setSensorCategoryFilter} />} />}
+              {/* BEREICH 3: VERBINDUNGEN (aufgeräumte Liste, zeigt nur was es auf diesem Gerät gibt) */}
+              {settingsSubTab === 'connections' && (
+                <ConnectionsPanel
+                  cloudDbUrl={cloudDbUrl}
+                  onCloudUrlChange={onCloudUrlChange}
+                  onOpenBambu={() => setShowBambuSettings(true)}
+                  onOpenPhone={() => setActiveTab('connect')}
+                  onOpenPWAInstall={onOpenPWAInstall}
+                  onClose={onClose}
+                />
+              )}
             </div>
           )}
 
@@ -791,6 +757,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {activeTab === 'tools' && <ToolsTab onSyncCloud={onSyncCloud} onExportBackup={onExportBackup} onImportBackup={onImportBackup} onRestoreDefaultSpools={onRestoreDefaultSpools} onClearAllSpools={onClearAllSpools} />}
         </div>
 
+        {haActionToast && (
+          <div className="mx-3 mt-2 px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 shrink-0" style={{ backgroundColor: 'var(--app-accent-sub)', borderColor: 'var(--app-accent)', color: 'var(--app-text)' }}>
+            <span className="min-w-0">{haActionToast}</span>
+            <button onClick={() => setHaActionToast(null)} className="cursor-pointer text-xs shrink-0" aria-label="Schließen">✕</button>
+          </div>
+        )}
         <ApkUpdateRow />
         {/* Drawer Footer */}
         <div

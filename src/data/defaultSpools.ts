@@ -1424,5 +1424,25 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v2.01',
+    label: '2.01 (Mitteilungen & neues Verbindungen-Menü)',
+    releaseDate: '29.10.2026',
+    description: 'Mitteilungen mit Postfach: Ein Tipp auf die Benachrichtigung öffnet die App direkt bei „Trocknung fertig“ & Co. mit allen Details. Das Verbindungen-Menü ist komplett neu und zeigt nur, was es auf dem Gerät gibt. Der Log-Spam ist weg.',
+    features: [
+      '🔔 Glocke oben mit Zähler und Postfach: alle Mitteilungen mit Details (Dauer, Temperatur, welche Spulen getrocknet wurden)',
+      '👆 Tipp auf die Benachrichtigung öffnet die App bei genau dieser Mitteilung (Android, Windows-App, installierte Web-App)',
+      '⚙️ Einstellungen: Druck fertig, Druck fehlgeschlagen, Trocknung fertig, Trocknen fällig, Spule fast leer einzeln an/aus, Benachrichtigung aufs Gerät an/aus',
+      '🔌 Verbindungen neu: aufgeräumte Liste mit Status auf einen Blick (Drucker, Home Assistant, Cloud & Sync, NFC-Leser, Mitteilungen, Handy koppeln). In der Android-App fehlt „Handy koppeln“, Anleitungen nur solange etwas nicht eingerichtet ist',
+      '🏠 Home Assistant schlank: Adresse, Token, Kamera und Steckdose (Auswahl aus Liste nach „Testen“). Weg sind die 60-Sensoren-Liste, der Sensorpfad-Platzhalter und der alte GitHub-Pull-Knopf',
+      '🧰 Tools-Tab neu sortiert: Abgleich, Backup, Spulenbestand mit eigener Gefahrenzone',
+      '📜 Log-Spam behoben: „Drucker bereit“ kam jede Sekunde. Statuswechsel zählen erst nach 15 s, gleiche Meldungen werden nicht doppelt gespeichert, alte zugespamte Logs räumen sich selbst auf',
+      '📱 Android-Plugin erweitert (neue APK nötig, die App lädt sie selbst): FilamentNotify gibt die angetippte Mitteilung an die Oberfläche',
+      '🔢 Aktualisierte Zahlen-FunFacts: 74 Commits und 101 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

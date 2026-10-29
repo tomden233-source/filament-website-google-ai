@@ -44,6 +44,7 @@ export default defineConfig(() => {
           type: 'module'
         },
         workbox: {
+          importScripts: ['notify-click.js'],
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
             {

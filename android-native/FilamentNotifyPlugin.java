@@ -19,12 +19,55 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
 // Meldungen aufs Handy: Berechtigung anfragen (Android 13+), Meldung zeigen, Android-Einstellungen öffnen.
+// Tipp auf eine Meldung: Die App öffnet sich und bekommt die ID der Mitteilung (consumeTap / Ereignis notificationTap).
 @CapacitorPlugin(
     name = "FilamentNotify",
     permissions = { @Permission(strings = { "android.permission.POST_NOTIFICATIONS" }, alias = "notifications") }
 )
 public class FilamentNotifyPlugin extends Plugin {
     private static final String CHANNEL = "filamenthub_alerts";
+    private static final String EXTRA_ID = "fh_inbox_id";
+    // ID der zuletzt angetippten Meldung, bis die Oberfläche sie abgeholt hat
+    private static String pendingId = "";
+
+    @Override
+    public void load() {
+        super.load();
+        try {
+            // Kaltstart durch Tipp auf die Meldung: ID aus dem Start-Intent lesen
+            Intent in = getActivity().getIntent();
+            rememberTap(in, false);
+        } catch (Exception ignored) {
+            // kein Start-Intent
+        }
+    }
+
+    @Override
+    protected void handleOnNewIntent(Intent intent) {
+        super.handleOnNewIntent(intent);
+        rememberTap(intent, true);
+    }
+
+    private void rememberTap(Intent intent, boolean notifyJs) {
+        if (intent == null || !intent.hasExtra(EXTRA_ID)) return;
+        String id = intent.getStringExtra(EXTRA_ID);
+        intent.removeExtra(EXTRA_ID); // nicht nochmal auslösen (z. B. nach Drehen des Geräts)
+        if (id == null || id.isEmpty()) return;
+        pendingId = id;
+        if (notifyJs) {
+            JSObject o = new JSObject();
+            o.put("id", id);
+            notifyListeners("notificationTap", o);
+        }
+    }
+
+    @PluginMethod
+    public void consumeTap(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("id", pendingId);
+        pendingId = "";
+        call.resolve(r);
+    }
 
     private boolean enabled() {
         return NotificationManagerCompat.from(getContext()).areNotificationsEnabled();
@@ -79,11 +122,14 @@ public class FilamentNotifyPlugin extends Plugin {
             String title = call.getString("title", "FilamentHub");
             String body = call.getString("body", "");
             String tag = call.getString("tag", "fh");
+            String inboxId = call.getString("id", "");
             Intent launch = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
             PendingIntent pi = null;
             if (launch != null) {
                 launch.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                pi = PendingIntent.getActivity(ctx, 0, launch, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                launch.putExtra(EXTRA_ID, inboxId);
+                // Eigene Anfrage-Nummer je Meldung, sonst überschreibt eine neue Meldung die ID der alten
+                pi = PendingIntent.getActivity(ctx, tag.hashCode(), launch, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
             }
             int icon = ctx.getApplicationInfo().icon;
             if (icon == 0) icon = android.R.drawable.ic_dialog_info;

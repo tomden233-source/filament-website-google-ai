@@ -4,22 +4,18 @@ import { useSyncExternalStore } from 'react';
 import { safeStorage } from './safeStorage';
 
 export interface WorkshopSettings {
-  /** Warnung, wenn eine Spule fast leer ist */
+  /** Warnung, wenn eine Spule fast leer ist (Banner und Abzeichen auf der Karte) */
   lowWarning: boolean;
   /** Ab diesem Restgewicht (Gramm) gilt eine Spule als fast leer */
   lowWeightG: number;
-  /** Erinnerung, wenn Trocknen fällig oder die AMS-Trocknung fertig ist */
-  dryReminder: boolean;
-  /** Meldung, wenn ein Druck fertig oder fehlgeschlagen ist */
-  finishAlert: boolean;
-  /** Kamerabild an die Druck-Meldung hängen (braucht Home-Assistant-Kamera) */
-  finishPhoto: boolean;
-  /** Push aufs Handy über ntfy.sh */
-  ntfyOn: boolean;
-  /** Geheimer ntfy-Kanalname */
-  ntfyTopic: string;
-  /** Erinnerung an ein Backup */
-  backupReminder: boolean;
+  /** Welche Mitteilungen kommen sollen */
+  alertPrintDone: boolean;
+  alertPrintFail: boolean;
+  alertDryDue: boolean;
+  alertDryDone: boolean;
+  alertLow: boolean;
+  /** Zusätzlich als Benachrichtigung aufs Gerät (sonst nur im Postfach der App) */
+  systemPush: boolean;
   /** NFC-Leser im AMS (ESPHome über Home Assistant) nutzen */
   amsNfcOn: boolean;
   /** Bei erkannter Spule Material/Farbe an den Drucker senden */
@@ -31,12 +27,12 @@ export const WORKSHOP_SETTINGS_KEY = 'filamenthub_workshop_settings';
 export const DEFAULT_WORKSHOP_SETTINGS: WorkshopSettings = {
   lowWarning: true,
   lowWeightG: 100,
-  dryReminder: true,
-  finishAlert: true,
-  finishPhoto: true,
-  ntfyOn: false,
-  ntfyTopic: '',
-  backupReminder: true,
+  alertPrintDone: true,
+  alertPrintFail: true,
+  alertDryDue: true,
+  alertDryDone: true,
+  alertLow: true,
+  systemPush: true,
   amsNfcOn: true,
   amsNfcToPrinter: true
 };
@@ -44,11 +40,24 @@ export const DEFAULT_WORKSHOP_SETTINGS: WorkshopSettings = {
 let cache: WorkshopSettings | null = null;
 const listeners = new Set<() => void>();
 
-function sanitize(raw: Partial<WorkshopSettings> | null | undefined): WorkshopSettings {
-  const s: WorkshopSettings = { ...DEFAULT_WORKSHOP_SETTINGS, ...(raw || {}) };
+function sanitize(raw: (Partial<WorkshopSettings> & Record<string, unknown>) | null | undefined): WorkshopSettings {
+  const r: Record<string, unknown> = { ...(raw || {}) };
+  // Alte Einstellungen (vor 2.01) übernehmen: wer „Druck-Meldung“ oder „Trocknungs-Erinnerung“ ausgeschaltet hatte, behält das
+  if (r.finishAlert === false) {
+    if (r.alertPrintDone === undefined) r.alertPrintDone = false;
+    if (r.alertPrintFail === undefined) r.alertPrintFail = false;
+  }
+  if (r.dryReminder === false) {
+    if (r.alertDryDue === undefined) r.alertDryDue = false;
+    if (r.alertDryDone === undefined) r.alertDryDone = false;
+  }
+  if (r.lowWarning === false && r.alertLow === undefined) r.alertLow = false;
+  const s: WorkshopSettings = { ...DEFAULT_WORKSHOP_SETTINGS };
+  (Object.keys(DEFAULT_WORKSHOP_SETTINGS) as (keyof WorkshopSettings)[]).forEach(k => {
+    if (typeof r[k] === typeof DEFAULT_WORKSHOP_SETTINGS[k]) (s as unknown as Record<string, unknown>)[k] = r[k];
+  });
   const g = Number(s.lowWeightG);
   s.lowWeightG = Number.isFinite(g) ? Math.max(0, Math.min(1000, Math.round(g))) : DEFAULT_WORKSHOP_SETTINGS.lowWeightG;
-  s.ntfyTopic = String(s.ntfyTopic || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
   return s;
 }
 

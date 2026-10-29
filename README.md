@@ -2,19 +2,21 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **2.00 (Flacher RC522-Halter)**. Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **2.01 (Mitteilungen & neues Verbindungen-Menü)**. Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Inhalt
 
 1. [Starten](#starten)
 2. [Spulen verwalten](#spulen-verwalten)
 3. [NFC-Leser im AMS](#nfc-leser-im-ams)
-4. [Cloud-Speicher (privater GitHub-Gist)](#cloud-speicher-privater-github-gist)
-5. [Webseite, Android, Windows](#webseite-android-windows)
-6. [Umgebungsvariablen](#umgebungsvariablen)
-7. [Zugangsdaten und Sicherheit](#zugangsdaten-und-sicherheit)
-8. [Projektstruktur](#projektstruktur)
-9. [Prüfen](#prüfen)
+4. [Mitteilungen](#mitteilungen)
+5. [Verbindungen](#verbindungen)
+6. [Cloud-Speicher (privater GitHub-Gist)](#cloud-speicher-privater-github-gist)
+7. [Webseite, Android, Windows](#webseite-android-windows)
+8. [Umgebungsvariablen](#umgebungsvariablen)
+9. [Zugangsdaten und Sicherheit](#zugangsdaten-und-sicherheit)
+10. [Projektstruktur](#projektstruktur)
+11. [Prüfen](#prüfen)
 
 ## Starten
 
@@ -75,7 +77,7 @@ Ordner `hardware/ams-nfc/`:
 1. Halter drucken (flach aufs Bett, PETG oder ASA, 0,2 mm, 3 Wände), Platine mit der Rückseite aufkleben, Halter mit Klebeband ans AMS.
 2. ESPHome Device Builder in Home Assistant, neues Gerät `filament-ams`, `filament-ams.yaml` einfügen, Secrets eintragen (`wifi_ssid`, `wifi_password`, `filament_ams_api_key`, `filament_ams_ota`), per USB-C aufspielen.
 3. Das Gerät in Home Assistant hinzufügen. Es liefert `sensor.filament_ams_slot_1_tag` bis `slot_5_tag`.
-4. In der App: Home-Assistant-Zugang eintragen, im Meldungen-Tab „NFC-Leser“ einschalten. Die App findet die Sensoren selbst.
+4. In der App Einstellungen → Verbindungen → Home Assistant eintragen, dann unter „NFC-Leser im AMS“ einschalten. Die App findet die Sensoren selbst.
 5. **Tags in einer Reihe beschreiben:** NFC-Fenster → Tab **Alle Spulen beschreiben**. Eine Spule nach der anderen an das Handy halten, die App schreibt den Tag und merkt ihn sich.
 
 **Verhalten:**
@@ -87,12 +89,24 @@ Ordner `hardware/ams-nfc/`:
 
 **Einbau:** ESP32 außen montieren (innen bis 65 °C beim Trocknen), nur die flachen RC522-Platinen ins AMS, Abstand zum Tag unter 3 cm, nicht bohren. Die genaue Innenform des AMS 2 Pro ist nicht vermessen, der Halter ist deshalb eine flache Platte ohne Seitenteile, die mit doppelseitigem Klebeband am AMS und an der Platine klebt.
 
+## Mitteilungen
+
+Die Glocke oben öffnet das Postfach. Dort stehen alle Mitteilungen mit Details: Druck fertig oder fehlgeschlagen, Trocknung fertig (mit Dauer, Temperatur und den getrockneten Spulen), Trocknen fällig, Spule fast leer.
+
+- **Einstellungen** (Reiter im selben Fenster): jede Mitteilungsart einzeln an oder aus, Grenze für „fast leer“, Benachrichtigung aufs Gerät an oder aus.
+- **Tipp auf die Benachrichtigung** öffnet die App direkt bei dieser Mitteilung (Android-App, Windows-App, installierte Web-App). Für Android braucht das die APK ab 2.01, die App lädt sie selbst.
+- Mitteilungen kommen, solange die App läuft oder im Hintergrund offen ist und mit dem Drucker verbunden bleibt.
+
+## Verbindungen
+
+Menü → Einstellungen → **Verbindungen** zeigt eine Liste mit dem Stand auf einen Blick: Bambu-Drucker, Home Assistant, Cloud & Geräte-Sync, NFC-Leser, Mitteilungen und (nur Windows und Browser) Handy koppeln. Details klappen beim Tippen auf. Anleitungen erscheinen nur, solange etwas nicht eingerichtet ist.
+
 ## Cloud-Speicher (privater GitHub-Gist)
 
 npoint.io wird in manchen Schul- und Firmennetzen gesperrt und ist öffentlich lesbar. Deshalb speichert FilamentHub jetzt in einem **privaten GitHub-Gist**.
 
 1. Token erstellen: https://github.com/settings/tokens/new?scopes=gist (klassisch, nur Haken „gist“).
-2. Einstellungen → Verbindungen → **Cloud-Speicher** → Token eintragen → „Privaten Gist anlegen und Daten übernehmen“.
+2. Einstellungen → Verbindungen → **Cloud & Geräte-Sync** → Token eintragen → „Privaten Gist anlegen und Daten übernehmen“.
 3. Zweites Gerät: „Handy & App“ → QR-Code scannen. Gist-ID und Token stehen im Link nach dem `#` und gehen nie an einen Server.
 4. Alten npoint-Speicher erst leeren, wenn alle Geräte umgestellt sind (Knopf in derselben Karte).
 

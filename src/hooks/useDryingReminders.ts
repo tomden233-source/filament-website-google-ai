@@ -2,8 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Spool } from '../types/filament';
 import { getDryingStatus } from '../utils/shopLinks';
 import { safeStorage } from '../utils/safeStorage';
-import { addSystemLog } from '../utils/logService';
-import { localNotify } from '../utils/notify';
+import { raiseAlert } from '../utils/alerts';
 import { getHumidityInfo } from '../utils/materialInfo';
 import { useWorkshopSettings } from '../utils/workshopSettings';
 
@@ -29,7 +28,7 @@ export function useDryingReminders({ spools, showToast }: Params) {
   latest.current = { spools, showToast };
 
   useEffect(() => {
-    if (!settings.dryReminder) return;
+    if (!settings.alertDryDue && !settings.alertDryDone) return;
 
     const check = () => {
       const { spools: list, showToast: toast } = latest.current;
@@ -42,7 +41,7 @@ export function useDryingReminders({ spools, showToast }: Params) {
         notified = {};
       }
       const today = todayKey();
-      const due = list.filter(s => getDryingStatus(s).statusLevel === 'overdue' && notified[s.id] !== today);
+      const due = settings.alertDryDue ? list.filter(s => getDryingStatus(s).statusLevel === 'overdue' && notified[s.id] !== today) : [];
       if (due.length > 0) {
         due.forEach(s => {
           notified[s.id] = today;
@@ -59,9 +58,20 @@ export function useDryingReminders({ spools, showToast }: Params) {
             .join(', ');
           text = `${due.length} Spulen müssen getrocknet werden: ${names}${due.length > 3 ? ` und ${due.length - 3} weitere` : ''}.`;
         }
-        toast(`☀️ ${text}`);
-        void localNotify('Trocknen fällig', text, { tag: 'dry-due' });
-        addSystemLog('spule', `Trocknen fällig: ${due.length} Spule${due.length === 1 ? '' : 'n'}`, text, 'warn');
+        void raiseAlert(
+          {
+            kind: 'dry-due',
+            title: 'Trocknen fällig',
+            text,
+            toast: `☀️ ${text}`,
+            items: due.map(s => ({
+              title: `${s.brand} ${s.name}`,
+              sub: `${s.material} · ${s.dryTemp} °C · ${s.dryHours} h · ${getHumidityInfo(s.material).tip}`,
+              color: s.colorHex
+            }))
+          },
+          toast
+        );
       }
 
       // 2) AMS-Trocknung fertig
@@ -71,24 +81,40 @@ export function useDryingReminders({ spools, showToast }: Params) {
           const st = JSON.parse(raw);
           const start = Number(st?.startTimestamp) || 0;
           const hours = Number(st?.durationHours) || 0;
-          if (st?.isDrying && start > 0 && hours > 0 && Date.now() >= start + hours * 3600000) {
+          if (settings.alertDryDone && st?.isDrying && start > 0 && hours > 0 && Date.now() >= start + hours * 3600000) {
             if (safeStorage.getItem(DONE_KEY) !== String(start)) {
               safeStorage.setItem(DONE_KEY, String(start));
-              let names = '';
+              const temp = Number(st?.targetTemp) || 50;
+              let dried: Spool[] = [];
+              const slotOf: Record<string, string> = {};
               try {
                 const slots: Record<string, string> = JSON.parse(safeStorage.getItem(AMS_SLOTS_KEY) || '{}');
-                names = Object.values(slots)
-                  .map(id => list.find(s => s.id === id))
-                  .filter((s): s is Spool => Boolean(s))
-                  .map(s => s.name)
-                  .join(', ');
+                Object.entries(slots).forEach(([slot, id]) => {
+                  const sp = list.find(x => x.id === id);
+                  if (sp) {
+                    dried.push(sp);
+                    slotOf[sp.id] = slot;
+                  }
+                });
               } catch {
-                names = '';
+                dried = [];
               }
-              const text = `AMS-Trocknung fertig (${hours} h bei ${Number(st?.targetTemp) || 50} °C).${names ? ` Im AMS: ${names}.` : ''}`;
-              toast(`✅ ${text}`);
-              void localNotify('Trocknung fertig', text, { tag: 'dry-done' });
-              addSystemLog('spule', 'AMS-Trocknung fertig', text, 'success');
+              const text = `AMS-Trocknung fertig (${hours} h bei ${temp} °C).${dried.length ? ` Im AMS: ${dried.map(x => x.name).join(', ')}.` : ''}`;
+              void raiseAlert(
+                {
+                  kind: 'dry-done',
+                  title: 'Trocknung fertig',
+                  text,
+                  toast: `✅ ${text}`,
+                  facts: [
+                    { label: 'Dauer', value: `${hours} h` },
+                    { label: 'Temperatur', value: `${temp} °C` },
+                    { label: 'Fertig seit', value: new Date(start + hours * 3600000).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' Uhr' }
+                  ],
+                  items: dried.map(x => ({ title: `${x.brand} ${x.name}`, sub: `Slot ${slotOf[x.id]} · ${x.material}`, color: x.colorHex }))
+                },
+                toast
+              );
             }
           }
         }
@@ -108,5 +134,5 @@ export function useDryingReminders({ spools, showToast }: Params) {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [settings.dryReminder]);
+  }, [settings.alertDryDue, settings.alertDryDone]);
 }
