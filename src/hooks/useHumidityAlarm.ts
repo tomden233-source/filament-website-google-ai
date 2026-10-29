@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Spool } from '../types/filament';
 import { raiseAlert } from '../utils/alerts';
 import { getHaCredentials } from '../utils/haClient';
-import { amsHumidityPercent, setHumidity } from '../utils/humidity';
+import { amsHumidityPercent, setHumidity, type HumidityReading } from '../utils/humidity';
 import { spoolInSlot } from '../utils/printAlerts';
 import { safeStorage } from '../utils/safeStorage';
 import { useWorkshopSettings } from '../utils/workshopSettings';
@@ -175,47 +175,29 @@ export function useHumidityAlarm(p: Params) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.autoDryOn, settings.autoDryAt]);
 
-  // Externer Sensor über Home Assistant (alle 2 Minuten)
+  // Externe Sensoren über Home Assistant (alle 2 Minuten): Box (mit Alarm) und optional Raum (nur Anzeige + Vergleich)
   useEffect(() => {
-    const entity = settings.humidityEntity;
-    if (!entity) {
-      setHumidity({ external: null });
-      return;
-    }
+    const boxEntity = settings.humidityEntity;
+    const roomEntity = settings.humidityRoomEntity;
+    if (!boxEntity) setHumidity({ external: null });
+    if (!roomEntity) setHumidity({ room: null });
+    if (!boxEntity && !roomEntity) return;
     let stop = false;
-    const tempEntity = entity.includes('feuchte') ? entity.replace('feuchte', 'temperatur') : entity.includes('humidity') ? entity.replace('humidity', 'temperature') : '';
     const poll = async () => {
       const { url, token } = getHaCredentials();
       if (!token) return;
-      try {
-        const headers = { Authorization: `Bearer ${token}` };
-        const res = await fetch(`${url}/api/states/${entity}`, { headers, signal: AbortSignal.timeout(8000) });
+      if (boxEntity) {
+        const r = await readHaHumidity(url, token, boxEntity);
         if (stop) return;
-        if (res.status === 404) {
-          setHumidity({ external: { value: null, at: Date.now(), error: 'Sensor nicht in Home Assistant gefunden' } });
-          return;
+        if (r) {
+          setHumidity({ external: r });
+          if (r.value !== null && settings.alertHumidity) check('external', r.value);
         }
-        if (!res.ok) return;
-        const st = await res.json();
-        const value = Number(st?.state);
-        let temp: number | null = null;
-        if (tempEntity) {
-          try {
-            const r2 = await fetch(`${url}/api/states/${tempEntity}`, { headers, signal: AbortSignal.timeout(8000) });
-            if (r2.ok) {
-              const t = Number((await r2.json())?.state);
-              temp = Number.isFinite(t) ? t : null;
-            }
-          } catch {
-            /* Temperatur ist nur Zusatz */
-          }
-        }
+      }
+      if (roomEntity) {
+        const r = await readHaHumidity(url, token, roomEntity);
         if (stop) return;
-        const ok = Number.isFinite(value);
-        setHumidity({ external: { value: ok ? value : null, temp, at: Date.now(), error: ok ? undefined : 'Sensor meldet keinen Wert' } });
-        if (ok && settings.alertHumidity) check('external', value);
-      } catch {
-        /* Home Assistant gerade nicht erreichbar */
+        if (r) setHumidity({ room: r });
       }
     };
     void poll();
@@ -225,5 +207,33 @@ export function useHumidityAlarm(p: Params) {
       clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.humidityEntity, settings.alertHumidity, settings.humidityMax]);
+  }, [settings.humidityEntity, settings.humidityRoomEntity, settings.alertHumidity, settings.humidityMax]);
+}
+
+/** Feuchte (und Temperatur, falls es den passenden …_temperatur-Sensor gibt) aus Home Assistant lesen. null = gerade nicht erreichbar. */
+async function readHaHumidity(url: string, token: string, entity: string): Promise<HumidityReading | null> {
+  const tempEntity = entity.includes('feuchte') ? entity.replace('feuchte', 'temperatur') : entity.includes('humidity') ? entity.replace('humidity', 'temperature') : '';
+  const headers = { Authorization: `Bearer ${token}` };
+  try {
+    const res = await fetch(`${url}/api/states/${entity}`, { headers, signal: AbortSignal.timeout(8000) });
+    if (res.status === 404) return { value: null, at: Date.now(), error: 'Sensor nicht in Home Assistant gefunden' };
+    if (!res.ok) return null;
+    const value = Number((await res.json())?.state);
+    let temp: number | null = null;
+    if (tempEntity) {
+      try {
+        const r2 = await fetch(`${url}/api/states/${tempEntity}`, { headers, signal: AbortSignal.timeout(8000) });
+        if (r2.ok) {
+          const t = Number((await r2.json())?.state);
+          temp = Number.isFinite(t) ? t : null;
+        }
+      } catch {
+        /* Temperatur ist nur Zusatz */
+      }
+    }
+    const ok = Number.isFinite(value);
+    return { value: ok ? value : null, temp, at: Date.now(), error: ok ? undefined : 'Sensor meldet keinen Wert' };
+  } catch {
+    return null; // Home Assistant gerade nicht erreichbar
+  }
 }

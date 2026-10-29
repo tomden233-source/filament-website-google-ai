@@ -8,7 +8,8 @@ import { isLowSpool } from '../utils/spoolAlerts';
 import { useWorkshopSettings } from '../utils/workshopSettings';
 import { LabelPrintButton } from './LabelPrintButton';
 
-// Minimalistische Spulen-Kachel: Farbstreifen links, Name, großes Gewicht, 10-Segment-Füllstand. Antippen klappt die Aktionen auf.
+// Spulen-Kachel: Spulen-Symbol in der Filamentfarbe (Füllung zeigt den Rest), Name, großes Gewicht, durchgehender Füllstandsbalken.
+// Antippen klappt die Aktionen auf.
 
 export interface SpoolTileProps {
   spool: Spool;
@@ -22,21 +23,39 @@ export interface SpoolTileProps {
   onMarkDried?: (id: string) => void;
 }
 
-/** Füllstand in 10 Segmenten: ruhig, gut lesbar, ohne Kreis */
-const LevelMeter: React.FC<{ pct: number; color: string }> = ({ pct, color }) => {
-  const full = Math.floor(pct / 10);
-  const part = (pct % 10) / 10;
+/** Durchgehender Füllstandsbalken */
+const LevelBar: React.FC<{ pct: number; color: string }> = ({ pct, color }) => (
+  <span className="block relative h-2 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--app-card-sub)' }} aria-hidden="true">
+    <span className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: color }} />
+  </span>
+);
+
+/** Spule von der Seite: Flansch, Filament (Dicke = Rest), Nabe mit Löchern. Farbe = Filamentfarbe. */
+const SpoolIcon: React.FC<{ hex: string; pct: number; size?: number }> = ({ hex, pct, size = 60 }) => {
+  const hub = 9; // Nabe
+  const full = 21; // Filament ganz voll
+  const r = hub + 1.5 + ((full - hub - 1.5) * Math.max(0, Math.min(100, pct))) / 100;
   return (
-    <span className="flex gap-[3px] w-full" aria-hidden="true">
-      {Array.from({ length: 10 }, (_, i) => {
-        const fill = i < full ? 1 : i === full ? part : 0;
-        return (
-          <span key={i} className="relative h-1.5 flex-1 rounded-[3px] overflow-hidden" style={{ backgroundColor: 'var(--app-card-sub)' }}>
-            <span className="absolute inset-y-0 left-0" style={{ width: `${fill * 100}%`, background: color }} />
-          </span>
-        );
-      })}
-    </span>
+    <svg width={size} height={size} viewBox="0 0 48 48" className="shrink-0 drop-shadow-sm" aria-hidden="true">
+      {/* Flansch (Spulenkörper) */}
+      <circle cx="24" cy="24" r="23" fill={`color-mix(in srgb, ${hex} 18%, color-mix(in srgb, var(--app-text) 10%, var(--app-card-sub)))`} stroke="color-mix(in srgb, var(--app-text) 28%, transparent)" strokeWidth="1" />
+      {/* Filament */}
+      {pct > 0 && <circle cx="24" cy="24" r={r} fill={hex} stroke="rgba(0,0,0,0.3)" strokeWidth="0.9" />}
+      {pct > 0 && (
+        <>
+          <circle cx="24" cy="24" r={Math.max(hub + 1, r - 3)} fill="none" stroke="rgba(0,0,0,0.10)" strokeWidth="0.7" />
+          <circle cx="24" cy="24" r={Math.max(hub + 1, r - 6)} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="0.7" />
+        </>
+      )}
+      {/* Glanz */}
+      {pct > 0 && <path d={`M ${24 - r * 0.7} ${24 - r * 0.7} A ${r} ${r} 0 0 1 ${24 + r * 0.2} ${24 - r * 0.95}`} fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.4" strokeLinecap="round" />}
+      {/* Nabe */}
+      <circle cx="24" cy="24" r={hub} fill="var(--app-card)" stroke="color-mix(in srgb, var(--app-text) 30%, transparent)" strokeWidth="1" />
+      <circle cx="24" cy="24" r="3.2" fill="color-mix(in srgb, var(--app-text) 22%, var(--app-card-sub))" />
+      {[0, 120, 240].map(a => (
+        <circle key={a} cx={24 + 6 * Math.cos((a * Math.PI) / 180)} cy={24 + 6 * Math.sin((a * Math.PI) / 180)} r="1.3" fill="color-mix(in srgb, var(--app-text) 22%, var(--app-card-sub))" />
+      ))}
+    </svg>
   );
 };
 
@@ -54,7 +73,7 @@ export const SpoolTile: React.FC<SpoolTileProps> = ({ spool, now, appSettings, o
   const initW = Number(spool.initialWeight) || 1000;
   const remW = Number(spool.remainingWeight) || 0;
   const pct = Math.max(0, Math.min(100, Math.round((remW / initW) * 100)));
-  const barColor = pct <= 15 ? '#ef4444' : pct <= 30 ? '#f59e0b' : 'var(--app-accent-bar, var(--app-accent))';
+  const barColor = pct <= 15 ? '#ef4444' : pct <= 30 ? '#f59e0b' : 'linear-gradient(90deg, var(--app-accent), var(--app-accent-bar, var(--app-accent)))';
   const hex = spool.colorHex || '#94a3b8';
   void appSettings;
 
@@ -67,13 +86,13 @@ export const SpoolTile: React.FC<SpoolTileProps> = ({ spool, now, appSettings, o
       className={`relative overflow-hidden rounded-2xl border transition-colors ${dry.isOverdue ? 'border-rose-500/60' : ''}`}
       style={{
         backgroundColor: 'var(--app-card)',
-        backgroundImage: `linear-gradient(90deg, color-mix(in srgb, ${hex} 14%, transparent), transparent 38%)`,
+        backgroundImage: `radial-gradient(120% 140% at 0% 50%, color-mix(in srgb, ${hex} 16%, transparent), transparent 55%)`,
         borderColor: dry.isOverdue ? undefined : 'var(--app-border)',
         color: 'var(--app-text)'
       }}
     >
-      <span className="absolute left-0 top-0 bottom-0 w-2" style={{ backgroundColor: hex }} aria-hidden="true" />
-      <button type="button" onClick={() => setOpen(o => !o)} className="w-full text-left pl-5 pr-3.5 py-3 flex items-center gap-3 cursor-pointer" aria-expanded={open}>
+      <button type="button" onClick={() => setOpen(o => !o)} className="w-full text-left pl-3 pr-3.5 py-3 flex items-center gap-3 cursor-pointer" aria-expanded={open}>
+        <SpoolIcon hex={hex} pct={pct} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className="font-bold text-[13px] leading-tight truncate">{spool.name}</span>
@@ -92,14 +111,14 @@ export const SpoolTile: React.FC<SpoolTileProps> = ({ spool, now, appSettings, o
             </span>
           </span>
           <span className="block mt-2">
-            <LevelMeter pct={pct} color={barColor} />
+            <LevelBar pct={pct} color={barColor} />
           </span>
         </span>
         <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: 'var(--app-text-muted)' }} />
       </button>
 
       {(ams.slot !== null || ams.isDrying || dry.isOverdue || spool.needsDrying || low) && !open && (
-        <div className="pl-5 pr-3.5 pb-3 -mt-0.5 flex flex-wrap items-center gap-1">
+        <div className="pl-[4.75rem] pr-3.5 pb-3 -mt-0.5 flex flex-wrap items-center gap-1">
           {ams.slot !== null && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-[#00AE42]/20 text-[#00AE42] border border-[#00AE42]/30">AMS {ams.slot}</span>}
           {ams.isDrying && (
             <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-sky-500/20 text-sky-400 border border-sky-500/40 inline-flex items-center gap-1">
@@ -113,7 +132,7 @@ export const SpoolTile: React.FC<SpoolTileProps> = ({ spool, now, appSettings, o
       )}
 
       {open && (
-        <div className="pl-5 pr-3.5 pb-3.5 space-y-2.5 border-t pt-3" style={{ borderColor: 'var(--app-border)' }} onClick={stop}>
+        <div className="pl-3 pr-3.5 pb-3.5 space-y-2.5 border-t pt-3" style={{ borderColor: 'var(--app-border)' }} onClick={stop}>
           <div className="flex flex-wrap items-center gap-1 empty:hidden">
             {ams.slot !== null && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-[#00AE42]/20 text-[#00AE42] border border-[#00AE42]/30">AMS {ams.slot}</span>}
             <SpoolBadges spool={spool} />

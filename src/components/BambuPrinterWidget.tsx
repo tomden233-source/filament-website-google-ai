@@ -193,6 +193,9 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     addPrintUsage(printId, spoolsRef.current.find(s => s.id === spoolId), grams);
     onDeductWeight(spoolId, grams);
   };
+  // Immer die neueste Version (mehrere Abzüge hintereinander dürfen sich nicht gegenseitig überschreiben)
+  const deductRef = useRef(deductForPrint);
+  deductRef.current = deductForPrint;
   const lanDeduct = useLanDeduct({
     enabled: Boolean(liveState.lanMode),
     ams: liveState.data.ams,
@@ -1200,7 +1203,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
 
       {/* ZERO LAYOUT SHIFT: Floating Fixed Toast am Bildschirmrand */}
       {pendingDeduct && (
-        <LanDeductPrompt pending={pendingDeduct} spools={spools} onDeduct={(sid, g) => deductForPrint(pendingDeduct.printId, sid, g)} onClose={() => setPendingDeduct(null)} />
+        <LanDeductPrompt pending={pendingDeduct} spools={spools} onDeduct={(sid, g) => deductRef.current(pendingDeduct.printId, sid, g)} onClose={() => setPendingDeduct(null)} />
       )}
       {dryAfter.offer && (
         <DrySuggestSheet

@@ -4,8 +4,8 @@
 # Die FilamentHub-App findet sie automatisch und ordnet Spule ↔ Slot zu.
 #
 # Optional: Feuchte-/Temperatur-Sensor SHT31-D (oder SHT40 / AHT20), I2C, 3,3 V, z. B. in der Filament-Lagerbox:
-#   SDA → GPIO21, SCL → GPIO32, VCC → 3V3, GND → GND
-#   → sensor.filament_ams_box_feuchte und sensor.filament_ams_box_temperatur (die App nutzt sie für den Feuchte-Alarm).
+#   Box:  SDA → GPIO21, SCL → GPIO32, VCC → 3V3, GND → GND → sensor.filament_ams_box_feuchte (Feuchte-Alarm)
+#   Raum: SDA → GPIO33, SCL → GPIO25, VCC → 3V3, GND → GND → sensor.filament_ams_raum_feuchte (Vergleich, optional)
 #   Ohne angeschlossenen Sensor läuft alles andere normal weiter (im Log steht dann nur eine Warnung).
 #
 # Pins funktionieren auf ESP32-Boards mit 30 UND 38 Pins (DevKitC / NodeMCU, WROOM-32).
@@ -45,11 +45,20 @@ wifi:
 
 captive_portal:
 
-# I2C für den optionalen Feuchte-Sensor (GPIO22 ist schon RST der Leser, deshalb SCL auf GPIO32)
+# I2C für die optionalen Feuchte-Sensoren (GPIO22 ist schon RST der Leser, deshalb SCL auf GPIO32).
+# Zwei getrennte Busse, weil der SHT31-D eine feste Adresse (0x44) hat: Box an Bus 1, Raum an Bus 2.
+# 50 kHz statt 100 kHz: stabiler bei längeren Kabeln (bis ca. 1–2 m).
 i2c:
-  sda: GPIO21
-  scl: GPIO32
-  scan: true
+  - id: bus_box
+    sda: GPIO21
+    scl: GPIO32
+    frequency: 50kHz
+    scan: true
+  - id: bus_room
+    sda: GPIO33
+    scl: GPIO25
+    frequency: 50kHz
+    scan: true
 
 # Gemeinsamer SPI-Bus (VSPI) für alle 5 Leser
 spi:
@@ -171,17 +180,29 @@ sensor:
   - platform: internal_temperature
     name: "ESP32 Temperatur"
     update_interval: 60s
-  # Optional: SHT31-D (auch SHT30/SHT35) für Luftfeuchte und Temperatur in der Lagerbox
+  # Optional: SHT31-D (auch SHT30/SHT35) in der Lagerbox → sensor.filament_ams_box_feuchte
   - platform: sht3xd
+    i2c_id: bus_box
     address: 0x44
     update_interval: 60s
     temperature:
       name: "Box Temperatur"
     humidity:
       name: "Box Feuchte"
+  # Optional: zweiter SHT31-D im Raum (außerhalb der Box) → sensor.filament_ams_raum_feuchte
+  # Die App vergleicht beide: hält die Box dicht, arbeitet das Trockenmittel?
+  - platform: sht3xd
+    i2c_id: bus_room
+    address: 0x44
+    update_interval: 60s
+    temperature:
+      name: "Raum Temperatur"
+    humidity:
+      name: "Raum Feuchte"
   # Anderer Sensor? Block oben löschen und den passenden nehmen (# vorne entfernen):
   # SHT40 / SHT41 / SHT45:
   # - platform: sht4x
+  #   i2c_id: bus_box
   #   update_interval: 60s
   #   temperature:
   #     name: "Box Temperatur"
@@ -189,6 +210,7 @@ sensor:
   #     name: "Box Feuchte"
   # AHT20:
   # - platform: aht10
+  #   i2c_id: bus_box
   #   variant: AHT20
   #   update_interval: 60s
   #   temperature:

@@ -48,7 +48,7 @@ export function useLanDeduct(p: Params) {
 
   /** Am Druckende aufrufen (von usePrintWatch) */
   const handleEnd = useCallback((session: PrintSession, info: PrintEndInfo) => {
-    const { enabled, spools, amsSlots, ams, vtTray, onDeductForPrint, notify, onPending } = latest.current;
+    const { enabled, spools, amsSlots, ams, vtTray, notify, onPending } = latest.current;
     if (!enabled || !isAutoDeductOn()) return;
     const name = session.name || 'Druckauftrag';
     const slot = mainSlot(session) ?? activeSlotFromPrinter(ams);
@@ -83,7 +83,8 @@ export function useLanDeduct(p: Params) {
       const texts: string[] = [];
       parts.forEach((x, i) => {
         const grams = round1(x.grams);
-        setTimeout(() => onDeductForPrint(session.id, x.spoolId, grams), i * 300);
+        // Jedes Mal die neueste Funktion holen: nach dem ersten Abzug hat sich die Spulenliste geändert
+        setTimeout(() => latest.current.onDeductForPrint(session.id, x.spoolId, grams), i * 300);
         const sp = spools.find(s => s.id === x.spoolId);
         texts.push(`${grams} g von ${sp ? `${sp.brand} ${sp.name}` : 'Spule'}`);
       });

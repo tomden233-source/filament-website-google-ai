@@ -11,10 +11,13 @@ export interface HumidityReading {
 
 export interface HumidityLive {
   ams: HumidityReading | null;
+  /** Sensor in der Lagerbox */
   external: HumidityReading | null;
+  /** Optionaler zweiter Sensor im Raum (Vergleich: hält die Box dicht?) */
+  room: HumidityReading | null;
 }
 
-let live: HumidityLive = { ams: null, external: null };
+let live: HumidityLive = { ams: null, external: null, room: null };
 const listeners = new Set<() => void>();
 
 export function setHumidity(patch: Partial<HumidityLive>): void {

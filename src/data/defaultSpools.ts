@@ -1578,5 +1578,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.109',
+    label: '1.109 (Neue Kacheln & Sensor-Box)',
+    releaseDate: '29.10.2026',
+    description: 'Spulen-Kacheln mit Spulen-Symbol in der Filamentfarbe und durchgehendem Balken. Zweiter Feuchte-Sensor im Raum zum Vergleich mit der Box. Mini-Box für den SHT31-D zum Drucken. Abzug mehrerer Spulen nach einem Druck repariert.',
+    features: [
+      '🧵 Spulen-Kachel: Spulen-Symbol links in der Filamentfarbe, die Filamentdicke zeigt den Rest',
+      '📏 Durchgehender Füllstandsbalken statt 10 Segmenten',
+      '🏠 Zweiter SHT31-D im Raum (eigener I2C-Bus GPIO33/25): App zeigt, ob die Box dicht ist',
+      '📦 hardware/ams-nfc/sensor-box: Mini-Gehäuse 16 × 19 × 8 mm mit Lüftung, Kabel-Zugentlastung und Lasche (STL + Build-Skript mit Passprobe)',
+      '🐛 Mehrere Spulen nacheinander abziehen überschreibt sich nicht mehr gegenseitig',
+      '📋 README: alles Neue vom 29.10. an einer Stelle, Geplant-Liste',
+      '🔢 Aktualisierte Zahlen-FunFacts: 82 Commits und 109 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

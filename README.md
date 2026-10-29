@@ -2,12 +2,12 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.108 (SHT31-Sensor)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.108 im Paket 2.0.108, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.109 (Neue Kacheln & Sensor-Box)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.109 im Paket 2.0.109, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
 **Spulen**
-- 🟢 **Spulen verwalten** · Bestand, Gewicht, Preis, Lagerort, Zustand (verschweißt, Eibos, muss trocknen)
+- 🟢 **Spulen verwalten** · Bestand, Gewicht, Preis, Lagerort, Zustand (verschweißt, Eibos, muss trocknen), Kacheln mit Spulen-Symbol
 - 🟢 **Waage** · Netto rechnet Leerspule und Beutel selbst raus
 - 🟢 **Foto-Erkennung** · Spule fotografieren, KI füllt Marke, Material, Farbe aus
 - 🟢 **Nachkauf-Links** · Amazon-Link je Spule
@@ -32,7 +32,7 @@ Aktuelle Version: **1.108 (SHT31-Sensor)**. Die Zählung läuft ab 1.100 einfach
 - 🟢 **AMS-Trocknung** · starten/stoppen mit Zeit und Temperatur
 - 🟢 **Trocknen-Erinnerung** · je Spule nach Intervall
 - 🟢 **Trocknen-Vorschlag** · beim Einlegen einer feuchten Spule, „Danach trocknen“
-- 🟢 **Feuchte-Alarm** · ab 25 %, AMS trocknet ab 30 % von selbst
+- 🟢 **Feuchte-Alarm** · ab 25 %, AMS trocknet ab 30 % von selbst, Box gegen Raum vergleichen
 
 **Überblick**
 - 🟢 **Mitteilungen** · Postfach mit Glocke, Push aufs Handy, Tipp öffnet die Mitteilung
@@ -44,7 +44,7 @@ Aktuelle Version: **1.108 (SHT31-Sensor)**. Die Zählung läuft ab 1.100 einfach
 
 **Vorbereitet, wartet auf Hardware**
 - 🟡 **NFC-Leser im AMS** · liest die Spulen im AMS selbst (ESP32 + 5× RC522), Code fertig, Teile kommen
-- 🟡 **Feuchte-Sensor** · SHT31-D am ESP32 für die Lagerbox, Code fertig, Sensor bestellt
+- 🟡 **Feuchte-Sensor** · SHT31-D am ESP32 für Lagerbox (und optional Raum), Code und Mini-Box fertig, Sensor bestellt
 - 🟡 **Halter und Gehäuse** · STL-Dateien fertig, noch drucken
 
 **Noch offen**
@@ -53,9 +53,66 @@ Aktuelle Version: **1.108 (SHT31-Sensor)**. Die Zählung läuft ab 1.100 einfach
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
+## Neu am 29.10.2026 (1.105 bis 1.109)
+
+Alles, was an diesem Tag dazukam, steht hier zusammen.
+
+| Version | Was |
+|---|---|
+| 1.105 | Druck-Wächter (jeder Druck, auch aus Studio/Handy/Display), Frage „Spule abziehen?“, Nach Druck aus |
+| 1.106 | Druckerfehler als Klartext, Spulen-Check, Feuchte-Alarm, Trocknen-Vorschlag + Danach trocknen, Auto-Aus über Home Assistant, Drucke mit Foto, Statistik |
+| 1.107 | Feuchte-Alarm ab 25 %, AMS trocknet ab 30 % von selbst, Kurzüberblick im README |
+| 1.108 | Feuchte-Sensor SHT31-D in der ESPHome-Datei |
+| 1.109 | Neue Spulen-Kacheln (Spulen-Symbol in Filamentfarbe, durchgehender Balken), zweiter Sensor im Raum zum Vergleich, Mini-Box für den Sensor, Abzug mehrerer Spulen repariert |
+
+### Druck-Wächter (1.105)
+
+Die App verfolgt jeden Druck, egal ob über Bambu Studio, Bambu Handy, das Drucker-Display oder die App gestartet. Der Stand wird im Gerät gespeichert (`src/utils/printSession.ts`, `src/hooks/usePrintWatch.ts`).
+
+- **Druck gestartet:** Mitteilung mit Auftrag, Spule im aktiven Slot und Fertig-Uhrzeit. Geht die App erst mitten im Druck auf, heißt sie „Druck läuft“.
+- **Druck fertig / fehlgeschlagen:** kommt auch, wenn die App beim Ende zu war (beim nächsten Öffnen).
+- **Abzug (LAN-Modus):** Ende live gesehen und Gewicht bekannt → automatisch. Ende verpasst → Frage „Spule abziehen? Ja/Nein“ mit vorgeschlagener Spule und Gramm. Abgebrochen → Gramm anteilig nach Fortschritt.
+- Drucke, die vor dem ersten Start von 1.105 begannen, werden nie nachträglich abgezogen.
+
+### Nach dem Druck ausschalten (1.105, 1.106)
+
+Während ein Druck läuft, steht bei der Drucksteuerung **„Nach Druck aus“** (eingeklappt oben neben „Strom“). Ist der Druck fertig, wartet die App mindestens 1 Minute und bis die Düse unter 60 °C ist (spätestens 20 Minuten), dann schaltet sie die Steckdose über Home Assistant aus und schickt eine Mitteilung. Bei einem fehlgeschlagenen Druck bleibt der Drucker an. Läuft auf jedem Gerät mit offener App (Android: Hintergrund-Dienst an lassen). Strom von Hand ausschalten fragt während eines Drucks jetzt nach.
+
+**Ohne App (1.106):** Beim ersten „Nach Druck aus“ legt die App in Home Assistant die Automation „FilamentHub: Drucker nach Druck aus“ an (`src/utils/haAutoOff.ts`) und schaltet sie nur ein, solange „Nach Druck aus“ gewählt ist. Braucht die Bambu-Lab-Integration (HACS) in Home Assistant und einen Admin-Token. Von Hand: Verbindungen → Home Assistant → „In Home Assistant einrichten“. Ist „Danach trocknen“ gewählt, steuert die App das Ausschalten (erst nach der Trocknung).
+
+### Fehler, Check, Feuchte, Drucke, Statistik (1.106)
+
+- **Druckerfehler:** jede HMS-Meldung und jeder Druckfehler als Klartext aufs Handy (`src/hooks/useHmsAlerts.ts`, Texte in `public/hms_de.json` aus ha-bambulab, MIT-Lizenz).
+- **Spulen-Check beim Start** (`src/utils/printChecks.ts`): reicht das Filament, fehlt ein Material im AMS, passt das Material laut Drucker zur Spule laut App.
+- **Feuchte-Alarm** (`src/hooks/useHumidityAlarm.ts`): AMS-Messwert und externer Sensor (`sensor.filament_ams_box_feuchte`, SHT31 am ESP32). Melden ab 25 %, AMS automatisch trocknen ab 30 % (10 Minuten darüber, höchstens einmal am Tag; läuft ein Druck: danach). Einstellbar unter Mitteilungen → Einstellungen.
+- **Trocknen-Vorschlag beim Einlegen** (`src/hooks/useDryAfterPrint.ts`): Spule, die trocknen sollte, kommt ins AMS → Mitteilung + Frage „Nach dem Druck trocknen / Jetzt trocknen“. Die Temperatur passt für alle Spulen im AMS (niedrigste).
+- **Werkstatt → Drucke:** Druck-Verlauf mit Foto vom Ende (Kamera über Home Assistant, Fotos in IndexedDB), Dauer, Verbrauch, Kosten.
+- **Werkstatt → Statistik:** Gramm und Euro pro Woche/Monat/gesamt, letzte 8 Wochen, Lieblingsfarben und Materialien, Ø-Kosten je Druck.
+
+### Feuchte: Box und Raum (1.107 bis 1.109)
+
+- **Melden ab 25 %** (Box und AMS), **AMS trocknet ab 30 %** von selbst: 10 Minuten darüber, höchstens einmal am Tag, läuft ein Druck: danach. Beides unter Mitteilungen → Einstellungen → Luftfeuchte.
+- **Sensor in der Box:** SHT31-D am ESP32 (SDA GPIO21, SCL GPIO32) → `sensor.filament_ams_box_feuchte`.
+- **Zweiter Sensor im Raum (optional):** eigener I2C-Bus (SDA GPIO33, SCL GPIO25) → `sensor.filament_ams_raum_feuchte`. Die App zeigt beide und den Unterschied: Box mindestens 15 % trockener als der Raum = dicht, sonst Hinweis „Dichtung prüfen oder Trockenmittel tauschen“. Zwei Sensoren in derselben Box bringen dagegen nichts.
+- **Kabel:** bis ca. 1 m problemlos, bis ca. 2 m meist auch (Bus läuft mit 50 kHz).
+- **Mini-Box zum Drucken:** `hardware/ams-nfc/sensor-box/` (ca. 16 × 19 × 8 mm, Lüftungsschlitze, Kabel-Zugentlastung, Lasche).
+
+### Spulen-Kacheln (1.109)
+
+Links ein Spulen-Symbol in der Filamentfarbe; wie dick das Filament darauf ist, zeigt den Rest. Darunter wieder ein durchgehender Balken statt 10 Segmenten.
+
+### Geplant
+
+- 🟡 **NFC-Leser im AMS aufbauen** (ESP32 + 5× RC522): Code fertig, liest die Spulen im AMS selbst und ordnet sie den Slots zu. Teile kommen am 30.10.
+- 🟡 **SHT31-D anlöten und Mini-Box drucken:** Code fertig.
+- 🟡 **Halter und ESP32-Gehäuse drucken:** STL fertig.
+- ⚪ **Am Gerät testen:** neue APK (Push, Hintergrund-Dienst), Druckerfehler, Home-Assistant-Automation, Fotos am Druckende.
+- ⚪ **Spulen-Diktat:** alle Spulen einmal neu eintragen.
+
 ## Inhalt
 
 1. [Was die App kann](#was-die-app-kann-kurzüberblick)
+1. [Neu am 29.10.2026](#neu-am-29102026-1105-bis-1109)
 1. [App und Desktop](#app-und-desktop)
 2. [Starten](#starten)
 3. [Spulen verwalten](#spulen-verwalten)
@@ -148,7 +205,7 @@ Ordner `hardware/ams-nfc/`:
 
 ## Mitteilungen
 
-Die Glocke oben öffnet das Postfach. Dort stehen alle Mitteilungen mit Details: Druck fertig oder fehlgeschlagen, Trocknung fertig (mit Dauer, Temperatur und den getrockneten Spulen), Trocknen fällig, Spule fast leer.
+Die Glocke oben öffnet das Postfach. Dort stehen alle Mitteilungen mit Details: Druck gestartet, fertig oder fehlgeschlagen, Spulen-Check, Druckerfehler, Feuchte zu hoch, Trocknung fertig/gestoppt/gestartet, Trocknen fällig (auch beim Einlegen), Spule fast leer, Drucker ausgeschaltet.
 
 - **Einstellungen** (Reiter im selben Fenster): jede Mitteilungsart einzeln an oder aus, Grenze für „fast leer“, Benachrichtigung aufs Gerät an oder aus.
 - **Tipp auf die Benachrichtigung** öffnet die App direkt bei dieser Mitteilung (Android-App, Windows-App, installierte Web-App). Für Android braucht das die APK ab 2.01, die App lädt sie selbst.
@@ -157,30 +214,6 @@ Die Glocke oben öffnet das Postfach. Dort stehen alle Mitteilungen mit Details:
 - **Hintergrund-Dienst (Android, schaltbar):** eine kleine dauerhafte Anzeige hält die App wach, damit „Trocknen fertig“ auch bei geschlossener App aufs Handy kommt. Braucht die APK ab 1.102 (`NATIVE_API` = 5).
 - Ohne Hintergrund-Dienst kommen Mitteilungen, solange die App läuft oder im Hintergrund offen ist und mit dem Drucker verbunden bleibt.
 - Etiketten drucken steht unter **Werkstatt** (Schraubenschlüssel oben).
-
-### Druck-Wächter (ab 1.105)
-
-Die App verfolgt jeden Druck, egal ob über Bambu Studio, Bambu Handy, das Drucker-Display oder die App gestartet. Der Stand wird im Gerät gespeichert (`src/utils/printSession.ts`, `src/hooks/usePrintWatch.ts`).
-
-- **Druck gestartet:** Mitteilung mit Auftrag, Spule im aktiven Slot und Fertig-Uhrzeit. Geht die App erst mitten im Druck auf, heißt sie „Druck läuft“.
-- **Druck fertig / fehlgeschlagen:** kommt auch, wenn die App beim Ende zu war (beim nächsten Öffnen).
-- **Abzug (LAN-Modus):** Ende live gesehen und Gewicht bekannt → automatisch. Ende verpasst → Frage „Spule abziehen? Ja/Nein“ mit vorgeschlagener Spule und Gramm. Abgebrochen → Gramm anteilig nach Fortschritt.
-- Drucke, die vor dem ersten Start von 1.105 begannen, werden nie nachträglich abgezogen.
-
-### Nach dem Druck ausschalten (ab 1.105)
-
-Während ein Druck läuft, steht bei der Drucksteuerung **„Nach Druck aus“** (eingeklappt oben neben „Strom“). Ist der Druck fertig, wartet die App mindestens 1 Minute und bis die Düse unter 60 °C ist (spätestens 20 Minuten), dann schaltet sie die Steckdose über Home Assistant aus und schickt eine Mitteilung. Bei einem fehlgeschlagenen Druck bleibt der Drucker an. Läuft auf jedem Gerät mit offener App (Android: Hintergrund-Dienst an lassen). Strom von Hand ausschalten fragt während eines Drucks jetzt nach.
-
-**Ohne App (ab 1.106):** Beim ersten „Nach Druck aus“ legt die App in Home Assistant die Automation „FilamentHub: Drucker nach Druck aus“ an (`src/utils/haAutoOff.ts`) und schaltet sie nur ein, solange „Nach Druck aus“ gewählt ist. Braucht die Bambu-Lab-Integration (HACS) in Home Assistant und einen Admin-Token. Von Hand: Verbindungen → Home Assistant → „In Home Assistant einrichten“. Ist „Danach trocknen“ gewählt, steuert die App das Ausschalten (erst nach der Trocknung).
-
-### Ab 1.106
-
-- **Druckerfehler:** jede HMS-Meldung und jeder Druckfehler als Klartext aufs Handy (`src/hooks/useHmsAlerts.ts`, Texte in `public/hms_de.json` aus ha-bambulab, MIT-Lizenz).
-- **Spulen-Check beim Start** (`src/utils/printChecks.ts`): reicht das Filament, fehlt ein Material im AMS, passt das Material laut Drucker zur Spule laut App.
-- **Feuchte-Alarm** (`src/hooks/useHumidityAlarm.ts`): AMS-Messwert und externer Sensor (`sensor.filament_ams_box_feuchte`, SHT31 am ESP32). Melden ab 25 %, AMS automatisch trocknen ab 30 % (10 Minuten darüber, höchstens einmal am Tag; läuft ein Druck: danach). Einstellbar unter Mitteilungen → Einstellungen.
-- **Trocknen-Vorschlag beim Einlegen** (`src/hooks/useDryAfterPrint.ts`): Spule, die trocknen sollte, kommt ins AMS → Mitteilung + Frage „Nach dem Druck trocknen / Jetzt trocknen“. Die Temperatur passt für alle Spulen im AMS (niedrigste).
-- **Werkstatt → Drucke:** Druck-Verlauf mit Foto vom Ende (Kamera über Home Assistant, Fotos in IndexedDB), Dauer, Verbrauch, Kosten.
-- **Werkstatt → Statistik:** Gramm und Euro pro Woche/Monat/gesamt, letzte 8 Wochen, Lieblingsfarben und Materialien, Ø-Kosten je Druck.
 
 ## QR und NFC öffnen die Spule
 

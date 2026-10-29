@@ -67,20 +67,33 @@ export const NoticesTab: React.FC = () => {
           <Waves className="w-4 h-4 text-sky-400" />
           <span>Luftfeuchte</span>
         </div>
-        <Toggle on={s.alertHumidity} onChange={v => update({ alertHumidity: v })} label="Melden, wenn die Feuchte zu hoch ist" hint="AMS-Messwert und ein externer Sensor (z. B. in der Lagerbox). Erst nach 5 Minuten über der Grenze." />
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
+        <Toggle on={s.alertHumidity} onChange={v => update({ alertHumidity: v })} label="Melden, wenn die Feuchte zu hoch ist" hint="AMS-Messwert und der Sensor in der Lagerbox. Erst nach 5 Minuten über der Grenze." />
+        <div className="grid grid-cols-3 gap-2 text-[11px]">
           <div className="rounded-lg border p-2" style={{ borderColor: 'var(--app-border)' }}>
             <div style={{ color: 'var(--app-text-muted)' }}>AMS</div>
             <div className="text-sm font-extrabold font-mono-num">{hum.ams?.value != null ? `${Math.round(hum.ams.value)} %` : '–'}</div>
             {hum.ams?.temp != null && <div style={{ color: 'var(--app-text-muted)' }}>{Math.round(hum.ams.temp)} °C</div>}
           </div>
           <div className="rounded-lg border p-2" style={{ borderColor: 'var(--app-border)' }}>
-            <div style={{ color: 'var(--app-text-muted)' }}>Externer Sensor</div>
+            <div style={{ color: 'var(--app-text-muted)' }}>Box</div>
             <div className="text-sm font-extrabold font-mono-num">{hum.external?.value != null ? `${Math.round(hum.external.value)} %` : '–'}</div>
             {hum.external?.temp != null && <div style={{ color: 'var(--app-text-muted)' }}>{Math.round(hum.external.temp)} °C</div>}
             {hum.external?.error && <div className="text-amber-400 leading-snug">{hum.external.error}</div>}
           </div>
+          <div className="rounded-lg border p-2" style={{ borderColor: 'var(--app-border)' }}>
+            <div style={{ color: 'var(--app-text-muted)' }}>Raum</div>
+            <div className="text-sm font-extrabold font-mono-num">{hum.room?.value != null ? `${Math.round(hum.room.value)} %` : '–'}</div>
+            {hum.room?.temp != null && <div style={{ color: 'var(--app-text-muted)' }}>{Math.round(hum.room.temp)} °C</div>}
+            {hum.room?.error && <div className="text-amber-400 leading-snug">{hum.room.error}</div>}
+          </div>
         </div>
+        {hum.external?.value != null && hum.room?.value != null && (
+          <p className={`text-[11px] font-bold leading-snug ${hum.room.value - hum.external.value >= 15 ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {hum.room.value - hum.external.value >= 15
+              ? `Box ist ${Math.round(hum.room.value - hum.external.value)} % trockener als der Raum. Dichtung und Trockenmittel arbeiten.`
+              : `Box nur ${Math.max(0, Math.round(hum.room.value - hum.external.value))} % trockener als der Raum. Dichtung prüfen oder Trockenmittel tauschen.`}
+          </p>
+        )}
         <label className="flex items-center justify-between gap-2 text-xs font-bold">
           <span>Melden ab</span>
           <span className="flex items-center gap-1">
@@ -133,6 +146,20 @@ export const NoticesTab: React.FC = () => {
           />
           <span className="block text-[11px] font-normal leading-snug" style={{ color: 'var(--app-text-muted)' }}>
             Der SHT31 am ESP32 des NFC-Lesers heißt so von selbst. Leer lassen = kein externer Sensor.
+          </span>
+        </label>
+        <label className="block text-xs font-bold space-y-1">
+          <span>Raum-Sensor zum Vergleich (optional)</span>
+          <input
+            type="text"
+            value={s.humidityRoomEntity}
+            onChange={e => update({ humidityRoomEntity: e.target.value })}
+            placeholder="sensor.filament_ams_raum_feuchte"
+            className="w-full px-2 py-1.5 rounded-lg border text-xs font-mono outline-none"
+            style={inputStyle}
+          />
+          <span className="block text-[11px] font-normal leading-snug" style={{ color: 'var(--app-text-muted)' }}>
+            Zweiter SHT31 außerhalb der Box. Die App zeigt, ob die Box dicht ist (kein Alarm für den Raum).
           </span>
         </label>
       </Card>
