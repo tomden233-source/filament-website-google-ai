@@ -3,6 +3,7 @@ import { Printer, Home, Cloud, CheckCircle2, Circle, ChevronDown, ChevronUp, Inf
 import { safeStorage } from '../../utils/safeStorage';
 import { getHaCredentials } from '../../utils/haClient';
 import { IS_STATIC, IS_NATIVE } from '../../utils/env';
+import { DeviceSyncCard } from './DeviceSyncCard';
 
 export interface SettingsConnectionsPanelProps {
   /** Bereits vorhandenes Home-Assistant-Panel (URL, Token, Sensoren) */
@@ -119,6 +120,8 @@ export const SettingsConnectionsPanel: React.FC<SettingsConnectionsPanelProps> =
           {bambuOk ? 'Verbindung ändern' : 'Verbindung einrichten'}
         </button>
       </section>
+
+      <DeviceSyncCard cloudDbUrl={cloudDbUrl} />
 
       {/* 2. Home Assistant */}
       <section className="rounded-2xl border p-4 space-y-3" style={card}>

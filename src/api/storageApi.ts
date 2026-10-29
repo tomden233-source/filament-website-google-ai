@@ -29,10 +29,18 @@ export const cloudSync = {
     return { ok: true, data: (await res.json()) as CloudPayload };
   },
   async save(url: string, payload: CloudPayload): Promise<boolean> {
+    // Bestehende Felder (z. B. verschlüsselter Geräte-Sync „secure“) erhalten, nur Spulen/Verlauf ersetzen
+    let existing: Record<string, unknown> = {};
+    try {
+      const cur = await fetch(url, { cache: 'no-store' });
+      if (cur.ok) existing = (await cur.json()) || {};
+    } catch {
+      existing = {};
+    }
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ ...existing, ...payload })
     });
     return res.ok;
   }

@@ -1227,5 +1227,22 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.89',
+    label: '1.89 (Geräte-Sync)',
+    releaseDate: '29.10.2026',
+    description: 'Handy, Windows-App und alle weiteren Geräte gleichen sich selbst ab: Spulen, Einstellungen, Drucker-IP, Zugangscode, Seriennummer und Bambu-Login. Einmal Sync-Passwort, nie wieder IP tippen.',
+    features: [
+      '🔄 Geräte-Sync: Neue Karte „Geräte-Sync“ unter Einstellungen → Verbindungen. Auf jedem Gerät dasselbe Passwort, fertig',
+      '🔐 Verschlüsselt: Drucker-IP, Zugangscode, Seriennummer, Bambu-Token und PIN werden im Gerät mit AES-256 verschlüsselt. Die Cloud sieht nur Zufallstext',
+      '🔌 Verbindet sich selbst: Nach dem Übernehmen verbindet die App den Drucker (LAN oder Cloud) ohne Eingabe',
+      '🥇 Neuester Stand gewinnt: Spulen und Verlauf werden alle 60 Sekunden und beim Öffnen abgeglichen, Einstellungen alle 45 Sekunden. Neuere Änderungen überschreiben nie ältere Geräte-Daten blind',
+      '🧰 Sync überschreibt nichts mehr: Speichern von Spulen behält den verschlüsselten Geräte-Block in der Cloud',
+      '🔢 Aktualisierte Zahlen-FunFacts: 62 Commits und 89 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

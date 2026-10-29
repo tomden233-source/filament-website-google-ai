@@ -2,7 +2,7 @@ import { UpdateBanner } from './components/UpdateBanner';
 import { isAppShell } from './utils/env';
 import { peekIdleTag } from './utils/nativeNfc';
 import { fixSpoolWeights } from './utils/spoolSanity';
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { storageApi, cloudSync } from './api';
 
 import {
@@ -49,6 +49,9 @@ import type { WorkshopTab } from './components/workshop/WorkshopModal';
 import { getLocationStats } from './utils/spoolAlerts';
 import { getWorkshopSettings } from './utils/workshopSettings';
 import { localNotify } from './utils/notify';
+import { useDeviceSync } from './hooks/useDeviceSync';
+
+const SPOOLS_AT_KEY = 'filamenthub_spools_changed_at';
 
 const WEIGHT_FIX_KEY = 'filamenthub_weightfix_v171';
 
@@ -104,7 +107,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.88';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.89';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
@@ -318,12 +321,14 @@ export default function App() {
         safeStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(newHistory));
       } catch {}
 
+      const stamp = Date.now();
+      safeStorage.setItem(SPOOLS_AT_KEY, String(stamp)); // lokaler Änderungszeitpunkt (neuester Stand gewinnt beim Abgleich)
       if (isSyncing) return;
       setIsSyncing(true);
       setSyncStatus({ label: 'Speichere...', ok: false });
       try {
         const saved = await cloudSync.save(cloudDbUrl, {
-          updatedAt: Date.now(),
+          updatedAt: stamp,
           spools: newSpools,
           printHistory: newHistory
         });
@@ -350,12 +355,19 @@ export default function App() {
         const cloud = await cloudSync.load(cloudDbUrl);
         if (cloud.ok) {
           const data = cloud.data;
-          if (data && Array.isArray(data.spools) && data.spools.length > 0) {
+          const cloudAt = Number(data?.updatedAt) || 0;
+          const localAt = Number(safeStorage.getItem(SPOOLS_AT_KEY)) || 0;
+          if (data && Array.isArray(data.spools) && data.spools.length > 0 && cloudAt > localAt) {
+            // Cloud ist neuer (z. B. am anderen Gerät geändert): übernehmen
             setSpools(data.spools as Spool[]);
             if (Array.isArray(data.printHistory)) setPrintHistory(data.printHistory as HistoryEntry[]);
             safeStorage.setItem(STORAGE_KEY_SPOOLS, JSON.stringify(data.spools));
+            safeStorage.setItem(SPOOLS_AT_KEY, String(cloudAt));
             setSyncStatus({ label: 'Cloud synchron', ok: true });
             if (notify) showToast('Erfolgreich mit Cloud synchronisiert!');
+          } else if (data && Array.isArray(data.spools) && data.spools.length > 0 && cloudAt === localAt) {
+            setSyncStatus({ label: 'Cloud synchron', ok: true });
+            if (notify) showToast('Schon synchron.');
           } else {
             await persistState(spools, printHistory);
           }
@@ -381,6 +393,24 @@ export default function App() {
     }
     syncWithCloud(false);
   }, []);
+
+  // Spulen und Verlauf laufend abgleichen: alle 60 s und wenn die App wieder sichtbar wird
+  const syncRef = useRef(syncWithCloud);
+  syncRef.current = syncWithCloud;
+  useEffect(() => {
+    const iv = setInterval(() => void syncRef.current(false), 60000);
+    const vis = () => {
+      if (document.visibilityState === 'visible') void syncRef.current(false);
+    };
+    document.addEventListener('visibilitychange', vis);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener('visibilitychange', vis);
+    };
+  }, []);
+
+  // Drucker-Zugang und Einstellungen verschlüsselt zwischen den Geräten abgleichen
+  useDeviceSync(cloudDbUrl, showToast);
 
   // Einmalige Reparatur alter Daten (v1.71): Brutto statt Netto eingetragen, mehr als die Spule fasst.
   // Läuft nur einmal pro Gerät, damit spätere Eingaben (z. B. leicht überfüllte Spulen laut Waage) nie verändert werden.
