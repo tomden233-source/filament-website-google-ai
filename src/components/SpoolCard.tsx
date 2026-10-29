@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AppSettings, DryingStatus, Spool, ViewMode } from '../types/filament';
 import { getBrandInfo, getDryingStatus, getSpoolLink } from '../utils/shopLinks';
+import { isInEibos, spoolTara } from '../utils/spoolState';
 import { getBambuProfile, formatBambuParametersText } from '../data/bambuParameters';
 import { SpoolBadges } from './workshop/SpoolBadges';
 
@@ -139,14 +140,14 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
   }, [spool.id]);
 
   // Eibos-Beutel Einbeziehung
-  const isEibosStorage = (spool.storageNote || '').toLowerCase().includes('eibos');
+  const isEibosStorage = isInEibos(spool);
   const [includeEibosBag, setIncludeEibosBag] = useState<boolean>(isEibosStorage);
   const eibosTara = appSettings?.eibosBagTara ?? 35;
 
   const initW = Number(spool.initialWeight) || 1000;
   const remW = Number(spool.remainingWeight) || 0;
   const brandInfo = getBrandInfo(spool.brand, appSettings);
-  const tara = Number(spool.emptySpoolWeight) > 0 ? Number(spool.emptySpoolWeight) : (brandInfo.tara || 200);
+  const tara = spoolTara(spool, brandInfo.tara);
   const effectiveTara = tara + (includeEibosBag ? eibosTara : 0);
   const scaleNow = remW + effectiveTara;
   const pct = Math.max(0, Math.min(100, Math.round((remW / initW) * 100)));
@@ -726,7 +727,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
         <div className="flex justify-between items-center text-[11px]">
           <span style={{ color: 'var(--app-text-muted)' }}>
             🧵 Tara: <strong className="font-mono-num text-xs" style={{ color: 'var(--app-text)' }}>{effectiveTara} g</strong>
-            <span className="text-[10px] ml-1">({tara}g Spule{includeEibosBag ? ` + ${eibosTara}g Beutel` : ''})</span>
+            <span className="text-[10px] ml-1">({tara > 0 ? `${tara}g Spule` : 'ohne Spule'}{includeEibosBag ? ` + ${eibosTara}g Beutel` : ''})</span>
           </span>
           <span style={{ color: 'var(--app-text-muted)' }}>
             ⚖️ Waage zeigt jetzt: <strong className="font-mono-num text-emerald-500 text-xs">≈ {scaleNow} g</strong>

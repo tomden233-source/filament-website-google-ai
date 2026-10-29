@@ -1386,5 +1386,27 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.99',
+    label: '1.99 (Spulen-Zustand, Gist-Cloud & Neustart)',
+    releaseDate: '29.10.2026',
+    description: 'Jede Spule kennt jetzt ihren Zustand (mit/ohne Spule, verschweißt, Eibos-Beutel, muss trocknen). Cloud läuft über einen privaten GitHub-Gist statt npoint (Schulnetz). Alle Spulen lassen sich mit einem Knopf entfernen. Dazu ein RC522-Halter zum Drucken und ein neues README.',
+    features: [
+      '🧵 Neue Felder pro Spule: auf Spule / ohne Spule, original verschweißt, im Eibos-Beutel, muss trocknen, mit Abzeichen auf der Karte',
+      '⚖️ Waage rechnet richtig: ohne Spule 0 g Leerspule, Eibos-Beutel (35 g) wird abgezogen, Leerspule aus der Marke wenn nicht gesetzt',
+      '💧 Trocknen: verschweißt = frisch, „muss trocknen“ = sofort fällig bis zum Trocknen',
+      '🗑️ Tools-Tab: „Alle Spulen entfernen (Neustart)“ mit Backup-Datei und Kopie im Gerät, Verlauf bleibt, AMS- und Tag-Zuordnungen werden geleert',
+      '🌱 Eigene Startliste in src/data/mySpools.ts: Spulen einmal diktieren, Claude trägt sie sauber ein',
+      '☁️ Cloud-Speicher: privater GitHub-Gist statt npoint.io (wird im Schulnetz gesperrt). Anlegen, Daten übernehmen, zweites Gerät per QR-Code koppeln (Token bleibt im URL-Teil nach #)',
+      '🔒 Leere Spulenliste wird jetzt auch aus der Cloud übernommen und springt nicht mehr auf die Beispiele zurück',
+      '🔀 Revision wechseln löscht keine Spulen und keinen Verlauf mehr',
+      '📡 NFC-Leser: Home-Assistant-Zugang wird bei jeder Abfrage frisch gelesen, Pause im versteckten Tab, Zeitlimit pro Abfrage, Hinweis „Unbekannter Tag“ kommt nach Abnehmen wieder',
+      '🖨️ RC522-Halter für PETG/ASA: STL, SCAD und SVG-Zeichnung in hardware/ams-nfc/holder/',
+      '🔢 Aktualisierte Zahlen-FunFacts: 72 Commits und 99 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

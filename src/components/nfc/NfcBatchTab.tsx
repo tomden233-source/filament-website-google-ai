@@ -74,8 +74,15 @@ export const NfcBatchTab: React.FC<NfcBatchTabProps> = ({
                 </div>
               </div>
 
-              {/* CELEBRATION CARD WENN ALLE BESCHRIEBEN */}
-              {allCompleted ? (
+              {/* KEINE SPULEN: erst Spulen eintragen */}
+              {totalCount === 0 ? (
+                <div className="p-6 rounded-2xl bg-[var(--app-card-sub)] border border-[var(--app-border)] text-center space-y-1">
+                  <h3 className="text-sm font-extrabold text-[var(--app-text)]">Noch keine Spulen</h3>
+                  <p className="text-xs text-[var(--app-text-muted)] max-w-sm mx-auto leading-relaxed">
+                    Trag zuerst deine Spulen ein. Danach beschreibst du hier alle Tags nacheinander.
+                  </p>
+                </div>
+              ) : /* CELEBRATION CARD WENN ALLE BESCHRIEBEN */ allCompleted ? (
                 <div className="p-6 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/40 text-center space-y-3 animate-in fade-in zoom-in-95">
                   <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-lg">
                     <Sparkles className="w-8 h-8" />

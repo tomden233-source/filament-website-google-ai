@@ -4,6 +4,7 @@ import { safeStorage } from '../../utils/safeStorage';
 import { getHaCredentials } from '../../utils/haClient';
 import { IS_STATIC, IS_NATIVE } from '../../utils/env';
 import { DeviceSyncCard } from './DeviceSyncCard';
+import { CloudStoreCard } from './CloudStoreCard';
 
 export interface SettingsConnectionsPanelProps {
   /** Bereits vorhandenes Home-Assistant-Panel (URL, Token, Sensoren) */
@@ -15,6 +16,8 @@ export interface SettingsConnectionsPanelProps {
   /** Wechselt zum Tab „Handy & App“ */
   onOpenApp: () => void;
   cloudDbUrl: string;
+  /** Cloud-Speicher wechseln (z. B. auf einen privaten GitHub-Gist) */
+  onCloudUrlChange: (url: string) => void;
 }
 
 const card: React.CSSProperties = { backgroundColor: 'var(--app-card-sub)', borderColor: 'var(--app-border)' };
@@ -55,7 +58,8 @@ export const SettingsConnectionsPanel: React.FC<SettingsConnectionsPanelProps> =
   haUrl,
   onOpenBambu,
   onOpenApp,
-  cloudDbUrl
+  cloudDbUrl,
+  onCloudUrlChange
 }) => {
   const [haOpen, setHaOpen] = useState(true);
   const bambuOk = !!safeStorage.getItem('bambu_access_token');
@@ -120,6 +124,8 @@ export const SettingsConnectionsPanel: React.FC<SettingsConnectionsPanelProps> =
           {bambuOk ? 'Verbindung ändern' : 'Verbindung einrichten'}
         </button>
       </section>
+
+      <CloudStoreCard cloudDbUrl={cloudDbUrl} onCloudUrlChange={onCloudUrlChange} />
 
       <DeviceSyncCard cloudDbUrl={cloudDbUrl} />
 

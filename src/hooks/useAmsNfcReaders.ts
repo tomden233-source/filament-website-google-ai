@@ -55,17 +55,17 @@ export function useAmsNfcReaders(p: Params): NfcReaderState & { learn: (slot: nu
   const warned = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
-    const { url, token } = getHaCredentials();
-    if (!token || !url || settings.amsNfcOn === false) return;
+    if (settings.amsNfcOn === false) return;
     let stop = false;
+    let busy = false;
     let entities: Record<number, string> = {};
     let lastDiscover = 0;
-    const headers = { Authorization: `Bearer ${token}` };
+    const lastUid: Record<number, string> = {};
 
-    const discover = async () => {
+    const discover = async (url: string, headers: Record<string, string>) => {
       lastDiscover = Date.now();
       try {
-        const res = await fetch(`${url}/api/states`, { headers });
+        const res = await fetch(`${url}/api/states`, { headers, signal: AbortSignal.timeout(10000) });
         if (!res.ok) return;
         const all: any[] = await res.json();
         const found: Record<number, string> = {};
@@ -80,8 +80,22 @@ export function useAmsNfcReaders(p: Params): NfcReaderState & { learn: (slot: nu
     };
 
     const poll = async () => {
-      if (stop) return;
-      if (!Object.keys(entities).length || Date.now() - lastDiscover > DISCOVER_MS) await discover();
+      if (stop || busy) return;
+      // Home-Assistant-Zugang bei jedem Durchlauf frisch lesen (auch wenn er erst später eingetragen oder per Sync übernommen wird)
+      const { url, token } = getHaCredentials();
+      if (!token || !url) return;
+      // Im versteckten Tab nicht abfragen (spart Akku und Netz)
+      if (typeof document !== 'undefined' && document.hidden) return;
+      busy = true;
+      try {
+        await pollOnce(url, { Authorization: `Bearer ${token}` });
+      } finally {
+        busy = false;
+      }
+    };
+
+    const pollOnce = async (url: string, headers: Record<string, string>) => {
+      if (!Object.keys(entities).length || Date.now() - lastDiscover > DISCOVER_MS) await discover(url, headers);
       const slots = Object.keys(entities).map(Number);
       if (!slots.length) {
         setState(s => (Object.keys(s.entities).length ? { entities: {}, tags: {}, unknown: {} } : s));
@@ -91,7 +105,7 @@ export function useAmsNfcReaders(p: Params): NfcReaderState & { learn: (slot: nu
       await Promise.all(
         slots.map(async slot => {
           try {
-            const r = await fetch(`${url}/api/states/${entities[slot]}`, { headers });
+            const r = await fetch(`${url}/api/states/${entities[slot]}`, { headers, signal: AbortSignal.timeout(8000) });
             if (!r.ok) return;
             const st = String((await r.json())?.state || '');
             tags[slot] = st === 'unknown' || st === 'unavailable' ? '' : st;
@@ -107,8 +121,12 @@ export function useAmsNfcReaders(p: Params): NfcReaderState & { learn: (slot: nu
         const uid = tags[slot] || '';
         if (!uid) {
           handled.current[slot] = '';
+          // Tag weg: Hinweis für einen unbekannten Tag darf beim nächsten Auflegen wieder kommen
+          if (lastUid[slot]) delete warned.current[lastUid[slot]];
+          lastUid[slot] = '';
           continue;
         }
+        lastUid[slot] = uid;
         const spoolId = findSpoolForUid(uid, spools);
         if (!spoolId) {
           unknown[slot] = uid;
@@ -149,9 +167,15 @@ export function useAmsNfcReaders(p: Params): NfcReaderState & { learn: (slot: nu
 
     void poll();
     const iv = setInterval(() => void poll(), POLL_MS);
+    // Tab wird wieder sichtbar: sofort aktuellen Stand holen
+    const vis = () => {
+      if (document.visibilityState === 'visible') void poll();
+    };
+    document.addEventListener('visibilitychange', vis);
     return () => {
       stop = true;
       clearInterval(iv);
+      document.removeEventListener('visibilitychange', vis);
     };
   }, [settings.amsNfcOn, settings.amsNfcToPrinter]);
 

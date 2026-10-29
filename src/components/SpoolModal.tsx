@@ -5,6 +5,7 @@ import { BRAND_DATABASE, MATERIAL_PRESETS } from '../data/defaultSpools';
 import { COMMON_LOCATIONS } from '../utils/spoolAlerts';
 import { getBambuProfile } from '../data/bambuParameters';
 import { generateAutoShopUrl, getBrandInfo, parseFilamentText } from '../utils/shopLinks';
+import { hasSpoolBody, isInEibos, isSealed } from '../utils/spoolState';
 
 interface SpoolModalProps {
   isOpen: boolean;
@@ -32,6 +33,32 @@ const COMMON_COLORS = [
 
 const POPULAR_BRANDS = ['Bambu Lab', 'SUNLU', 'eSun', 'Extrudr', 'Prusa', 'Anycubic'];
 const POPULAR_MATERIALS: MaterialType[] = ['PLA', 'PETG', 'TPU', 'ABS', 'ASA', 'PC'];
+
+const ToggleChip: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode; tone?: 'orange' | 'emerald' | 'sky' | 'rose' }> = ({
+  active,
+  onClick,
+  children,
+  tone = 'orange'
+}) => {
+  const on = {
+    orange: 'bg-orange-500 text-white border-orange-500',
+    emerald: 'bg-emerald-500 text-white border-emerald-500',
+    sky: 'bg-sky-500 text-white border-sky-500',
+    rose: 'bg-rose-500 text-white border-rose-500'
+  }[tone];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`px-2 py-1.5 rounded-xl text-[11px] font-bold transition cursor-pointer border text-center ${
+        active ? `${on} shadow-sm` : 'bg-[var(--app-input-bg)] text-[var(--app-text)] border-[var(--app-border)] hover:border-slate-500'
+      }`}
+    >
+      {children}
+    </button>
+  );
+};
 
 export const SpoolModal: React.FC<SpoolModalProps> = ({
   isOpen,
@@ -66,7 +93,10 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
   const [dryHours, setDryHours] = useState(5);
   const [lastDried, setLastDried] = useState(new Date().toISOString().slice(0, 16));
   const [scaleGross, setScaleGross] = useState('');
-  const [weighedWithEibos, setWeighedWithEibos] = useState<boolean>(false);
+  const [onSpool, setOnSpool] = useState<boolean>(true);
+  const [sealed, setSealed] = useState<boolean>(false);
+  const [inEibos, setInEibos] = useState<boolean>(false);
+  const [needsDrying, setNeedsDrying] = useState<boolean>(false);
 
   const eibosTara = appSettings?.eibosBagTara ?? 35;
 
@@ -96,7 +126,10 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       setDryHours(spoolToEdit.dryHours);
       setLastDried(spoolToEdit.lastDried ? spoolToEdit.lastDried.slice(0, 16) : new Date().toISOString().slice(0, 16));
       setScaleGross('');
-      setWeighedWithEibos((spoolToEdit.storageNote || '').toLowerCase().includes('eibos'));
+      setOnSpool(hasSpoolBody(spoolToEdit));
+      setSealed(isSealed(spoolToEdit));
+      setInEibos(isInEibos(spoolToEdit));
+      setNeedsDrying(Boolean(spoolToEdit.needsDrying));
       setModalTab('quick');
     } else {
       const p = prefillData || {};
@@ -113,7 +146,9 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       setPricePerKg(p.pricePerKg || bInfo.defaultPrice || 19.99);
       setInitialWeight(p.initialWeight || 1000);
       setRemainingWeight(p.remainingWeight || 1000);
-      setEmptySpoolWeight(p.emptySpoolWeight !== undefined ? p.emptySpoolWeight : bInfo.tara);
+      const prefillOnSpool = typeof p.onSpool === 'boolean' ? p.onSpool : p.emptySpoolWeight !== undefined ? p.emptySpoolWeight > 0 : true;
+      setOnSpool(prefillOnSpool);
+      setEmptySpoolWeight(prefillOnSpool ? (p.emptySpoolWeight !== undefined && p.emptySpoolWeight > 0 ? p.emptySpoolWeight : bInfo.tara) : 0);
       setStorageNote(p.storageNote || '');
       setLocation(p.location || '');
       setNozzleTemp(p.nozzleTemp ? String(p.nozzleTemp) : '');
@@ -125,7 +160,9 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       setDryHours(p.dryHours || preset.hours);
       setLastDried(new Date().toISOString().slice(0, 16));
       setScaleGross('');
-      setWeighedWithEibos((p.storageNote || '').toLowerCase().includes('eibos'));
+      setSealed(isSealed(p as Spool));
+      setInEibos(isInEibos(p as Spool));
+      setNeedsDrying(Boolean(p.needsDrying));
       setModalTab('quick');
     }
   }, [isOpen, spoolToEdit, prefillData, appSettings]);
@@ -140,7 +177,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       setIsOtherBrand(false);
       setBrand(val);
       const info = getBrandInfo(val, appSettings);
-      setEmptySpoolWeight(info.tara);
+      setEmptySpoolWeight(onSpool ? info.tara : 0);
       setPricePerKg(info.defaultPrice);
     }
   };
@@ -160,10 +197,26 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
     setColorHex(col.hex);
   };
 
-  const handleScaleGrossChange = (val: string, withEibos = weighedWithEibos) => {
+  // Ohne Spule: Leerspule 0 g. Mit Spule wieder den Marken-Standard einsetzen, falls 0 eingetragen war.
+  const handleOnSpoolChange = (value: boolean) => {
+    setOnSpool(value);
+    if (!value) {
+      setEmptySpoolWeight(0);
+    } else if (!(Number(emptySpoolWeight) > 0)) {
+      setEmptySpoolWeight(getBrandInfo(isOtherBrand ? customBrand || 'Sonstige' : brand, appSettings).tara);
+    }
+    if (scaleGross) handleScaleGrossChange(scaleGross, inEibos, value ? emptySpoolWeight || getBrandInfo(isOtherBrand ? customBrand || 'Sonstige' : brand, appSettings).tara : 0);
+  };
+
+  const handleEibosChange = (value: boolean) => {
+    setInEibos(value);
+    if (scaleGross) handleScaleGrossChange(scaleGross, value);
+  };
+
+  const handleScaleGrossChange = (val: string, withEibos = inEibos, spoolTaraG = emptySpoolWeight) => {
     setScaleGross(val);
     const gross = parseFloat(val);
-    const effectiveTara = emptySpoolWeight + (withEibos ? eibosTara : 0);
+    const effectiveTara = spoolTaraG + (withEibos ? eibosTara : 0);
     if (!isNaN(gross) && gross >= effectiveTara) {
       setRemainingWeight(Math.round(gross - effectiveTara));
     }
@@ -197,7 +250,11 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       pricePerKg: Number(pricePerKg) || 19.99,
       initialWeight: Number(initialWeight) || 1000,
       remainingWeight: Number(remainingWeight) || 0,
-      emptySpoolWeight: Number(emptySpoolWeight) || 0,
+      emptySpoolWeight: onSpool ? (Number(emptySpoolWeight) > 0 ? Number(emptySpoolWeight) : getBrandInfo(finalBrand, appSettings).tara) : 0,
+      onSpool,
+      sealed,
+      inEibos,
+      needsDrying,
       storageNote: storageNote.trim(),
       location: location.trim() || undefined,
       nozzleTemp: Number(nozzleTemp) > 0 ? Number(nozzleTemp) : undefined,
@@ -406,6 +463,33 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                 />
               </div>
 
+              {/* Zustand: Spule, verschweißt, Eibos-Beutel, Trocknen */}
+              <div className="p-3 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] space-y-2">
+                <span className="text-[11px] font-bold text-[var(--app-text)]">Zustand der Spule:</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <ToggleChip active={onSpool} onClick={() => handleOnSpoolChange(true)}>
+                    Auf Spule
+                  </ToggleChip>
+                  <ToggleChip active={!onSpool} onClick={() => handleOnSpoolChange(false)}>
+                    Ohne Spule (Refill)
+                  </ToggleChip>
+                </div>
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-1.5">
+                  <ToggleChip active={sealed} tone="emerald" onClick={() => setSealed(v => !v)}>
+                    Original verschweißt
+                  </ToggleChip>
+                  <ToggleChip active={inEibos} tone="sky" onClick={() => handleEibosChange(!inEibos)}>
+                    Im Eibos-Beutel
+                  </ToggleChip>
+                  <ToggleChip active={needsDrying} tone="rose" onClick={() => setNeedsDrying(v => !v)}>
+                    Muss trocknen
+                  </ToggleChip>
+                </div>
+                <p className="text-[10px] text-[var(--app-text-muted)]">
+                  Verschweißt = frisch, kein Trocknen nötig. „Muss trocknen“ bleibt, bis du „getrocknet“ bestätigst.
+                </p>
+              </div>
+
               {/* 4. Gewicht & Tara-Waage */}
               <div className="p-3 rounded-xl bg-[var(--app-card-sub)] border border-[var(--app-border)] space-y-2">
                 <div className="flex justify-between items-center">
@@ -413,7 +497,10 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                     <Scale className="w-3.5 h-3.5 text-orange-400" />
                     <span>4. Netto-Filament ({remainingWeight}g Rest)</span>
                   </span>
-                  <span className="text-[10px] text-[var(--app-text-muted)]">Leerspule: {emptySpoolWeight}g</span>
+                  <span className="text-[10px] text-[var(--app-text-muted)]">
+                    {onSpool ? `Leerspule: ${emptySpoolWeight}g` : 'Ohne Spule'}
+                    {inEibos ? ` + Beutel ${eibosTara}g` : ''}
+                  </span>
                 </div>
 
                 <div className="flex gap-1.5">
@@ -510,7 +597,11 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                   <input
                     type="number"
                     value={emptySpoolWeight}
-                    onChange={e => setEmptySpoolWeight(parseInt(e.target.value) || 200)}
+                    onChange={e => {
+                      const w = Math.max(0, parseInt(e.target.value) || 0);
+                      setEmptySpoolWeight(w);
+                      setOnSpool(w > 0);
+                    }}
                     className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--app-input-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-mono-num"
                   />
                 </div>
@@ -534,7 +625,11 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                   </span>
                   <button
                     type="button"
-                    onClick={() => setLastDried(new Date().toISOString().slice(0, 16))}
+                    onClick={() => {
+                      setLastDried(new Date().toISOString().slice(0, 16));
+                      setNeedsDrying(false);
+                      setSealed(false);
+                    }}
                     className="text-[10px] text-orange-400 hover:underline cursor-pointer"
                   >
                     Auf „Jetzt getrocknet“ setzen

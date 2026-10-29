@@ -16,6 +16,7 @@ data/.ha-config.json
 app/applet/.bambu-config.json
 uploads/
 data/
+!src/data/
 server-dist/
 release/
 electron/main.cjs

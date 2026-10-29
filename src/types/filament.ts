@@ -31,6 +31,10 @@ export interface Spool {
   location?: string; // Lagerort, z. B. Regal 2, Box, Trockner
   nozzleTemp?: number; // beste Düsentemperatur (°C), wird beim Einlegen vorgeschlagen
   bedTemp?: number; // beste Betttemperatur (°C)
+  onSpool?: boolean; // true = Filament sitzt auf einer Spule, false = Refill ohne Spule (Leerspule = 0 g). Leer = aus Leerspulengewicht ableiten
+  sealed?: boolean; // true = Original verschweißt/ungeöffnet (muss nicht getrocknet werden)
+  inEibos?: boolean; // true = liegt im Eibos-Vakuumbeutel (Beutel-Tara beim Wiegen)
+  needsDrying?: boolean; // true = muss getrocknet werden, bis „Trocknen“ bestätigt wird
 }
 
 export interface HistoryEntry {
@@ -74,6 +78,10 @@ export interface DryingStatus {
   mins: number;
   secs: number;
   lastDriedFormatted: string;
+  /** Spule ist original verschweißt: kein Trocknen nötig */
+  sealed?: boolean;
+  /** Trocknen wurde von Hand als nötig markiert */
+  forced?: boolean;
 }
 
 export interface MaterialDryingConfig {

@@ -44,6 +44,7 @@ import { useHomeAssistantPanel } from './sidebar/useHomeAssistantPanel';
 import { usePresetSettings } from './sidebar/usePresetSettings';
 import { useGcodeImport } from './sidebar/useGcodeImport';
 import { useAgentChat } from './sidebar/useAgentChat';
+import { pairUrlFor } from '../utils/gistStore';
 
 const FunFactsModal = lazy(() => import('./FunFactsModal').then(m => ({ default: m.FunFactsModal })));
 const BambuSettingsModal = lazy(() => import('./BambuSettingsModal').then(m => ({ default: m.BambuSettingsModal })));
@@ -63,6 +64,8 @@ export interface SidebarProps {
   onExportBackup: () => void;
   onImportBackup: (file: File) => void;
   onRestoreDefaultSpools: () => void;
+  onClearAllSpools: () => void;
+  onCloudUrlChange: (url: string) => void;
   versionProfiles: VersionProfile[];
   activeVersionId: string;
   onSelectVersion: (versionId: string) => void;
@@ -99,6 +102,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onExportBackup,
   onImportBackup,
   onRestoreDefaultSpools,
+  onClearAllSpools,
+  onCloudUrlChange,
   versionProfiles,
   activeVersionId,
   onSelectVersion,
@@ -268,9 +273,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Synchronisiere Eingabefelder mit appSettings bei Wechsel der gewählten Marke
 
   // QR-Code generieren für Koppel-Link
-  const pairUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}${window.location.pathname}?pairCloud=${encodeURIComponent(cloudDbUrl)}`
-    : '';
+  const pairUrl = typeof window !== 'undefined' ? pairUrlFor(cloudDbUrl) : '';
 
   useEffect(() => {
     if (!pairUrl) return;
@@ -771,7 +774,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {settingsSubTab === 'presets' && <SettingsPresetsPanel selectedMaterial={selectedMaterial} setSelectedMaterial={setSelectedMaterial} appSettings={appSettings} matInterval={matInterval} setMatInterval={setMatInterval} matTemp={matTemp} setMatTemp={setMatTemp} matHours={matHours} setMatHours={setMatHours} handleSaveMaterial={handleSaveMaterial} matSavedSuccess={matSavedSuccess} handleResetMaterial={handleResetMaterial} eibosTaraInput={eibosTaraInput} setEibosTaraInput={setEibosTaraInput} handleSaveEibosTara={handleSaveEibosTara} eibosSavedSuccess={eibosSavedSuccess} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand} brandTara={brandTara} setBrandTara={setBrandTara} brandDefaultPrice={brandDefaultPrice} setBrandDefaultPrice={setBrandDefaultPrice} handleSaveBrand={handleSaveBrand} brandSavedSuccess={brandSavedSuccess} handleResetBrand={handleResetBrand} />}
 
               {/* BEREICH 3: HOME ASSISTANT BAMBU LAB X2D TELEMETRIE & 60 ENTITÄTEN */}
-              {settingsSubTab === 'connections' && <SettingsConnectionsPanel haUrl={nabuUrlInput} cloudDbUrl={cloudDbUrl} onOpenBambu={() => setShowBambuSettings(true)} onOpenApp={() => setActiveTab('connect')} haPanel={<SettingsHomeAssistantPanel haTelemetry={haTelemetry} sensorCategoryFilter={sensorCategoryFilter} sensorSearchQuery={sensorSearchQuery} isNabuVaultOpen={isNabuVaultOpen} setIsNabuVaultOpen={setIsNabuVaultOpen} nabuUrlInput={nabuUrlInput} setNabuUrlInput={setNabuUrlInput} showNabuToken={showNabuToken} nabuTokenInput={nabuTokenInput} setNabuTokenInput={setNabuTokenInput} setShowNabuToken={setShowNabuToken} nabuTestResult={nabuTestResult} haTriggerResult={haTriggerResult} handleSaveNabuVault={handleSaveNabuVault} nabuSavedSuccess={nabuSavedSuccess} handleTestNabuConnection={handleTestNabuConnection} nabuTesting={nabuTesting} handleTriggerHaPullAutomation={handleTriggerHaPullAutomation} haTriggering={haTriggering} fetchHaTelemetry={fetchHaTelemetry} haLoading={haLoading} haActionToast={haActionToast} setHaActionToast={setHaActionToast} haLightActive={haLightActive} handleToggleHaLight={handleToggleHaLight} ventilationDryerPath={ventilationDryerPath} setVentilationDryerPath={setVentilationDryerPath} setCopiedEntityId={setCopiedEntityId} copiedEntityId={copiedEntityId} setSensorSearchQuery={setSensorSearchQuery} setSensorCategoryFilter={setSensorCategoryFilter} />} />}
+              {settingsSubTab === 'connections' && <SettingsConnectionsPanel haUrl={nabuUrlInput} cloudDbUrl={cloudDbUrl} onCloudUrlChange={onCloudUrlChange} onOpenBambu={() => setShowBambuSettings(true)} onOpenApp={() => setActiveTab('connect')} haPanel={<SettingsHomeAssistantPanel haTelemetry={haTelemetry} sensorCategoryFilter={sensorCategoryFilter} sensorSearchQuery={sensorSearchQuery} isNabuVaultOpen={isNabuVaultOpen} setIsNabuVaultOpen={setIsNabuVaultOpen} nabuUrlInput={nabuUrlInput} setNabuUrlInput={setNabuUrlInput} showNabuToken={showNabuToken} nabuTokenInput={nabuTokenInput} setNabuTokenInput={setNabuTokenInput} setShowNabuToken={setShowNabuToken} nabuTestResult={nabuTestResult} haTriggerResult={haTriggerResult} handleSaveNabuVault={handleSaveNabuVault} nabuSavedSuccess={nabuSavedSuccess} handleTestNabuConnection={handleTestNabuConnection} nabuTesting={nabuTesting} handleTriggerHaPullAutomation={handleTriggerHaPullAutomation} haTriggering={haTriggering} fetchHaTelemetry={fetchHaTelemetry} haLoading={haLoading} haActionToast={haActionToast} setHaActionToast={setHaActionToast} haLightActive={haLightActive} handleToggleHaLight={handleToggleHaLight} ventilationDryerPath={ventilationDryerPath} setVentilationDryerPath={setVentilationDryerPath} setCopiedEntityId={setCopiedEntityId} copiedEntityId={copiedEntityId} setSensorSearchQuery={setSensorSearchQuery} setSensorCategoryFilter={setSensorCategoryFilter} />} />}
             </div>
           )}
 
@@ -785,7 +788,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {(activeTab === 'gcode' || activeTab === 'calc') && <GcodeCalcTab handlePullGcodeFromPrinter={handlePullGcodeFromPrinter} printerFetchLoading={printerFetchLoading} handleGcodeFileChange={handleGcodeFileChange} gcodeData={gcodeData} calcSpoolId={calcSpoolId} setCalcSpoolId={setCalcSpoolId} spools={spools} onDeductWeight={onDeductWeight} setCalcPricePerKg={setCalcPricePerKg} calcGrams={calcGrams} setCalcGrams={setCalcGrams} calcPricePerKg={calcPricePerKg} calcPrintHours={calcPrintHours} setCalcPrintHours={setCalcPrintHours} calcPrinterWatts={calcPrinterWatts} setCalcPrinterWatts={setCalcPrinterWatts} filamentCost={filamentCost} powerCost={powerCost} totalCost={totalCost} />}
 
           {/* TAB 6: TOOLS & BACKUP */}
-          {activeTab === 'tools' && <ToolsTab onSyncCloud={onSyncCloud} onExportBackup={onExportBackup} onImportBackup={onImportBackup} onRestoreDefaultSpools={onRestoreDefaultSpools} />}
+          {activeTab === 'tools' && <ToolsTab onSyncCloud={onSyncCloud} onExportBackup={onExportBackup} onImportBackup={onImportBackup} onRestoreDefaultSpools={onRestoreDefaultSpools} onClearAllSpools={onClearAllSpools} />}
         </div>
 
         <ApkUpdateRow />

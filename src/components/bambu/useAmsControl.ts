@@ -76,6 +76,13 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
     return {};
   });
 
+  // Alle Spulen entfernt: Slot-Zuordnung leeren (sie zeigt sonst auf gelöschte Spulen)
+  useEffect(() => {
+    const clear = () => setAmsSlots({});
+    window.addEventListener('filamenthub:spools-cleared', clear);
+    return () => window.removeEventListener('filamenthub:spools-cleared', clear);
+  }, []);
+
   const [activeSlot, setActiveSlot] = useState<number>(() => {
     return Number(safeStorage.getItem('filamenthub_ams_active_slot_x2d') || 1);
   });

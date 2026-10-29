@@ -2,6 +2,8 @@ import { UpdateBanner } from './components/UpdateBanner';
 import { isAppShell } from './utils/env';
 import { peekIdleTag } from './utils/nativeNfc';
 import { fixSpoolWeights } from './utils/spoolSanity';
+import { normalizeSpools, spoolTara } from './utils/spoolState';
+import { MY_SPOOLS_SEED } from './data/mySpools';
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { storageApi, cloudSync } from './api';
 
@@ -39,7 +41,9 @@ import {
   STORAGE_KEY_PROFILES,
   STORAGE_KEY_ACTIVE_VER,
   STORAGE_KEY_VIEW,
-  STORAGE_KEY_CLOUD_URL
+  STORAGE_KEY_CLOUD_URL,
+  STORAGE_KEY_SPOOLS_AT,
+  LEGACY_NPOINT_URL
 } from './utils/storageKeys';
 import { useThemeSettings } from './hooks/useThemeSettings';
 import { useAppSettings } from './hooks/useAppSettings';
@@ -50,8 +54,9 @@ import { getLocationStats } from './utils/spoolAlerts';
 import { getWorkshopSettings } from './utils/workshopSettings';
 import { localNotify } from './utils/notify';
 import { useDeviceSync } from './hooks/useDeviceSync';
+import { gistUrlOf, parseGistPair, setGistToken } from './utils/gistStore';
 
-const SPOOLS_AT_KEY = 'filamenthub_spools_changed_at';
+const SPOOLS_AT_KEY = STORAGE_KEY_SPOOLS_AT;
 
 const WEIGHT_FIX_KEY = 'filamenthub_weightfix_v171';
 
@@ -61,6 +66,15 @@ const AppAndQrModal = lazy(() => import('./components/AppAndQrModal').then(m => 
 const CameraModal = lazy(() => import('./components/CameraModal').then(m => ({ default: m.CameraModal })));
 const NfcModal = lazy(() => import('./components/NfcModal').then(m => ({ default: m.NfcModal })));
 const WorkshopModal = lazy(() => import('./components/workshop/WorkshopModal').then(m => ({ default: m.WorkshopModal })));
+
+// Spulen-Seed (src/data/mySpools.ts): ersetzt den Bestand genau einmal, wenn dort ein neuerer Zeitstempel steht.
+// Der Zeitstempel zählt wie eine Änderung zu dieser Zeit: Hat ein anderes Gerät danach etwas geändert, gewinnt dessen Stand.
+const SEED_STAMP_KEY = 'filamenthub_myspools_seed_stamp';
+const SEED_BACKUP_KEY = 'filamenthub_spools_backup_before_seed';
+const CLEAR_BACKUP_KEY = 'filamenthub_spools_backup_before_clear';
+const AMS_SLOTS_KEY = 'filamenthub_ams_slots_x2d';
+const TAG_MAPPINGS_KEY = 'filamenthub_nfc_tag_mappings_v1';
+let seedAppliedAtStart = false;
 
 const LEGACY_SPOOL_KEYS = [
   'filamenthub_spools_v123',
@@ -107,7 +121,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.98';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.99';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
@@ -151,11 +165,26 @@ export default function App() {
     safeStorage.setItem('filamenthub_device_mode', mode);
   }, []);
 
-  // Hauptbestand
+  // Hauptbestand. Eine leere Liste ist ein gültiger Stand (alles gelöscht), nur ohne gespeicherten Wert startet die App leer.
   const [spools, setSpools] = useState<Spool[]>(() => {
     try {
+      const seenStamp = Number(safeStorage.getItem(SEED_STAMP_KEY)) || 0;
+      if (MY_SPOOLS_SEED.stamp > seenStamp) {
+        const current = safeStorage.getItem(STORAGE_KEY_SPOOLS);
+        if (current) safeStorage.setItem(SEED_BACKUP_KEY, current); // Notfall-Kopie des bisherigen Bestands
+        const seeded = normalizeSpools(MY_SPOOLS_SEED.spools);
+        safeStorage.setItem(STORAGE_KEY_SPOOLS, JSON.stringify(seeded));
+        safeStorage.setItem(SEED_STAMP_KEY, String(MY_SPOOLS_SEED.stamp));
+        safeStorage.setItem(SPOOLS_AT_KEY, String(MY_SPOOLS_SEED.stamp));
+        safeStorage.setItem(AMS_SLOTS_KEY, '{}'); // alte Slot- und Tag-Zuordnungen zeigen auf gelöschte Spulen
+        safeStorage.setItem(TAG_MAPPINGS_KEY, '{}');
+        seedAppliedAtStart = true;
+        return seeded;
+      }
+    } catch {}
+    try {
       let raw = safeStorage.getItem(STORAGE_KEY_SPOOLS);
-      if (!raw) {
+      if (raw === null) {
         for (const k of LEGACY_SPOOL_KEYS) {
           const l = safeStorage.getItem(k);
           if (l) {
@@ -169,46 +198,10 @@ export default function App() {
       }
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          let changed = false;
-          const updated: Spool[] = parsed.map((s: Spool): Spool => {
-            if (s.id === 'sp-18') {
-              if (s.brand !== 'ELEGOO' || !s.name.includes('Marble') || s.colorHex !== '#e2e8f0') {
-                changed = true;
-                return {
-                  ...s,
-                  brand: 'ELEGOO',
-                  name: 'Color Marble PLA',
-                  material: 'PLA' as MaterialType,
-                  colorName: 'Marmor',
-                  colorHex: '#e2e8f0',
-                  emptySpoolWeight: 160,
-                  pricePerKg: 16.99,
-                  dryTemp: 50,
-                  dryHours: 5,
-                  storageNote: s.storageNote || 'Pappspule (307g Brutto - 160g Spule)'
-                };
-              }
-            }
-            return s;
-          });
-
-          if (!updated.some(s => s.id === 'sp-18')) {
-            const def18 = DEFAULT_21_SPOOLS.find(d => d.id === 'sp-18');
-            if (def18) {
-              updated.push(def18);
-              changed = true;
-            }
-          }
-
-          if (changed) {
-            safeStorage.setItem(STORAGE_KEY_SPOOLS, JSON.stringify(updated));
-          }
-          return updated;
-        }
+        if (Array.isArray(parsed)) return normalizeSpools(parsed as Spool[]);
       }
     } catch {}
-    return DEFAULT_21_SPOOLS;
+    return [];
   });
 
   // Druckverlauf
@@ -229,7 +222,7 @@ export default function App() {
 
   // Cloud Sync
   const [cloudDbUrl, setCloudDbUrl] = useState<string>(() => {
-    return safeStorage.getItem(STORAGE_KEY_CLOUD_URL) || 'https://api.npoint.io/2a75ad089c77e7c35f98';
+    return safeStorage.getItem(STORAGE_KEY_CLOUD_URL) || LEGACY_NPOINT_URL;
   });
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<{ label: string; ok: boolean }>({
@@ -357,15 +350,16 @@ export default function App() {
           const data = cloud.data;
           const cloudAt = Number(data?.updatedAt) || 0;
           const localAt = Number(safeStorage.getItem(SPOOLS_AT_KEY)) || 0;
-          if (data && Array.isArray(data.spools) && data.spools.length > 0 && cloudAt > localAt) {
-            // Cloud ist neuer (z. B. am anderen Gerät geändert): übernehmen
-            setSpools(data.spools as Spool[]);
+          if (data && Array.isArray(data.spools) && cloudAt > localAt) {
+            // Cloud ist neuer (z. B. am anderen Gerät geändert, auch „alles gelöscht“): übernehmen
+            const cloudSpools = normalizeSpools(data.spools as Spool[]);
+            setSpools(cloudSpools);
             if (Array.isArray(data.printHistory)) setPrintHistory(data.printHistory as HistoryEntry[]);
-            safeStorage.setItem(STORAGE_KEY_SPOOLS, JSON.stringify(data.spools));
+            safeStorage.setItem(STORAGE_KEY_SPOOLS, JSON.stringify(cloudSpools));
             safeStorage.setItem(SPOOLS_AT_KEY, String(cloudAt));
             setSyncStatus({ label: 'Cloud synchron', ok: true });
             if (notify) showToast('Erfolgreich mit Cloud synchronisiert!');
-          } else if (data && Array.isArray(data.spools) && data.spools.length > 0 && cloudAt === localAt) {
+          } else if (data && Array.isArray(data.spools) && cloudAt === localAt) {
             setSyncStatus({ label: 'Cloud synchron', ok: true });
             if (notify) showToast('Schon synchron.');
           } else {
@@ -383,6 +377,16 @@ export default function App() {
 
   // URL-Parameter prüfen (?pairCloud=...)
   useEffect(() => {
+    // Kopplung mit privatem Gist: ID und Token stehen im Link-Teil nach „#“ (geht nie an einen Server)
+    const gistPair = parseGistPair(window.location.hash);
+    if (gistPair) {
+      setGistToken(gistPair.token);
+      const gistUrl = gistUrlOf(gistPair.id);
+      setCloudDbUrl(gistUrl);
+      safeStorage.setItem(STORAGE_KEY_CLOUD_URL, gistUrl);
+      window.history.replaceState({}, '', window.location.pathname + window.location.search);
+      showToast('Gerät mit privatem Cloud-Speicher (GitHub-Gist) gekoppelt!');
+    }
     const params = new URLSearchParams(window.location.search);
     const pair = params.get('pairCloud');
     if (pair && pair.startsWith('http')) {
@@ -390,6 +394,10 @@ export default function App() {
       safeStorage.setItem(STORAGE_KEY_CLOUD_URL, pair);
       window.history.replaceState({}, '', window.location.pathname);
       showToast('Handy erfolgreich mit Cloud-Datenbank gekoppelt!');
+    }
+    if (seedAppliedAtStart) {
+      seedAppliedAtStart = false;
+      showToast(`Spulenliste aktualisiert (${spools.length} Spulen). Die alte Liste ist als Notfall-Kopie gesichert.`);
     }
     syncWithCloud(false);
   }, []);
@@ -411,6 +419,17 @@ export default function App() {
 
   // Drucker-Zugang und Einstellungen verschlüsselt zwischen den Geräten abgleichen
   useDeviceSync(cloudDbUrl, showToast);
+
+  // Cloud-Speicher wechseln (z. B. von npoint auf einen privaten GitHub-Gist) und sofort abgleichen
+  const handleCloudUrlChange = useCallback(
+    (url: string) => {
+      setCloudDbUrl(url);
+      safeStorage.setItem(STORAGE_KEY_CLOUD_URL, url);
+      window.dispatchEvent(new CustomEvent('filamenthub:sync-now'));
+      showToast('Cloud-Speicher gewechselt.');
+    },
+    [showToast]
+  );
 
   // Einmalige Reparatur alter Daten (v1.71): Brutto statt Netto eingetragen, mehr als die Spule fasst.
   // Läuft nur einmal pro Gerät, damit spätere Eingaben (z. B. leicht überfüllte Spulen laut Waage) nie verändert werden.
@@ -534,6 +553,16 @@ export default function App() {
     const profile = versionProfiles.find(v => v.id === versionId);
     if (!profile) return;
 
+    // Offizielle Revisionen sind Stände der App, keine Datensätze: Spulen, Verlauf und Ansicht bleiben unverändert.
+    // Nur eigene, selbst gesicherte Profile tauschen ihren Spulen-Snapshot ein.
+    const isOfficial = INITIAL_VERSION_PROFILES.some(p => p.id === versionId);
+    if (isOfficial) {
+      setActiveVersionId(versionId);
+      safeStorage.setItem(STORAGE_KEY_ACTIVE_VER, versionId);
+      showToast(`Umschaltung auf ${profile.label} erfolgreich! Deine Spulen bleiben unverändert.`);
+      return;
+    }
+
     const updatedProfiles = versionProfiles.map(p => {
       if (p.id === activeVersionId) {
         return {
@@ -601,7 +630,10 @@ export default function App() {
     // Mit „+“ nie über die Füllmenge der Spule (oder den bisherigen Stand, falls die Waage mehr ergab)
     const maxWeight = Math.max(spool.initialWeight || 1000, prevRemaining);
     const newRemaining = Math.max(0, Math.min(maxWeight, prevRemaining + deltaGrams));
-    const updatedSpools = spools.map(s => (s.id === spoolId ? { ...s, remainingWeight: newRemaining } : s));
+    // Wer Filament abzieht, hat die Spule benutzt: „verschweißt“ endet
+    const updatedSpools = spools.map(s =>
+      s.id === spoolId ? { ...s, remainingWeight: newRemaining, ...(deltaGrams < 0 ? { sealed: false } : {}) } : s
+    );
 
     const newHistoryEntry: HistoryEntry = {
       id: 'log-' + Date.now(),
@@ -657,7 +689,7 @@ export default function App() {
     const spool = spools.find(s => s.id === spoolId);
     if (!spool) return;
 
-    const tara = spool.emptySpoolWeight || 0;
+    const tara = spoolTara(spool, getBrandInfo(spool.brand, appSettings).tara);
     if (grossWeight < tara) {
       showToast(`⚠️ ${grossWeight} g ist weniger als die Leerspule (${tara} g).`);
       return;
@@ -668,7 +700,7 @@ export default function App() {
     const oldNet = spool.remainingWeight || 0;
     const diff = oldNet - newNet;
 
-    const updatedSpools = spools.map(s => (s.id === spoolId ? { ...s, remainingWeight: newNet } : s));
+    const updatedSpools = spools.map(s => (s.id === spoolId ? { ...s, remainingWeight: newNet, ...(diff >= 20 ? { sealed: false } : {}) } : s));
     let updatedHistory = printHistory;
 
     if (diff > 0) {
@@ -693,7 +725,7 @@ export default function App() {
   const handleMarkDried = (spoolId: string) => {
     pushUndoSnapshot();
     const updatedSpools = spools.map(s =>
-      s.id === spoolId ? { ...s, lastDried: new Date().toISOString() } : s
+      s.id === spoolId ? { ...s, lastDried: new Date().toISOString(), needsDrying: false, sealed: false } : s
     );
     setSpools(updatedSpools);
     persistState(updatedSpools, printHistory);
@@ -731,6 +763,8 @@ export default function App() {
     const updatedSpool: Spool = {
       ...spool,
       lastDried: newLastDried,
+      ...(ratio >= 1 ? { needsDrying: false } : {}),
+      sealed: false,
       ...(dryTemp ? { dryTemp } : {})
     };
 
@@ -831,9 +865,10 @@ export default function App() {
 
   const handleRestoreDefault21 = () => {
     pushUndoSnapshot();
-    setSpools(DEFAULT_21_SPOOLS);
-    persistState(DEFAULT_21_SPOOLS, printHistory);
-    showToast('Alle 21 diktierten Spulen wiederhergestellt!');
+    const samples = normalizeSpools(DEFAULT_21_SPOOLS);
+    setSpools(samples);
+    persistState(samples, printHistory);
+    showToast('21 Beispiel-Spulen geladen. Oben auf „Zurück“ tippen bringt deine Liste wieder.');
   };
 
   const handleExportBackup = () => {
@@ -860,6 +895,27 @@ export default function App() {
     showToast('Backup-Datei heruntergeladen.');
   };
 
+  // Alle Spulen entfernen: Backup-Datei wird geladen, eine Notfall-Kopie bleibt im Gerät, „Zurück“ stellt sie wieder her.
+  // Verlauf bleibt erhalten. AMS-Zuordnung und Tag-Zuordnungen werden geleert, weil sie auf gelöschte Spulen zeigen.
+  const handleClearAllSpools = () => {
+    if (spools.length === 0) {
+      showToast('Es sind keine Spulen vorhanden.');
+      return;
+    }
+    try {
+      safeStorage.setItem(CLEAR_BACKUP_KEY, JSON.stringify({ at: new Date().toISOString(), spools }));
+    } catch {}
+    handleExportBackup();
+    pushUndoSnapshot();
+    setSpools([]);
+    safeStorage.setItem(AMS_SLOTS_KEY, '{}');
+    safeStorage.setItem(TAG_MAPPINGS_KEY, '{}');
+    window.dispatchEvent(new CustomEvent('filamenthub:spools-cleared'));
+    persistState([], printHistory);
+    showToast('Alle Spulen entfernt. Backup-Datei geladen, oben auf „Zurück“ stellt sie wieder her.');
+    addSystemLog('spule', 'Alle Spulen entfernt', 'Backup vorher gesichert', 'warn');
+  };
+
   const handleImportBackup = (file: File) => {
     const reader = new FileReader();
     reader.onload = ev => {
@@ -869,10 +925,11 @@ export default function App() {
         const imported = Array.isArray(parsed) ? parsed : parsed.spools;
         if (Array.isArray(imported) && imported.length > 0) {
           pushUndoSnapshot();
-          setSpools(imported);
+          const importedSpools = normalizeSpools(imported as Spool[]);
+          setSpools(importedSpools);
           if (Array.isArray(parsed.printHistory)) setPrintHistory(parsed.printHistory);
           if (Array.isArray(parsed.versionProfiles)) setVersionProfiles(parsed.versionProfiles);
-          persistState(imported, parsed.printHistory || []);
+          persistState(importedSpools, parsed.printHistory || []);
           showToast(`${imported.length} Spulen erfolgreich importiert!`);
         }
       } catch {
@@ -1048,6 +1105,8 @@ export default function App() {
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
         onRestoreDefaultSpools={handleRestoreDefault21}
+        onClearAllSpools={handleClearAllSpools}
+        onCloudUrlChange={handleCloudUrlChange}
         versionProfiles={versionProfiles}
         activeVersionId={activeVersionId}
         onSelectVersion={handleSelectVersion}

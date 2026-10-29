@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { APK_URL } from '../utils/env';
+import { isGistUrl, pairUrlFor } from '../utils/gistStore';
 
 interface AppAndQrModalProps {
   isOpen: boolean;
@@ -33,9 +34,7 @@ export const AppAndQrModal: React.FC<AppAndQrModalProps> = ({
   const { isInstalled, install } = usePWAInstall();
 
   // Koppel-Link generieren
-  const pairUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}${window.location.pathname}?pairCloud=${encodeURIComponent(cloudDbUrl)}`
-    : '';
+  const pairUrl = typeof window !== 'undefined' ? pairUrlFor(cloudDbUrl) : '';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -371,6 +370,12 @@ export const AppAndQrModal: React.FC<AppAndQrModalProps> = ({
                 </div>
               )}
             </div>
+
+            {isGistUrl(cloudDbUrl) && (
+              <p className="text-[11px] text-amber-400 font-semibold leading-relaxed">
+                Dieser QR-Code enthält den Zugang zu deinem privaten Cloud-Speicher. Nur mit deinen eigenen Geräten scannen, nicht teilen oder fotografieren lassen.
+              </p>
+            )}
 
             {/* Link kopieren */}
             <div className="flex items-center gap-2">

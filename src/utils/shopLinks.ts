@@ -1,5 +1,6 @@
 import { BRAND_DATABASE, COLOR_MAP, KNOWN_ASIN_DB, MATERIAL_PRESETS } from '../data/defaultSpools';
 import { AppSettings, DryingStatus, MaterialType, Spool } from '../types/filament';
+import { isSealed } from './spoolState';
 
 export function getBrandInfo(brandName: string, settings?: AppSettings) {
   const lower = (brandName || '').toLowerCase();
@@ -159,10 +160,13 @@ export function parseFilamentText(inputStr: string, rawText = '', settings?: App
 }
 
 export function getDryingStatus(spool: Spool, now = Date.now()): DryingStatus {
-  const lastDriedMs = new Date(spool.lastDried || now).getTime();
+  // Original verschweißt = frisch (kein Trocknen nötig). „Muss trocknen“ von Hand gesetzt = fällig, bis getrocknet wird.
+  const forced = Boolean(spool.needsDrying);
+  const sealed = isSealed(spool) && !forced;
+  const lastDriedMs = sealed ? now : new Date(spool.lastDried || now).getTime();
   const intervalDays = Number(spool.dryIntervalDays) || 30;
   const intervalMs = intervalDays * 86400000;
-  const diffMs = (lastDriedMs + intervalMs) - now;
+  const diffMs = forced ? Math.min((lastDriedMs + intervalMs) - now, -1) : (lastDriedMs + intervalMs) - now;
   const isOverdue = diffMs <= 0;
   const absMs = Math.abs(diffMs);
 
@@ -191,6 +195,8 @@ export function getDryingStatus(spool: Spool, now = Date.now()): DryingStatus {
     hours: Math.floor((absMs % 86400000) / 3600000),
     mins: Math.floor((absMs % 3600000) / 60000),
     secs: Math.floor((absMs % 60000) / 1000),
-    lastDriedFormatted: new Date(lastDriedMs).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    lastDriedFormatted: sealed ? 'verschweißt' : new Date(lastDriedMs).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    sealed,
+    forced
   };
 }
