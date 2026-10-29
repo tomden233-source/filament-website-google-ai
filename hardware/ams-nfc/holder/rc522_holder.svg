@@ -1,43 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" font-family="Arial, sans-serif">
-<style>.p{fill:#e8eef5;stroke:#1d2b3a;stroke-width:1.5}.c{fill:#fff;stroke:#1d2b3a;stroke-width:1.5}.r{fill:#9db4cc;stroke:#1d2b3a;stroke-width:1}.pcb{fill:#2e7d4f;stroke:#14402a;stroke-width:1}.d{stroke:#c0392b;stroke-width:1;fill:none}.t{font-size:12px;fill:#c0392b}.h{font-size:15px;font-weight:bold;fill:#1d2b3a}.n{font-size:12px;fill:#1d2b3a}</style>
-<rect width="1200" height="600" fill="#fff"/>
-<text x="20" y="28" class="h">RC522-Halter für das AMS-Lesemodul (Maße in mm)</text>
-<text x="150" y="62" class="h">Draufsicht (Rückseite)</text>
-<circle cx="67.4" cy="451.6" r="33.0" class="p"/>
-<circle cx="67.4" cy="168.39999999999998" r="33.0" class="p"/>
-<circle cx="392.6" cy="451.6" r="33.0" class="p"/>
-<circle cx="392.6" cy="168.39999999999998" r="33.0" class="p"/>
-<rect x="94.4" y="114.39999999999998" width="271.2" height="391.20000000000005" class="p"/>
-<rect x="108.80000000000001" y="114.39999999999998" width="242.39999999999998" height="376.79999999999995" class="c"/>
-<rect x="108.80000000000001" y="128.8" width="6.0" height="362.4" class="r"/>
-<rect x="345.2" y="128.8" width="6.0" height="362.4" class="r"/>
-<rect x="110.0" y="133.0" width="240.0" height="360.0" class="pcb" opacity="0.35"/>
-<rect x="164.0" y="491.2" width="132.0" height="14.399999999999999" class="c"/>
-<circle cx="67.4" cy="451.6" r="10.2" class="c"/>
-<circle cx="67.4" cy="168.39999999999998" r="10.2" class="c"/>
-<circle cx="392.6" cy="451.6" r="10.2" class="c"/>
-<circle cx="392.6" cy="168.39999999999998" r="10.2" class="c"/>
-<text x="164.0" y="521.6" class="n">Kabel / 8-Pin-Leiste (22)</text>
-<text x="160" y="106.39999999999998" class="n">offen: Platine hier einschieben</text>
-<line x1="94.4" y1="539.6" x2="365.6" y2="539.6" class="d"/>
-<text x="212" y="555.6" class="t">45.2</text>
-<line x1="19.400000000000006" y1="114.39999999999998" x2="19.400000000000006" y2="505.6" class="d"/>
-<text x="24" y="310" class="t">65.2</text>
-<text x="700" y="62" class="h">Schnitt (Vorderwand unten = Leseseite)</text>
-<rect x="578.8" y="322.2" width="542.4" height="97.80000000000001" class="p"/>
-<rect x="607.6" y="322.2" width="484.79999999999995" height="83.4" class="c"/>
-<rect x="607.6" y="362.4" width="12.0" height="43.2" class="r"/>
-<rect x="607.6" y="322.2" width="12.0" height="19.200000000000006" class="r"/>
-<rect x="1080.4" y="362.4" width="12.0" height="43.2" class="r"/>
-<rect x="1080.4" y="322.2" width="12.0" height="19.200000000000006" class="r"/>
-<rect x="610.0" y="343.2" width="480.0" height="19.200000000000003" class="pcb"/>
-<text x="755" y="308.2" class="n">Halteleiste oben, RC522-Platine in der Nut</text>
-<text x="755" y="388.0" class="n">Platz für Bauteile (3.6)</text>
-<text x="755" y="416.8" class="n">Vorderwand (1.2) = Leseseite</text>
-<line x1="1141.2" y1="420.0" x2="1141.2" y2="322.2" class="d"/>
-<text x="1149.2" y="371.1" class="t">Höhe 8.2</text>
-<line x1="578.8" y1="440.0" x2="1121.2" y2="440.0" class="d"/>
-<text x="832" y="458.0" class="t">45.2</text>
-<text x="600" y="500.0" class="n">Druck: Vorderseite auf das Bett, PETG oder ASA, 0,2 mm, 4 Wände, ohne Stützen.</text>
-<text x="600" y="518.0" class="n">Befestigung: 4 Ohren mit je M3 (Loch 3.4). Kabel kommt unten aus dem Ausschnitt.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 640" width="1100" height="640" font-family="Arial, sans-serif">
+<style>.p{fill:#e8eef5;stroke:#1d2b3a;stroke-width:1.5}.c{fill:#fff;stroke:#1d2b3a;stroke-width:1.5}.pcb{fill:#2e7d4f;stroke:#14402a;stroke-width:1;opacity:.35}.d{stroke:#c0392b;stroke-width:1;fill:none}.t{font-size:13px;fill:#c0392b}.h{font-size:16px;font-weight:bold;fill:#1d2b3a}.n{font-size:13px;fill:#1d2b3a}</style>
+<rect width="1100" height="640" fill="#fff"/>
+<text x="20" y="30" class="h">Flacher RC522-Halter, zum Kleben mit doppelseitigem Klebeband (Maße in mm)</text>
+<text x="210" y="70" class="h">Draufsicht</text>
+<rect x="104.0" y="74.0" width="352.0" height="512.0" rx="24.0" class="p"/>
+<rect x="118.4" y="88.4" width="323.2" height="483.2" rx="8" class="c" stroke-dasharray="5 3"/>
+<rect x="120.0" y="90.0" width="320.0" height="480.0" class="pcb"/>
+<rect x="184.0" y="499.6" width="192.0" height="72.0" class="c"/>
+<text x="194.0" y="540.0" class="n">Fenster für Stiftleiste</text>
+<text x="185" y="330.0" class="n">Mulde = Platine (40 × 60)</text>
+<line x1="104.0" y1="616.0" x2="456.0" y2="616.0" class="d"/><text x="262" y="634.0" class="t">44</text>
+<line x1="74.0" y1="74.0" x2="74.0" y2="586.0" class="d"/><text x="42.0" y="330" class="t">64</text>
+<text x="770" y="70" class="h">Schnitt</text>
+<rect x="580.0" y="276.0" width="440" height="24.0" class="p"/>
+<rect x="598.0" y="276.0" width="404.0" height="6.0" class="c"/>
+<text x="585" y="216.0" class="n">Mulde (0.6 tief) = Platz für Platine und Klebeband.</text>
+<text x="585" y="236.0" class="n">Platine mit der Rückseite aufkleben, Spulenseite zeigt zum Tag.</text>
+<line x1="1036.0" y1="300" x2="1036.0" y2="276.0" class="d"/><text x="1042.0" y="292.0" class="t">2.4</text>
+<line x1="580.0" y1="320" x2="1020.0" y2="320" class="d"/><text x="790" y="338" class="t">44</text>
+<text x="585" y="390" class="n">Unterseite der Platte: zweites Klebeband zum AMS.</text>
+<text x="585" y="412" class="n">Druck: flach aufs Bett, PETG/ASA, 0,2 mm, 3 Wände, ohne Stützen.</text>
 </svg>

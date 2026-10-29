@@ -1408,5 +1408,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v2.00',
+    label: '2.00 (Flacher RC522-Halter)',
+    releaseDate: '29.10.2026',
+    description: 'Der RC522-Halter hat keine Seitenteile mehr. Es ist jetzt eine flache Platte, die du mit doppelseitigem Klebeband an Platine und AMS klebst.',
+    features: [
+      '🖨️ Halter ohne Seitenwände, Ohren und Nuten: nur Platte 44 × 64 × 2,4 mm',
+      '📌 Flache Mulde (0,6 mm) zeigt, wo die Platine hinkommt, Fenster lässt die Stiftleiste durch',
+      '📐 STL, SCAD und SVG-Zeichnung neu, Anleitung in hardware/ams-nfc/holder/README.md',
+      '📝 README und NFC-Anleitung angepasst',
+      '🔢 Aktualisierte Zahlen-FunFacts: 73 Commits und 100 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

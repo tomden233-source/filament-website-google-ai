@@ -1,26 +1,22 @@
-# RC522-Halter (AMS 2 Pro)
+# RC522-Halter (AMS 2 Pro), flach zum Kleben
 
-Allgemeiner Halter für ein RC522-Modul (40 × 60 mm). Die genaue Innenform des AMS 2 Pro ist nicht vermessen, deshalb sitzt der Halter über vier M3-Ohren, Doppelklebeband oder Kabelbinder an der Stelle, die du wählst.
+Eine flache Platte ohne Seitenteile. Platine und Platte werden mit doppelseitigem Klebeband geklebt, die Platte genauso am AMS. Die Innenform des AMS 2 Pro ist nicht vermessen, deshalb passt die Platte überall, wo eine ebene Fläche ist.
 
 | Datei | Zweck |
 |---|---|
-| `rc522_holder.stl` | Druckfertig (Slicer direkt öffnen) |
-| `rc522_holder.scad` | Parametrisch (OpenSCAD), Maße oben in der Datei anpassen |
-| `rc522_holder.svg` | Zeichnung mit Maßen (Draufsicht und Schnitt) |
+| `rc522_holder.stl` | Druckfertig (Slicer direkt öffnen), 44 × 64 × 2,4 mm |
+| `rc522_holder.scad` | Parametrisch (OpenSCAD), Maße oben in der Datei |
+| `rc522_holder.svg` | Zeichnung mit Maßen |
 | `build_holder.py` / `build_drawing.py` | Erzeugen STL und SVG neu (`pip install trimesh manifold3d`) |
 
 ## Druck
 
-- Material: PETG oder ASA (PLA wird im warmen AMS weich)
-- **Vorderseite (dünne Wand) liegt auf dem Druckbett**, keine Stützen
-- 0,2 mm Layer, 4 Wände, 25 % Füllung
-- Vorderwand ist 1,2 mm: Lesedistanz zum Tag bleibt unter 3 mm
+- PETG oder ASA (PLA wird im warmen AMS weich)
+- Flach aufs Bett, 0,2 mm Layer, 3 Wände, ohne Stützen
 
 ## Einbau
 
-1. Platine von der offenen Schmalseite in die beiden Nuten schieben, Bauteilseite nach vorn (zur dünnen Wand).
-2. Der Ausschnitt an der Gegenseite lässt Stiftleiste und Dupont-Kabel durch.
-3. Mit M3-Schrauben an den Ohren oder mit Klebeband am AMS befestigen.
-4. Das Tag (NTAG215 auf der Spule) muss vor der dünnen Wand liegen, Abstand unter 3 mm.
-
-Passt die Platine zu locker oder zu stramm: `fit` in der SCAD-Datei (und in `build_holder.py`) um 0,1 ändern.
+1. Doppelseitiges Klebeband in die flache Mulde (0,6 mm tief) kleben, die Platine mit der **Rückseite** aufkleben. Die Spulenseite (Chip, Antenne) zeigt vom Halter weg zum Tag.
+2. Das Fenster am Rand lässt die Stiftleiste und das Dupont-Kabel durch.
+3. Zweites Klebeband auf die Unterseite der Platte und ans AMS kleben. Für die Hitze beim Trocknen (bis 65 °C) Klebeband für hohe Temperaturen nehmen, z. B. 3M VHB.
+4. Abstand zwischen Platine und NFC-Tag der Spule unter 3 cm.

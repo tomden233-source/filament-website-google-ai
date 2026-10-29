@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.99 (Spulen-Zustand, Gist-Cloud & Neustart)**. Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **2.00 (Flacher RC522-Halter)**. Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Inhalt
 
@@ -56,9 +56,9 @@ Ordner `hardware/ams-nfc/`:
 |---|---|
 | `README.md` | Pin-Plan, Einbau, Aufspielen, Testen |
 | `filament-ams.yaml` | ESPHome-Konfiguration (mit `esphome config` geprüft: gültig) |
-| `holder/` | RC522-Halter für PETG/ASA: `rc522_holder.stl` (Druck), `.scad` (anpassbar), `.svg` (Zeichnung mit Maßen) |
+| `holder/` | Flacher RC522-Halter zum Kleben (PETG/ASA): `rc522_holder.stl` (Druck), `.scad` (anpassbar), `.svg` (Zeichnung mit Maßen) |
 
-**Teile:** ESP32 (30 oder 38 Pins), 5× RC522, NTAG215-Tags, Dupont-Kabel, M3-Schrauben.
+**Teile:** ESP32 (30 oder 38 Pins), 5× RC522, NTAG215-Tags, Dupont-Kabel, doppelseitiges Klebeband.
 
 **Pin-Plan:**
 
@@ -72,7 +72,7 @@ Ordner `hardware/ams-nfc/`:
 
 **Ablauf:**
 
-1. Halter drucken (Vorderseite aufs Druckbett, PETG oder ASA, 0,2 mm, 4 Wände), Platinen einschieben.
+1. Halter drucken (flach aufs Bett, PETG oder ASA, 0,2 mm, 3 Wände), Platine mit der Rückseite aufkleben, Halter mit Klebeband ans AMS.
 2. ESPHome Device Builder in Home Assistant, neues Gerät `filament-ams`, `filament-ams.yaml` einfügen, Secrets eintragen (`wifi_ssid`, `wifi_password`, `filament_ams_api_key`, `filament_ams_ota`), per USB-C aufspielen.
 3. Das Gerät in Home Assistant hinzufügen. Es liefert `sensor.filament_ams_slot_1_tag` bis `slot_5_tag`.
 4. In der App: Home-Assistant-Zugang eintragen, im Meldungen-Tab „NFC-Leser“ einschalten. Die App findet die Sensoren selbst.
@@ -85,7 +85,7 @@ Ordner `hardware/ams-nfc/`:
 - Slot gilt erst nach 10 Minuten ohne Tag als leer (`remove_after`), weil sich die Spule beim Drucken dreht.
 - Die App fragt Home Assistant nur ab, solange der Tab sichtbar ist.
 
-**Einbau:** ESP32 außen montieren (innen bis 65 °C beim Trocknen), nur die flachen RC522-Platinen ins AMS, Abstand zum Tag unter 3 cm, nicht bohren. Die genaue Innenform des AMS 2 Pro ist nicht vermessen, der Halter ist deshalb allgemein gehalten (M3-Ohren, Klebeband oder Kabelbinder).
+**Einbau:** ESP32 außen montieren (innen bis 65 °C beim Trocknen), nur die flachen RC522-Platinen ins AMS, Abstand zum Tag unter 3 cm, nicht bohren. Die genaue Innenform des AMS 2 Pro ist nicht vermessen, der Halter ist deshalb eine flache Platte ohne Seitenteile, die mit doppelseitigem Klebeband am AMS und an der Platine klebt.
 
 ## Cloud-Speicher (privater GitHub-Gist)
 
