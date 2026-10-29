@@ -176,6 +176,13 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
     safeStorage.setItem('filamenthub_ams_drying_state', JSON.stringify(nextDrying));
     window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: nextDrying }));
 
+    const revertDrying = () => {
+      const off = { isDrying: false, startTimestamp: 0, durationHours: 0, targetTemp: 50 };
+      setLocalDrying(off);
+      safeStorage.setItem('filamenthub_ams_drying_state', JSON.stringify(off));
+      window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: off }));
+    };
+
     try {
       const res = await printerApi.amsDrying({
         amsId: 0,
@@ -208,17 +215,13 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
           addSystemLog('drucker', 'AMS Trocknung gestoppt', 'Bambu AMS', 'info');
         }
       } else {
-        setActionToast({
-          text: start ? `☀️ Trocknung gestartet (${amsDryHours}h @ ${amsDryTemp}°C • 17% rF Ziel)` : 'Trocknung gestoppt',
-          ok: true
-        });
+        revertDrying();
+        setActionToast({ text: data?.error || 'Trocknung wurde vom Drucker/AMS nicht angenommen. Verbindung und Entwickler-Modus prüfen.', ok: false });
       }
     } catch {
-      setActionToast({
-        text: start ? `☀️ Trocknung lokal aktiv (${amsDryHours}h @ ${amsDryTemp}°C)` : 'Trocknung beendet',
-        ok: true
-      });
-    } finally {
+      revertDrying();
+      setActionToast({ text: 'Verbindungsfehler: Trocknung nicht gesendet.', ok: false });
+        } finally {
       setDryLoading(false);
     }
   };

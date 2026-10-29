@@ -69,11 +69,11 @@ export function renderSpoolLabel(spool: Spool, o: LabelOptions): Bitmap {
   // QR links: so groß wie möglich, ganzzahlige Modulgröße
   const qr = QRCode.create(o.qrText, { errorCorrectionLevel: 'L' });
   const n = qr.modules.size;
-  const quiet = 2;
-  const avail = h - 4;
+  const quiet = 1; // Etikettenpapier ist weiß, 1 Modul Rand im Bild reicht → größere Module = besser scanbar
+  const avail = h - 2;
   const scale = Math.max(1, Math.floor(avail / (n + quiet * 2)));
   const side = (n + quiet * 2) * scale;
-  const qx = 4;
+  const qx = 3;
   const qy = Math.floor((h - side) / 2);
   const tx = qx + side + 6;
 

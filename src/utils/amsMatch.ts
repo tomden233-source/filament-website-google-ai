@@ -45,9 +45,28 @@ export function readTrays(ams: any): HwTray[] {
   });
 }
 
+/** Externe Spule (Spulenhalter hinten, `vt_tray`). Slot-Nr. 5, zählt NICHT zum AMS. Null = Drucker hat nichts gemeldet. */
+export const EXTERNAL_SLOT = 5;
+export function readExternal(vt: any): HwTray | null {
+  if (!vt || typeof vt !== 'object') return null;
+  const type = String(vt.tray_type || '').trim();
+  const color = hexOf(Array.isArray(vt.cols) && vt.cols.length ? vt.cols[0] : vt.tray_color);
+  return {
+    slot: EXTERNAL_SLOT,
+    empty: !type,
+    type,
+    colorHex: type ? color : null,
+    brand: String(vt.tray_sub_brands || '').trim(),
+    minTemp: vt.nozzle_temp_min != null ? Number(vt.nozzle_temp_min) : undefined,
+    maxTemp: vt.nozzle_temp_max != null ? Number(vt.nozzle_temp_max) : undefined,
+    remain: vt.remain != null ? Number(vt.remain) : undefined
+  };
+}
+
 /** Aktiver Slot (1-4) laut Drucker, sonst null. tray_now zählt über alle AMS: 0-3 = erste Einheit, 254 = extern, 255 = keiner. */
 export function activeSlotFromPrinter(ams: any): number | null {
   const n = Number(ams?.tray_now);
+  if (n === 254) return EXTERNAL_SLOT; // externe Spule aktiv
   return Number.isInteger(n) && n >= 0 && n <= 3 ? n + 1 : null;
 }
 

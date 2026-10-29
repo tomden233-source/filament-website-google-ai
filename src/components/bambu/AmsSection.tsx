@@ -3,7 +3,7 @@ import { Box, RefreshCw, Droplets, Sun, Square, Nfc, AlertTriangle } from 'lucid
 import { safeStorage } from '../../utils/safeStorage';
 import { addSystemLog } from '../../utils/logService';
 import type { PrinterExpandedPanelProps as ParentProps } from './PrinterExpandedPanel';
-import { readTrays, activeSlotFromPrinter, syncSlots, mismatch } from '../../utils/amsMatch';
+import { readTrays, readExternal, activeSlotFromPrinter, syncSlots, mismatch, EXTERNAL_SLOT } from '../../utils/amsMatch';
 import { SpoolPicker } from '../SpoolPicker';
 import { SlotTagSheet } from './SlotTagSheet';
 
@@ -55,6 +55,7 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
   const [pickSlot, setPickSlot] = useState<number | null>(null);
   const [tagSlot, setTagSlot] = useState<number | null>(null);
   const trays = connected ? readTrays(liveState.data.ams) : [];
+  const ext = connected ? readExternal(liveState.data.vt_tray) : null;
   const hasHw = trays.length > 0;
   const printerActive = connected ? activeSlotFromPrinter(liveState.data.ams) : null;
   const shownActive = printerActive ?? activeSlot;
@@ -69,7 +70,8 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
       setActionToast({ text: 'Der Drucker hat noch keine AMS-Daten geschickt. Kurz warten und nochmal tippen.', ok: false });
       return;
     }
-    const { slots, lines } = syncSlots(spools, trays, amsSlots);
+    const { slots, lines: rawLines } = syncSlots(spools, ext ? [...trays, ext] : trays, amsSlots);
+    const lines = rawLines.map(l => l.replace(/^Slot 5:/, 'Extern:'));
     setAmsSlots(slots);
     safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(slots));
     window.dispatchEvent(new CustomEvent('filamenthub_drying_update', { detail: { sync: true } }));
@@ -159,14 +161,48 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
               })}
             </div>
 
+            {/* 5. Spule: extern (Spulenhalter hinten). Zählt NICHT zum AMS und steht nicht in der AMS-Trocknung. */}
+            {(() => {
+              const spool = spools.find(s => s.id === (amsSlots[EXTERNAL_SLOT] || ''));
+              const hwFilled = Boolean(ext && !ext.empty);
+              const color = hwFilled ? ext!.colorHex || '#888888' : spool?.colorHex || null;
+              const brand = spool ? spool.brand : hwFilled ? ext!.brand || '–' : '';
+              const material = hwFilled ? ext!.type : spool ? spool.material : '';
+              const emptyAll = !color && !brand && !material;
+              const isActive = shownActive === EXTERNAL_SLOT;
+              const wrong = mismatch(spool, ext || undefined);
+              return (
+                <div
+                  onClick={() => setPickSlot(EXTERNAL_SLOT)}
+                  title="Externe Spule (nicht im AMS). Tippen = Spule wählen"
+                  className={`rounded-xl border px-2 py-1.5 flex items-center gap-2 cursor-pointer transition active:scale-[0.98] ${isActive ? 'ring-2 ring-[#00AE42]/80' : ''} ${emptyAll ? 'border-dashed' : ''}`}
+                  style={{ backgroundColor: 'var(--app-card-sub)', borderColor: color && !emptyAll ? `${color}90` : 'var(--app-border)' }}
+                >
+                  <span
+                    className="w-5 h-5 rounded-full border border-black/30 shadow-sm shrink-0"
+                    style={color ? { backgroundColor: color } : { border: '1px dashed var(--app-border)' }}
+                  />
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <div className="text-[11px] font-extrabold flex items-center gap-1" style={{ color: 'var(--app-text)' }}>
+                      Extern (5. Spule)
+                      {wrong && <AlertTriangle className="w-3 h-3 text-amber-400" />}
+                    </div>
+                    <div className="text-[10px] truncate" style={{ color: 'var(--app-text-muted)' }}>
+                      {emptyAll ? 'leer' : `${brand}${brand && material ? ' · ' : ''}${material}`} · nicht im AMS
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {pickSlot !== null && (
               <SpoolPicker
                 spools={spools}
-                title={`Spule für Slot ${pickSlot}`}
+                title={pickSlot === EXTERNAL_SLOT ? 'Spule für Extern (5.)' : `Spule für Slot ${pickSlot}`}
                 selectedId={amsSlots[pickSlot] || ''}
                 allowClear
                 hint={(() => {
-                  const t = trays.find(x => x.slot === pickSlot);
+                  const t = pickSlot === EXTERNAL_SLOT ? ext : trays.find(x => x.slot === pickSlot);
                   return t && !t.empty ? { material: t.type, colorHex: t.colorHex || undefined } : undefined;
                 })()}
                 onClose={() => setPickSlot(null)}

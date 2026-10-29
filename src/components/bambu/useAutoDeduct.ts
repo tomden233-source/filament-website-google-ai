@@ -47,7 +47,8 @@ export function useAutoDeduct({ spools, amsSlots, onDeductWeight, isConnected, g
           const { spools: sp, amsSlots: slots, notify: toast } = latest.current;
           const perSpool = new Map<string, number>();
           for (const f of task.filaments) {
-            const assigned = f.slot !== undefined ? slots[f.slot + 1] : undefined;
+            // Slot 254/255 = externe Spule → eigener Eintrag 5 (nicht AMS)
+            const assigned = f.slot === undefined ? undefined : f.slot >= 254 * 4 ? slots[5] : slots[f.slot + 1];
             const id = assigned && sp.some(s => s.id === assigned) ? assigned : bestSpool(sp, f.material, f.colorHex);
             if (id && f.grams > 0) perSpool.set(id, (perSpool.get(id) || 0) + f.grams);
           }

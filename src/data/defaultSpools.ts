@@ -1024,5 +1024,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.76',
+    label: '1.76 (Externe Spule)',
+    releaseDate: '29.10.2026',
+    description: 'Die externe Spule ist jetzt als 5. Spule da (zählt nicht zum AMS). AMS-Trocknung meldet ehrlich Erfolg oder Fehler. QR-Codes auf Etiketten sind größer.',
+    features: [
+      '🧵 Externe Spule: Neue 5. Karte „Extern“ mit Farbe und Material direkt vom Drucker. Spule zuweisen per Tippen, auch beim Abgleich mit dem Drucker',
+      '🔒 Nicht im AMS: Die externe Spule ist getrennt. AMS-Trocknung und AMS-Gutschrift betreffen nur die 4 AMS-Slots, Auto-Abzug nutzt sie nur bei Druck von extern',
+      '🔥 AMS-Trocknung per App: Start und Stopp senden wirklich an den Drucker. Klappt es nicht, siehst du jetzt den Fehler statt einer falschen Erfolgsmeldung',
+      '🔳 QR-Etiketten: Kleinerer weißer Rand, dadurch größere Punkte und besser scanbar',
+      '🔢 Aktualisierte Zahlen-FunFacts: Codezeilen, 5 Chats, 49 Commits und 76 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
