@@ -1773,5 +1773,19 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.121',
+    label: '1.121 (QR zeigt Tag-Fenster)',
+    releaseDate: '30.10.2026',
+    description: 'QR-Link öffnet immer das Tag-Fenster der Spule (nicht das Bearbeiten-Formular), auch wenn die Webseite noch einen alten Stand im Cache hatte.',
+    features: [
+      '🔄 Beim Öffnen eines QR-Links (#s=ID) sucht die Webseite sofort nach der neuesten Version und lädt sie von selbst nach',
+      '🧵 Danach erscheint das Fenster „Tag erfolgreich gelesen & zugeordnet“ mit Gramm ±, Spule ändern und AMS-Slot',
+      '🔢 Aktualisierte Zahlen-FunFacts: 94 Commits und 121 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

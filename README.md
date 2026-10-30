@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.120 (NFC-Schreiben stabil)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.120 im Paket 2.0.120, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.121 (QR zeigt Tag-Fenster)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.121 im Paket 2.0.121, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.120 (NFC-Schreiben stabil)**. Die Zählung läuft ab 1.100
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29./30.10.2026 (1.105 bis 1.120)
+## Neu am 29./30.10.2026 (1.105 bis 1.121)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -75,6 +75,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.118 | Tag beschreiben/löschen wartet im selben Fenster auf den Tag und schreibt sofort; „Spule ändern“ zeigt alle Spulen zur Auswahl |
 | 1.119 | QR-Etikett scannen öffnet die App und zeigt gleich die passende Spule im Tag-Fenster |
 | 1.120 | NFC-Schreiben stabil: Fehler „Tag is out of date“ behoben (Android-Leser startet nicht mehr ständig neu), braucht neue APK (`NATIVE_API` = 6) |
+| 1.121 | QR zeigt Tag-Fenster: QR-Link sucht sofort die neueste Webseiten-Version und öffnet das Tag-Fenster der Spule |
 
 ### Druck-Wächter (1.105)
 

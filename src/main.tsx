@@ -22,6 +22,8 @@ if (!IS_NATIVE && typeof window !== 'undefined' && 'serviceWorker' in navigator)
         // Neue Version automatisch holen: alle 15 Minuten und sobald die App wieder in den Vordergrund kommt.
         // Die neue Version wird dann ohne Zutun geladen (registerType: autoUpdate).
         const check = () => registration.update().catch(() => {});
+        // QR-Link (#s=ID): sofort nach neuer Version suchen, damit nicht ein alter Stand das Bearbeiten-Formular zeigt
+        if (/^#s=/.test(window.location.hash)) check();
         setInterval(check, 15 * 60 * 1000);
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') check();
