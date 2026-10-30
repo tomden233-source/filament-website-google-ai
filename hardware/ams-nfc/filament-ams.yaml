@@ -248,7 +248,7 @@ sensor:
   - platform: sht3xd
     i2c_id: bus_box
     address: 0x44
-    update_interval: 60s
+    update_interval: 10s
     temperature:
       name: "Box Temperatur"
     humidity:
@@ -258,7 +258,7 @@ sensor:
   - platform: sht3xd
     i2c_id: bus_room
     address: 0x44
-    update_interval: 60s
+    update_interval: 10s
     temperature:
       name: "Raum Temperatur"
     humidity:

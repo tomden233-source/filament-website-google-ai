@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.124 (Druck-Planer & Box-Klima)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.124 im Paket 2.0.124, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.125 (Sensor alle 10 s)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.125 im Paket 2.0.125, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.124 (Druck-Planer & Box-Klima)**. Die Zählung läuft ab 1
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29./30.10.2026 (1.105 bis 1.124)
+## Neu am 29./30.10.2026 (1.105 bis 1.125)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -79,6 +79,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.122 | Aus vor Trocknen: „Nach Druck aus“ ist stärker als „Nach Druck trocknen“ (wählt das Trocknen ab, blockiert es) |
 | 1.123 | Aus beendet Trocknen: „Nach Druck aus“ beendet laufende Trocknung, wartet 3 Min. aufs Auslaufen des AMS, schaltet dann aus; kein Auto-Trocknen mehr bei gewähltem Aus |
 | 1.124 | Druck-Planer: Fenster bei neuem Druck (danach trocknen/aus, Druck verzögern in Stunden oder um Uhrzeit, Trocknung läuft mit Restzeit weiter); Box-Sensor und AMS-Klima in °C unter dem AMS |
+| 1.125 | Sensor alle 10 s: SHT31-D misst alle 10 s (YAML neu aufspielen), App liest alle 10 s |
 
 ### Druck-Wächter (1.105)
 

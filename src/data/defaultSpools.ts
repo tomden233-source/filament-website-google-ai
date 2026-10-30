@@ -1836,5 +1836,19 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.125',
+    label: '1.125 (Sensor alle 10 s)',
+    releaseDate: '30.10.2026',
+    description: 'Box- und Raum-Sensor messen und die App liest sie jetzt alle 10 Sekunden.',
+    features: [
+      '⏱️ ESP32: SHT31-D misst alle 10 s statt alle 60 s (neu aufspielen nötig)',
+      '📲 App: liest die Sensorwerte aus Home Assistant alle 10 s statt alle 2 min',
+      '🔢 Aktualisierte Zahlen-FunFacts: 98 Commits und 125 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

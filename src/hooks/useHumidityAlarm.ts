@@ -45,7 +45,7 @@ interface AlarmState {
 const KEY = 'filamenthub_humidity_alarm_v1';
 const HOLD_MS = 5 * 60_000;
 const REPEAT_MS = 12 * 3600_000;
-const POLL_MS = 120_000;
+const POLL_MS = 10_000; // Box-/Raum-Sensor alle 10 Sekunden
 
 function readState(): Record<Source, AlarmState> {
   const empty = (): AlarmState => ({ highSince: null, alertedAt: 0, armed: true });
