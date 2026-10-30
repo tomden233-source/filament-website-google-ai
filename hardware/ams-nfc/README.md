@@ -50,12 +50,13 @@ Ein kleiner I2C-Sensor misst Luftfeuchte und Temperatur, z. B. in der Filament-L
 
 ## Bambu-Spulen und eigene Tags
 
-Bambu-Spulen haben eigene RFID-Chips (MIFARE Classic, 4-Byte-Nummer) innen an der Nabe, auf beiden Seiten. Die RC522 könnten die auch lesen. Damit nichts durcheinanderkommt:
+**Kurz:** Bambu-Spulen bekommen **keinen** eigenen Tag. Nur Spulen anderer Marken (Sunlu, Eryone, Polymaker …) bekommen einen NTAG-Aufkleber.
 
-- **Die Leser ignorieren Bambu-Chips.** In der YAML zählen nur Tags mit 7-Byte-Nummer (deine NTAG-Aufkleber, `own_uid_min: "20"`). Fremde Chips stehen nur im ESPHome-Log.
-- **Bambu-Spulen brauchen keinen eigenen Tag.** Das AMS liest ihren Chip selbst und meldet eine Kennung an die App. Die App merkt sich Kennung → Spule (beim ersten Mal von selbst, wenn nur eine Bambu-Spule mit dem Material und der Farbe passt, sonst sobald du im Slot die Spule wählst).
-- **Eigene Tags außen anbringen:** NTAG-Aufkleber auf den äußeren Rand der Spulenseite kleben, den Leser genau dort hinsetzen. Der Bambu-Chip sitzt innen an der Nabe, ca. 5 cm weiter weg, also außerhalb der Reichweite (RC522 ca. 2–3 cm).
-- Liegen trotzdem mal zwei Chips vor einem Leser, nimmt der Leser den eigenen, sobald er ihn sieht. Ein Bambu-Chip löscht den Slot nie.
+- **Bambu-Spulen liest das AMS selbst.** Es meldet über den Drucker Kennung, Sorte (z. B. „PETG HF“), Farbe, Rest-% und Gewicht an die App. Die App liest das nur mit, sie kopiert oder beschreibt den Chip nie. Neue Bambu-Spule im AMS → Frage „Als neue Spule anlegen“ (alles vorausgefüllt) oder „Ist schon in der App“. Danach erkennt die App sie bei jedem Einlegen von selbst.
+- **Die eigenen Leser ignorieren Bambu-Chips.** Nur Tags mit 7-Byte-Nummer zählen (NTAG, `own_uid_min: "20"`), Bambu-Chips (MIFARE Classic, 4 Byte) stehen nur im Log und löschen nie einen Slot.
+- **Bambu-Leser im AMS abschalten geht nicht** (nur das automatische Lesen beim Einlegen lässt sich am Drucker in den AMS-Einstellungen ausschalten). Ist auch nicht nötig.
+- **Eigene Leser nicht direkt auf den Bambu-Leser kleben.** Zwei Leser direkt übereinander stören sich gegenseitig (gleiche Funkfrequenz 13,56 MHz), dann liest womöglich auch das AMS die Bambu-Spulen nicht mehr. Mindestens ca. 3–4 cm Abstand, am besten an die andere Stelle der Spulenseite.
+- **Eigene Tags außen anbringen:** NTAG-Aufkleber auf den äußeren Rand der Spulenseite, den Leser genau dorthin. Der Bambu-Chip sitzt innen an der Nabe, außerhalb der Reichweite (RC522 ca. 2–3 cm).
 
 ## Einbau im AMS 2 Pro
 

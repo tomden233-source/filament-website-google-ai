@@ -1,17 +1,29 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Spool } from '../types/filament';
 import { readTrays, colorDistance, baseMaterial, COLOR_TOLERANCE } from '../utils/amsMatch';
 import { getTagMappings, mapTagToSpool } from '../utils/nfcManager';
 import { addSystemLog } from '../utils/logService';
+import { readBambuTrays, type BambuTrayInfo } from '../utils/bambuTray';
+import { safeStorage } from '../utils/safeStorage';
 
-// Bambu-Spulen brauchen keinen eigenen NFC-Tag: Das AMS liest ihren RFID-Chip selbst und meldet eine Kennung (tray_uuid).
-// Die App merkt sich Kennung → Spule und ordnet die Spule beim nächsten Einlegen automatisch dem Slot zu.
-//  - Kennung bekannt → Slot zuordnen
-//  - unbekannt, aber genau EINE Bambu-Spule passt (Material + Farbe) → automatisch merken
-//  - sonst: sobald du im Slot die Spule wählst, wird sie gemerkt (learn)
-// Die eigenen NFC-Leser (RC522) ignorieren Bambu-Chips (siehe hardware/ams-nfc/filament-ams.yaml), es gibt also keine Verwechslung.
+// Bambu-Spulen brauchen keinen eigenen NFC-Tag: Das AMS liest ihren RFID-Chip selbst (nur lesen, nichts wird kopiert
+// oder beschrieben) und meldet Kennung, Sorte, Farbe, Rest-% und Gewicht an die App.
+//  - Kennung bekannt (an der Spule gespeichert oder gemerkt) → Spule automatisch in den Slot
+//  - unbekannt, genau EINE passende Bambu-Spule ohne Kennung → automatisch verknüpfen
+//  - sonst: Frage „Neue Bambu-Spule erkannt: anlegen / ist schon da / später“
+// Die eigenen NFC-Leser (RC522) ignorieren Bambu-Chips (siehe hardware/ams-nfc/filament-ams.yaml).
 
 const key = (rfid: string) => `bambu:${rfid.toLowerCase()}`;
+const DISMISS_KEY = 'filamenthub_bambu_dismissed_v1';
+
+function readDismissed(): string[] {
+  try {
+    const v = JSON.parse(safeStorage.getItem(DISMISS_KEY) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
 
 interface Params {
   ams: any;
@@ -24,62 +36,92 @@ interface Params {
 
 export function bambuSpoolFor(rfid: string, spools: Spool[]): string {
   if (!rfid) return '';
+  const n = rfid.toLowerCase();
+  const own = spools.find(s => s.bambuRfid && s.bambuRfid.toLowerCase() === n);
+  if (own) return own.id;
   const id = getTagMappings()[key(rfid)];
   return id && spools.some(s => s.id === id) ? id : '';
+}
+
+/** Bambu-Spulen der App, die schon mit einem Chip verknüpft sind */
+function linkedIds(spools: Spool[]): Set<string> {
+  const maps = getTagMappings();
+  const ids = new Set(spools.filter(s => s.bambuRfid).map(s => s.id));
+  Object.entries(maps).forEach(([k, id]) => {
+    if (k.startsWith('bambu:')) ids.add(id);
+  });
+  return ids;
 }
 
 export function useBambuRfid(p: Params) {
   const latest = useRef(p);
   latest.current = p;
   const done = useRef<Record<number, string>>({});
+  const [unknown, setUnknown] = useState<BambuTrayInfo[]>([]);
 
   const trays = p.connected ? readTrays(p.ams) : [];
   const sig = trays.map(t => `${t.slot}:${t.rfid || ''}`).join('|');
+  const spoolSig = p.spools.map(s => `${s.id}:${s.bambuRfid || ''}`).join('|');
 
   useEffect(() => {
     if (!p.connected) return;
     const { spools, amsSlots, handleSetAmsSlot, notify } = latest.current;
-    for (const t of readTrays(latest.current.ams)) {
-      if (!t.rfid) {
-        done.current[t.slot] = '';
-        continue;
-      }
-      if (done.current[t.slot] === t.rfid && amsSlots[t.slot]) continue;
-      let spoolId = bambuSpoolFor(t.rfid, spools);
+    const dismissed = readDismissed();
+    const open: BambuTrayInfo[] = [];
+    for (const b of readBambuTrays(latest.current.ams)) {
+      let spoolId = bambuSpoolFor(b.rfid, spools);
       if (!spoolId) {
-        // genau eine passende Bambu-Spule? Dann gleich merken
+        const linked = linkedIds(spools);
         const cands = spools.filter(
           s =>
             /bambu/i.test(s.brand || '') &&
-            baseMaterial(s.material) === baseMaterial(t.type) &&
-            (!t.colorHex || colorDistance(s.colorHex || '#888888', t.colorHex) <= COLOR_TOLERANCE) &&
-            !Object.values(getTagMappings()).includes(s.id)
+            !linked.has(s.id) &&
+            baseMaterial(s.material) === baseMaterial(b.type) &&
+            colorDistance(s.colorHex || '#888888', b.colorHex) <= COLOR_TOLERANCE
         );
         if (cands.length === 1) {
           spoolId = cands[0].id;
-          mapTagToSpool(key(t.rfid), spoolId);
-          addSystemLog('spule', `Bambu-Spule erkannt und gemerkt: ${cands[0].name}`, `Slot ${t.slot} · ${t.rfid}`, 'success');
+          mapTagToSpool(key(b.rfid), spoolId);
+          addSystemLog('spule', `Bambu-Spule erkannt und verknüpft: ${cands[0].name}`, `Slot ${b.slot} · ${b.rfid}`, 'success');
         }
       }
-      done.current[t.slot] = t.rfid;
-      if (spoolId && amsSlots[t.slot] !== spoolId) {
-        handleSetAmsSlot(t.slot, spoolId);
+      if (!spoolId) {
+        if (!dismissed.includes(b.rfid)) open.push(b);
+        done.current[b.slot] = '';
+        continue;
+      }
+      if (done.current[b.slot] === b.rfid && amsSlots[b.slot] === spoolId) continue;
+      done.current[b.slot] = b.rfid;
+      if (amsSlots[b.slot] !== spoolId) {
+        handleSetAmsSlot(b.slot, spoolId);
         const sp = spools.find(s => s.id === spoolId);
-        notify({ text: `Bambu-Spule ${sp ? sp.name : ''} in Slot ${t.slot} erkannt.`, ok: true });
+        notify({ text: `Bambu-Spule ${sp ? sp.name : ''} in Slot ${b.slot} erkannt.`, ok: true });
       }
     }
+    // Slots ohne Bambu-Chip zurücksetzen
+    for (const t of readTrays(latest.current.ams)) if (!t.rfid) done.current[t.slot] = '';
+    setUnknown(prev => (prev.map(x => x.rfid).join() === open.map(x => x.rfid).join() ? prev : open));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.connected, sig]);
+  }, [p.connected, sig, spoolSig]);
 
   /** Spule für die Bambu-Kennung in diesem Slot merken (wenn du im Slot eine Spule wählst) */
   const learn = (slot: number, spoolId: string) => {
     const t = readTrays(latest.current.ams).find(x => x.slot === slot);
     if (!t?.rfid || !spoolId) return;
-    if (getTagMappings()[key(t.rfid)] === spoolId) return;
+    if (bambuSpoolFor(t.rfid, latest.current.spools) === spoolId) return;
     mapTagToSpool(key(t.rfid), spoolId);
     done.current[slot] = '';
-    addSystemLog('spule', 'Bambu-Spule gemerkt', `Slot ${slot} · ${t.rfid}`, 'success');
+    setUnknown(prev => prev.filter(x => x.rfid !== t.rfid));
+    addSystemLog('spule', 'Bambu-Spule verknüpft', `Slot ${slot} · ${t.rfid}`, 'success');
   };
 
-  return { learn };
+  /** „Später“: für diese Spule nicht mehr fragen (bis sie neu verknüpft wird) */
+  const dismiss = (rfid: string) => {
+    const list = readDismissed().filter(x => x !== rfid);
+    list.push(rfid);
+    safeStorage.setItem(DISMISS_KEY, JSON.stringify(list.slice(-50)));
+    setUnknown(prev => prev.filter(x => x.rfid !== rfid));
+  };
+
+  return { learn, unknown, dismiss };
 }

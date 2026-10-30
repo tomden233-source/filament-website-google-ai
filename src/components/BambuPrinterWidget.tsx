@@ -59,6 +59,8 @@ import { setHaAutoOff } from '../utils/haAutoOff';
 import { addPrintRecord, addPrintUsage, capturePrintPhoto } from '../utils/printLog';
 import { useAmsNfcReaders } from '../hooks/useAmsNfcReaders';
 import { useBambuRfid } from '../hooks/useBambuRfid';
+import { BambuSpoolSheet } from './bambu/BambuSpoolSheet';
+import { spoolFromBambu } from '../utils/bambuTray';
 import { LanDeductPrompt } from './bambu/LanDeductPrompt';
 import type { PendingDeduct } from '../utils/printUsage';
 
@@ -67,7 +69,8 @@ const BambuSettingsModal = lazy(() => import('./BambuSettingsModal').then(m => (
 export interface BambuPrinterWidgetProps {
   spools: Spool[];
   onDeductWeight: (spoolId: string, grams: number) => void;
-  onOpenNewSpool: () => void;
+  /** Formular „Neue Spule“ öffnen, optional vorbefüllt (z. B. aus einem Bambu-Chip) */
+  onOpenNewSpool: (prefill?: Partial<Spool>) => void;
   onApplyDryingCredit?: (spoolId: string, driedHours: number, dryTemp?: number) => void;
   viewMode?: ViewMode;
   /** Handy-Ansicht: ohne Druckauftrag-Kasten und Temperaturen */
@@ -119,7 +122,7 @@ const DEFAULT_LIVE_STATE: BambuLiveState = {
 export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   spools,
   onDeductWeight,
-  onOpenNewSpool: _onOpenNewSpool,
+  onOpenNewSpool,
   onApplyDryingCredit,
   viewMode,
   compact = false
@@ -186,6 +189,9 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     handleSetAmsSlot,
     notify: setActionToast
   });
+  // Frage „Neue Bambu-Spule erkannt“: in dieser Sitzung ausgeblendete Kennungen (z. B. während „Neue Spule“ offen ist)
+  const [bambuHidden, setBambuHidden] = useState<string[]>([]);
+  const bambuOpen = bambuRfid.unknown.filter(b => !bambuHidden.includes(b.rfid));
   const handleSetAmsSlotNfc = (slot: number, spoolId: string) => {
     nfcReaders.learn(slot, spoolId); // unbekannten Tag in diesem Slot mit der gewählten Spule verknüpfen
     bambuRfid.learn(slot, spoolId); // Bambu-Spule (RFID vom AMS) ebenso
@@ -1237,6 +1243,23 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       {/* ZERO LAYOUT SHIFT: Floating Fixed Toast am Bildschirmrand */}
       {pendingDeduct && (
         <LanDeductPrompt pending={pendingDeduct} spools={spools} onDeduct={(sid, g) => deductRef.current(pendingDeduct.printId, sid, g)} onClose={() => setPendingDeduct(null)} />
+      )}
+      {bambuOpen.length > 0 && !dryAfter.offer && !pendingDeduct && (
+        <BambuSpoolSheet
+          items={bambuOpen}
+          spools={spools}
+          onCreate={b => {
+            setBambuHidden(h => [...h, b.rfid]);
+            onOpenNewSpool(spoolFromBambu(b)); // nach dem Speichern erkennt die App die Spule über ihre Kennung
+          }}
+          onLink={(b, spoolId) => {
+            handleSetAmsSlot(b.slot, spoolId);
+            bambuRfid.learn(b.slot, spoolId);
+            setActionToast({ text: `Bambu-Spule in Slot ${b.slot} verknüpft.`, ok: true });
+          }}
+          onLater={b => bambuRfid.dismiss(b.rfid)}
+          onClose={() => setBambuHidden(h => [...h, ...bambuOpen.map(b => b.rfid)])}
+        />
       )}
       {dryAfter.offer && (
         <DrySuggestSheet

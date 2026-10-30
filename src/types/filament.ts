@@ -35,6 +35,7 @@ export interface Spool {
   sealed?: boolean; // true = Original verschweißt/ungeöffnet (muss nicht getrocknet werden)
   inEibos?: boolean; // true = liegt im Eibos-Vakuumbeutel (Beutel-Tara beim Wiegen)
   needsDrying?: boolean; // true = muss getrocknet werden, bis „Trocknen“ bestätigt wird
+  bambuRfid?: string; // Kennung der Bambu-Spule (RFID, liest das AMS selbst). Damit erkennt die App die Spule im AMS ohne eigenen Tag
 }
 
 export interface HistoryEntry {

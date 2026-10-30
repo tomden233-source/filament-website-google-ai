@@ -127,9 +127,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
               viewMode={viewMode}
               onDeductWeight={handleDeductWeight}
               onApplyDryingCredit={handleApplyDryingCredit}
-              onOpenNewSpool={() => {
+              onOpenNewSpool={(prefill?: Partial<Spool>) => {
                 setSpoolToEdit(null);
-                setSpoolPrefill(null);
+                setSpoolPrefill(prefill || null);
                 setIsSpoolModalOpen(true);
               }}
             />

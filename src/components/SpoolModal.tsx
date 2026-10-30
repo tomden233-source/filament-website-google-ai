@@ -241,6 +241,9 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
     e.preventDefault();
     const finalBrand = isOtherBrand ? (customBrand.trim() || 'Sonstige') : brand;
     const finalSpool: Spool = {
+      // Felder, die das Formular nicht zeigt (NFC-Tag, Bambu-Kennung …), beim Speichern behalten.
+      // Vorher gingen z. B. nfcTagId und nfcWritten beim Bearbeiten verloren.
+      ...(spoolToEdit || (prefillData as Spool | null) || ({} as Spool)),
       id: spoolToEdit ? spoolToEdit.id : 'sp-' + Date.now(),
       brand: finalBrand,
       name: name.trim() || `${material} Basic ${colorName || 'Filament'}`,

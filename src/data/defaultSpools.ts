@@ -1629,5 +1629,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.112',
+    label: '1.112 (Bambu-Spulen anlegen)',
+    releaseDate: '30.10.2026',
+    description: 'Neue Bambu-Spule ins AMS gelegt: Die App fragt „Als neue Spule anlegen“ und füllt alles aus dem Chip aus, den das AMS gelesen hat (nur lesen, nichts kopiert). Bambu-Spulen brauchen keinen eigenen Tag.',
+    features: [
+      '🏷️ Neue Bambu-Spule im AMS: Fenster mit Sorte, Farbe, Rest-% und Slot',
+      '➕ „Als neue Spule anlegen“: Formular vorausgefüllt (Name, Material, Farbe, Gewicht aus Rest-%, Düsen- und Trockentemperatur)',
+      '🔗 „Ist schon in der App“: vorhandene Spule auswählen und verknüpfen',
+      '💾 Die Bambu-Kennung wird an der Spule gespeichert (geht mit dem Geräte-Sync auf alle Geräte)',
+      '🐛 Spule bearbeiten verliert NFC-Tag-Nummer und „NFC beschrieben“ nicht mehr',
+      '📝 Anleitung: eigene Leser nicht direkt auf den Bambu-Leser, Tags nur für andere Marken',
+      '🔢 Aktualisierte Zahlen-FunFacts: 85 Commits und 112 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

@@ -3,6 +3,7 @@ import { Search, X } from 'lucide-react';
 import { BambuPrinterWidget } from '../BambuPrinterWidget';
 import { LocationFilter } from '../workshop/LocationFilter';
 import { SpoolTile } from '../SpoolTile';
+import type { Spool } from '../../types/filament';
 
 export interface MobileAppViewProps {
   spools: any;
@@ -65,9 +66,9 @@ export const MobileAppView: React.FC<MobileAppViewProps> = ({
         viewMode={viewMode}
         onDeductWeight={handleDeductWeight}
         onApplyDryingCredit={handleApplyDryingCredit}
-        onOpenNewSpool={() => {
+        onOpenNewSpool={(prefill?: Partial<Spool>) => {
           setSpoolToEdit(null);
-          setSpoolPrefill(null);
+          setSpoolPrefill(prefill || null);
           setIsSpoolModalOpen(true);
         }}
       />
