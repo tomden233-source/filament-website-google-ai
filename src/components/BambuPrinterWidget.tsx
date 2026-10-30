@@ -322,6 +322,10 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       setActionToast({ text: 'Keine Trocknung nach dem Druck.', ok: true });
       return;
     }
+    if (autoOff.armed) {
+      setActionToast({ text: '„Nach Druck aus“ ist gewählt und gewinnt. Erst abwählen, dann trocknen.', ok: false });
+      return;
+    }
     const inAms = amsSpools();
     if (!inAms.length) {
       setActionToast({ text: 'Erst Spulen den AMS-Slots zuordnen.', ok: false });
@@ -334,7 +338,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   };
 
   const autoOff = useAutoPowerOff({
-    hold: dryAfter.plan.armed || dryLeftNow > 0,
+    hold: dryLeftNow > 0, // Aus nach Druck ist stärker als Trocknen nach Druck
     connected: Boolean(liveState.connected && liveState.receivingData !== false),
     gcodeState: liveState.data.gcode_state,
     jobName: liveState.data.subtask_name,
@@ -343,6 +347,10 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     refreshSwitch: () => void handleFetchSwitchStatus(),
     notify: setActionToast
   });
+  // Altzustand: beides gewählt → Aus nach Druck gewinnt, Trocknen nach Druck wird abgewählt
+  useEffect(() => {
+    if (autoOff.armed && dryAfter.plan.armed) disarmDryPlan();
+  }, [autoOff.armed, dryAfter.plan.armed]);
   const handleToggleAutoOff = () => {
     if (autoOff.armed) {
       disarmAutoOff();
@@ -354,16 +362,18 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
       setActionToast({ text: 'Dafür braucht die App Home Assistant mit Steckdose (Verbindungen).', ok: false });
       return;
     }
+    const dropDry = dryAfter.plan.armed;
+    if (dropDry) disarmDryPlan(); // Aus nach Druck ist stärker als Trocknen nach Druck
     armAutoOff(liveState.data.subtask_name || '');
     setActionToast({
-      text: dryAfter.plan.armed ? 'Drucker geht nach dem Druck und der Trocknung aus.' : 'Drucker wird nach dem Druck ausgeschaltet (sobald die Düse abgekühlt ist).',
+      text: dropDry ? 'Drucker geht nach dem Druck aus. Trocknen nach Druck ist abgewählt.' : 'Drucker wird nach dem Druck ausgeschaltet (sobald die Düse abgekühlt ist).',
       ok: true
     });
     addSystemLog('steckdose', 'Auto-Aus nach Druck gewählt', liveState.data.subtask_name || '', 'info');
   };
   // Auto-Aus auch ohne offene App: Automation in Home Assistant an, solange gewählt (nicht bei geplanter Trocknung,
   // die steuert die App, damit der Strom erst nach dem Trocknen ausgeht)
-  const haAutoOffWanted = autoOff.armed && !dryAfter.plan.armed;
+  const haAutoOffWanted = autoOff.armed;
   useEffect(() => {
     if (!haSwitchState.configured) return;
     void setHaAutoOff(haAutoOffWanted);
@@ -1266,6 +1276,11 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
           offer={dryAfter.offer}
           printRunning={printActive}
           onAfterPrint={o => {
+            if (autoOff.armed) {
+              setActionToast({ text: '„Nach Druck aus“ ist gewählt und gewinnt. Es wird nicht getrocknet.', ok: false });
+              dryAfter.closeOffer();
+              return;
+            }
             armDryPlan({ ...o, spoolIds: dryAfter.offer!.spools.map(x => x.id) }, printActive);
             setActionToast({ text: `Nach dem Druck wird getrocknet (${o.temp} °C, ${o.hours} h).`, ok: true });
             dryAfter.closeOffer();

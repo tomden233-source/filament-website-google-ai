@@ -1787,5 +1787,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.122',
+    label: '1.122 (Aus vor Trocknen)',
+    releaseDate: '30.10.2026',
+    description: '„Nach Druck aus“ ist jetzt stärker als „Nach Druck trocknen“: der Drucker geht aus, es wird nicht mehr nachgetrocknet.',
+    features: [
+      '⏻ „Nach Druck aus“ wählen → „Danach trocknen“ wird automatisch abgewählt',
+      '🚫 „Danach trocknen“ (auch der Vorschlag beim Einlegen) geht nicht, solange „Nach Druck aus“ gewählt ist, mit klarer Meldung',
+      '🏠 Die Home-Assistant-Automation „Aus nach Druck“ läuft jetzt immer mit, wenn gewählt',
+      '💧 Eine bereits laufende Trocknung (Jetzt trocknen) wird weiter abgewartet',
+      '🔢 Aktualisierte Zahlen-FunFacts: 95 Commits und 122 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
