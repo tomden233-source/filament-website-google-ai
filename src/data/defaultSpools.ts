@@ -1939,5 +1939,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.132',
+    label: '1.132 (Hellgrün 960 g, Isan zurück)',
+    releaseDate: '30.10.2026',
+    description: 'Bambu Hellgrün auf 960 g gesetzt. Isan PLA Plus Dunkelgrün wieder in der Liste, getrennt von Bambu Dunkelgrün.',
+    features: [
+      '🟢 Bambu PLA Basic Hellgrün: Restgewicht 960 g (Spule 100 g, Beutel 35 g, Silica 57 g bleiben als Tara)',
+      '🌲 Isan PLA Plus Dunkelgrün (alter Stand 740 g) wieder dabei, war im Diktat vergessen worden',
+      '🔀 Zwei Dunkelgrün sind getrennte Spulen: Bambu Lab PLA Basic und Isan PLA Plus, je eigene Nummer und Marke',
+      '🔢 Aktualisierte Zahlen-FunFacts: 23 Commits und 132 Revisionsstufen'
+    ],
+    spoolsSnapshot: MY_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
