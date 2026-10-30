@@ -31,11 +31,12 @@ export function paramsFromSpool(spool: Spool): SlotParams {
   return { colorHex: prof.colorHex, material: amsMaterial(spool.material), minTemp: prof.minTemp, maxTemp: prof.maxTemp };
 }
 
-/** slot = 1-4 */
+/** slot = 1-4, 5 = externe Spule */
 export async function sendToSlot(slot: number, p: SlotParams): Promise<SlotSendResult> {
   try {
     const res = await printerApi.amsFilament({
-      slotIdx: slot - 1,
+      slotIdx: slot === 5 ? 254 : slot - 1,
+      external: slot === 5,
       colorHex: p.colorHex.replace('#', ''),
       material: amsMaterial(p.material),
       minTemp: p.minTemp,
@@ -43,7 +44,7 @@ export async function sendToSlot(slot: number, p: SlotParams): Promise<SlotSendR
     });
     const d = res.data || {};
     if (res.ok && d.success !== false) {
-      return { confirmed: d.confirmed !== false, blocked: false, text: d.message || `Slot ${slot} ist am Drucker gesetzt.` };
+      return { confirmed: d.confirmed !== false, blocked: false, text: d.message || `${slot === 5 ? 'Extern' : `Slot ${slot}`} ist am Drucker gesetzt.` };
     }
     return {
       confirmed: false,

@@ -85,6 +85,8 @@ export const printerApi = {
     material: string;
     minTemp: number;
     maxTemp: number;
+    /** true = externe Spule (5.), slotIdx wird dann ignoriert */
+    external?: boolean;
   }) => apiPost<AmsFilamentResponse>('/api/printer/ams-filament', payload, { timeoutMs: 25000 }),
 
   /** Gewicht je Filament aus der Druckdatei auf dem Drucker (nur Windows-/Server-App im LAN-Modus) */

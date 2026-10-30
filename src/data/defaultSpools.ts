@@ -1692,5 +1692,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.116',
+    label: '1.116 (Extern-Spule setzen)',
+    releaseDate: '30.10.2026',
+    description: 'Wählst du eine Spule für Extern (5.), setzt die App Material und Farbe auch am Drucker.',
+    features: [
+      '🧵 Spule für Extern (5.) wählen → Farbe, Material und Temperatur gehen an den Drucker',
+      '✅ Die App prüft, ob der Drucker die externe Spule wirklich übernommen hat, und meldet es ehrlich',
+      '⏭️ Passt die Spule schon zum Drucker, wird nichts gesendet',
+      '🔢 Aktualisierte Zahlen-FunFacts: 89 Commits und 116 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

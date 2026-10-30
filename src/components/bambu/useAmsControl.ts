@@ -3,6 +3,8 @@ import { safeStorage } from '../../utils/safeStorage';
 import { printerApi } from '../../api';
 import { addSystemLog } from '../../utils/logService';
 import type { BambuPrinterWidgetProps as ParentProps } from '../BambuPrinterWidget';
+import { paramsFromSpool, sendToSlot } from '../../utils/slotAssign';
+import { mismatch, readExternal, EXTERNAL_SLOT } from '../../utils/amsMatch';
 
 export interface useAmsControlParams {
   spools: ParentProps['spools'];
@@ -94,6 +96,15 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
 
     if (spoolId) {
       const spool = spools.find(s => s.id === spoolId);
+      // Externe Spule (5.): gleich am Drucker setzen, falls dort etwas anderes steht (nur wenn verbunden)
+      if (spool && slotIdx === EXTERNAL_SLOT && liveState?.connected) {
+        const ext = readExternal(liveState.data?.vt_tray);
+        if (!ext || ext.empty || mismatch(spool, ext)) {
+          void sendToSlot(EXTERNAL_SLOT, paramsFromSpool(spool)).then(r =>
+            setActionToast({ text: r.confirmed ? `🧵 ${r.text}` : `Extern: ${r.text}`, ok: r.confirmed })
+          );
+        }
+      }
       if (spool) {
         // Prüfen, ob für das AMS eine Trocknungszeit vorliegt
         const amsData = liveState.data.ams?.ams?.[0];

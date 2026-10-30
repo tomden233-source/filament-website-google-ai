@@ -1277,6 +1277,8 @@ export abstract class BambuMqttCore {
       infoIdx?: string;
       minTemp?: number;
       maxTemp?: number;
+      /** Externe Spule (5. Spule, Spulenhalter hinten) statt AMS-Slot */
+      external?: boolean;
     }
   ) {
     if (!this.client || !this.connected || !this.serialNumber) {
@@ -1322,12 +1324,16 @@ export abstract class BambuMqttCore {
     const maxTemp = params.maxTemp || (material === 'PLA' ? 240 : material === 'PETG' ? 260 : 270);
 
     const reqTopic = `device/${this.serialNumber}/request`;
+    // Externe Spule: ams_id 255, tray_id = id aus vt_tray (254, sonst Standard). AMS: ams_id 0, tray_id 0-3.
+    const external = Boolean(params.external);
+    const extId = Number(this.printData.vt_tray?.id);
+    const trayId = external ? (Number.isFinite(extId) && extId >= 254 ? extId : 254) : Number(slotIdx);
     const payload = {
       print: {
         sequence_id: String(Date.now()),
         command: 'ams_filament_setting',
-        ams_id: 0,
-        tray_id: Number(slotIdx),
+        ams_id: external ? 255 : 0,
+        tray_id: trayId,
         tray_info_idx: infoIdx,
         tray_color: color,
         nozzle_temp_min: minTemp,
@@ -1342,26 +1348,30 @@ export abstract class BambuMqttCore {
     this.schedulePushall(800);
     this.schedulePushall(2500);
 
-    const outcome = await this.waitForAmsSlot(slotIdx, color.slice(0, 6), material, 5000);
+    const outcome = external
+      ? await this.waitForExternal(color.slice(0, 6), material, 5000)
+      : await this.waitForAmsSlot(slotIdx, color.slice(0, 6), material, 5000);
     const colorHex = `#${color.slice(0, 6)}`;
-    const n = slotIdx + 1;
+    const n = external ? 'Extern (5)' : slotIdx + 1;
     if (outcome === 'confirmed') {
       return {
         success: true,
         confirmed: true,
         blocked: false,
-        message: `Slot ${n}: ${material} ${colorHex} ist am Drucker gesetzt.`,
+        message: external ? `Extern (5. Spule): ${material} ${colorHex} ist am Drucker gesetzt.` : `Slot ${n}: ${material} ${colorHex} ist am Drucker gesetzt.`,
         slotIdx,
         colorHex,
         material
       };
     }
-    const emptySlot = this.isAmsSlotEmpty(slotIdx);
+    const emptySlot = external ? false : this.isAmsSlotEmpty(slotIdx);
     const error =
       outcome === 'blocked'
         ? 'Bambu lehnt den Befehl ab (MQTT-Befehl nicht verifiziert). Über die Cloud sind nur Lesen und Licht erlaubt. Slot-Daten schreiben geht nur im LAN-Entwicklermodus oder am Drucker selbst.'
         : emptySlot
         ? `Der Drucker hat Slot ${n} nicht übernommen. Der Slot ist leer: erst Filament einlegen, dann übertragen.`
+        : external
+        ? 'Der Drucker hat die externe Spule nicht übernommen. Am Drucker einmal Filament in die externe Spule laden oder dort von Hand setzen.'
         : `Der Drucker hat Slot ${n} nicht übernommen. Bambu lässt Fremd-Befehle über die Cloud oft nicht zu.`;
     return {
       success: false,
@@ -1374,6 +1384,26 @@ export abstract class BambuMqttCore {
       colorHex,
       material
     };
+  }
+
+  /** Wartet, bis der Drucker die externe Spule (vt_tray) mit den gesendeten Werten meldet (oder ablehnt). */
+  private async waitForExternal(color6: string, material: string, timeoutMs: number): Promise<'confirmed' | 'blocked' | 'unconfirmed'> {
+    const startedAt = Date.now();
+    const wantColor = color6.toUpperCase();
+    const wantType = material.toUpperCase();
+    while (Date.now() - startedAt < timeoutMs) {
+      const t = this.printData.vt_tray;
+      const cols: string[] = Array.isArray(t?.cols) ? t.cols.map((x: any) => String(x).toUpperCase()) : [];
+      const colorOk = String(t?.tray_color || '').toUpperCase().startsWith(wantColor) || cols.some(x => x.startsWith(wantColor));
+      if (t && String(t.tray_type || '').toUpperCase() === wantType && colorOk) return 'confirmed';
+      const r = this.amsCmdResult;
+      if (r) {
+        if (r.result === 'fail' || /verif/i.test(r.reason)) return 'blocked';
+        if (r.result === 'success') return 'confirmed';
+      }
+      await new Promise(res => setTimeout(res, 300));
+    }
+    return this.hmsBlocked ? 'blocked' : 'unconfirmed';
   }
 
   private amsTray(slotIdx: number): any | null {

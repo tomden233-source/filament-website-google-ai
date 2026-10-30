@@ -257,7 +257,7 @@ export async function handlePrinterRoute(
 
     case '/api/printer/ams-filament': {
       try {
-        const { slotIdx, colorHex, material, infoIdx, minTemp, maxTemp } = b;
+        const { slotIdx, colorHex, material, infoIdx, minTemp, maxTemp, external } = b;
         if (slotIdx === undefined || !colorHex || !material) {
           return fail(400, { error: 'slotIdx (0-3), colorHex und material erforderlich.' });
         }
@@ -267,7 +267,8 @@ export async function handlePrinterRoute(
             material,
             infoIdx,
             minTemp: minTemp ? Number(minTemp) : undefined,
-            maxTemp: maxTemp ? Number(maxTemp) : undefined
+            maxTemp: maxTemp ? Number(maxTemp) : undefined,
+            external: Boolean(external)
           })
         );
       } catch (err: any) {
