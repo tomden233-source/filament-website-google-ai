@@ -19,6 +19,7 @@ export function useAppSettings({ showToast }: useAppSettingsParams) {
             materialPresets: { ...DEFAULT_APP_SETTINGS.materialPresets, ...parsed.materialPresets },
             brandPresets: { ...DEFAULT_APP_SETTINGS.brandPresets, ...parsed.brandPresets },
             eibosBagTara: typeof parsed.eibosBagTara === 'number' ? parsed.eibosBagTara : DEFAULT_APP_SETTINGS.eibosBagTara,
+            silicaBagTara: typeof parsed.silicaBagTara === 'number' ? parsed.silicaBagTara : DEFAULT_APP_SETTINGS.silicaBagTara,
             cardSize: typeof parsed.cardSize === 'number' ? parsed.cardSize : (DEFAULT_APP_SETTINGS.cardSize || 340)
           };
         }

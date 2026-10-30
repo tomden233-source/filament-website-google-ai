@@ -33,6 +33,7 @@ export interface Spool {
   bedTemp?: number; // beste Betttemperatur (°C)
   onSpool?: boolean; // true = Filament sitzt auf einer Spule, false = Refill ohne Spule (Leerspule = 0 g). Leer = aus Leerspulengewicht ableiten
   sealed?: boolean; // true = Original verschweißt/ungeöffnet (muss nicht getrocknet werden)
+  silicaBag?: boolean; // true = Silica-Trockenbeutel liegt bei der Spule (Beutel-Tara beim Wiegen, Standard 57 g)
   inEibos?: boolean; // true = liegt im Eibos-Vakuumbeutel (Beutel-Tara beim Wiegen)
   needsDrying?: boolean; // true = muss getrocknet werden, bis „Trocknen“ bestätigt wird
   bambuRfid?: string; // Kennung der Bambu-Spule (RFID, liest das AMS selbst). Damit erkennt die App die Spule im AMS ohne eigenen Tag
@@ -100,6 +101,7 @@ export interface AppSettings {
   materialPresets: Record<string, MaterialDryingConfig>;
   brandPresets: Record<string, BrandConfig>;
   eibosBagTara: number;
+  silicaBagTara?: number; // Gewicht eines Silica-Beutels in g (Standard 57)
   cardSize?: number; // Minimale Kachelbreite in Pixel (z.B. 240..480px)
 }
 

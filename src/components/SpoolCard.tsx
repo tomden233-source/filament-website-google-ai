@@ -156,12 +156,14 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
   const isEibosStorage = isInEibos(spool);
   const [includeEibosBag, setIncludeEibosBag] = useState<boolean>(isEibosStorage);
   const eibosTara = appSettings?.eibosBagTara ?? 35;
+  const [includeSilica, setIncludeSilica] = useState<boolean>(Boolean(spool.silicaBag));
+  const silicaTara = appSettings?.silicaBagTara ?? 57;
 
   const initW = Number(spool.initialWeight) || 1000;
   const remW = Number(spool.remainingWeight) || 0;
   const brandInfo = getBrandInfo(spool.brand, appSettings);
   const tara = spoolTara(spool, brandInfo.tara);
-  const effectiveTara = tara + (includeEibosBag ? eibosTara : 0);
+  const effectiveTara = tara + (includeEibosBag ? eibosTara : 0) + (includeSilica ? silicaTara : 0);
   const scaleNow = remW + effectiveTara;
   const pct = Math.max(0, Math.min(100, Math.round((remW / initW) * 100)));
   const dry: DryingStatus = getDryingStatus(spool, now);
@@ -555,7 +557,7 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
         <div className="flex justify-between items-center text-[11px]">
           <span style={{ color: 'var(--app-text-muted)' }}>
             🧵 Tara: <strong className="font-mono-num text-xs" style={{ color: 'var(--app-text)' }}>{effectiveTara} g</strong>
-            <span className="text-[10px] ml-1">({tara > 0 ? `${tara}g Spule` : 'ohne Spule'}{includeEibosBag ? ` + ${eibosTara}g Beutel` : ''})</span>
+            <span className="text-[10px] ml-1">({tara > 0 ? `${tara}g Spule` : 'ohne Spule'}{includeEibosBag ? ` + ${eibosTara}g Beutel` : ''}{includeSilica ? ` + ${silicaTara}g Silica` : ''})</span>
           </span>
           <span style={{ color: 'var(--app-text-muted)' }}>
             ⚖️ Waage zeigt jetzt: <strong className="font-mono-num text-emerald-500 text-xs">≈ {scaleNow} g</strong>
@@ -600,6 +602,15 @@ export const SpoolCard: React.FC<SpoolCardProps> = ({
               <Package className="w-3 h-3 text-sky-400" />
               <span>Im Eibos-Beutel gewogen (+{eibosTara}g)</span>
             </span>
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer text-[var(--app-text)] hover:text-orange-500 select-none">
+            <input
+              type="checkbox"
+              checked={includeSilica}
+              onChange={e => setIncludeSilica(e.target.checked)}
+              className="rounded text-sky-500 focus:ring-0 cursor-pointer"
+            />
+            <span>Mit Silica-Beutel (+{silicaTara}g)</span>
           </label>
         </div>
 

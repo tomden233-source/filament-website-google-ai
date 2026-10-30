@@ -96,9 +96,11 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
   const [onSpool, setOnSpool] = useState<boolean>(true);
   const [sealed, setSealed] = useState<boolean>(false);
   const [inEibos, setInEibos] = useState<boolean>(false);
+  const [silicaBag, setSilicaBag] = useState<boolean>(false);
   const [needsDrying, setNeedsDrying] = useState<boolean>(false);
 
   const eibosTara = appSettings?.eibosBagTara ?? 35;
+  const silicaTara = appSettings?.silicaBagTara ?? 57;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -129,6 +131,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       setOnSpool(hasSpoolBody(spoolToEdit));
       setSealed(isSealed(spoolToEdit));
       setInEibos(isInEibos(spoolToEdit));
+      setSilicaBag(Boolean(spoolToEdit.silicaBag));
       setNeedsDrying(Boolean(spoolToEdit.needsDrying));
       setModalTab('quick');
     } else {
@@ -162,6 +165,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       setScaleGross('');
       setSealed(isSealed(p as Spool));
       setInEibos(isInEibos(p as Spool));
+      setSilicaBag(Boolean((p as Spool).silicaBag));
       setNeedsDrying(Boolean(p.needsDrying));
       setModalTab('quick');
     }
@@ -210,13 +214,17 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
 
   const handleEibosChange = (value: boolean) => {
     setInEibos(value);
-    if (scaleGross) handleScaleGrossChange(scaleGross, value);
+    if (scaleGross) handleScaleGrossChange(scaleGross, value, emptySpoolWeight, silicaBag);
+  };
+  const handleSilicaChange = (value: boolean) => {
+    setSilicaBag(value);
+    if (scaleGross) handleScaleGrossChange(scaleGross, inEibos, emptySpoolWeight, value);
   };
 
-  const handleScaleGrossChange = (val: string, withEibos = inEibos, spoolTaraG = emptySpoolWeight) => {
+  const handleScaleGrossChange = (val: string, withEibos = inEibos, spoolTaraG = emptySpoolWeight, withSilica = silicaBag) => {
     setScaleGross(val);
     const gross = parseFloat(val);
-    const effectiveTara = spoolTaraG + (withEibos ? eibosTara : 0);
+    const effectiveTara = spoolTaraG + (withEibos ? eibosTara : 0) + (withSilica ? silicaTara : 0);
     if (!isNaN(gross) && gross >= effectiveTara) {
       setRemainingWeight(Math.round(gross - effectiveTara));
     }
@@ -257,6 +265,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
       onSpool,
       sealed,
       inEibos,
+      silicaBag,
       needsDrying,
       storageNote: storageNote.trim(),
       location: location.trim() || undefined,
@@ -488,6 +497,9 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                     Muss trocknen
                   </ToggleChip>
                 </div>
+                <ToggleChip active={silicaBag} tone="sky" onClick={() => handleSilicaChange(!silicaBag)}>
+                  Mit Silica-Beutel ({silicaTara} g)
+                </ToggleChip>
                 <p className="text-[10px] text-[var(--app-text-muted)]">
                   Verschweißt = frisch, kein Trocknen nötig. „Muss trocknen“ bleibt, bis du „getrocknet“ bestätigst.
                 </p>
@@ -503,6 +515,7 @@ export const SpoolModal: React.FC<SpoolModalProps> = ({
                   <span className="text-[10px] text-[var(--app-text-muted)]">
                     {onSpool ? `Leerspule: ${emptySpoolWeight}g` : 'Ohne Spule'}
                     {inEibos ? ` + Beutel ${eibosTara}g` : ''}
+                    {silicaBag ? ` + Silica ${silicaTara}g` : ''}
                   </span>
                 </div>
 

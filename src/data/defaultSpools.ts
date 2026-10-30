@@ -136,6 +136,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     'No-Name (China)': { tara: 130, defaultPrice: 12.99 }
   },
   eibosBagTara: 35,
+  silicaBagTara: 57,
   cardSize: 340
 };
 
@@ -1860,6 +1861,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
       '🛠️ Ursache: Beim Bauen unter Windows (Desktop-App) wurde der Projektordner falsch gelesen, deshalb „0 Zeilen“',
       '🔢 Codezeilen werden jetzt mit dem richtigen Pfad gezählt (mit zweitem Versuch vom Arbeitsordner)',
       '📊 Commits live bei GitHub geprüft (100), Nachrichten und Wörter nachgezählt, Versionen zählt die App selbst (126)'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.127',
+    label: '1.127 (Silica-Beutel 57 g)',
+    releaseDate: '30.10.2026',
+    description: 'Silica-Trockenbeutel (57 g) als Wiege-Option: Das Gewicht wird beim Wiegen automatisch mit abgezogen.',
+    features: [
+      '🧂 Spule bearbeiten: neuer Schalter „Mit Silica-Beutel (57 g)“, wird bei der Spule gespeichert',
+      '⚖️ Spulenkachel (Wiegen): Kästchen „Mit Silica-Beutel (+57g)“, Tara = Leerspule + Eibos + Silica',
+      '🔧 Gewicht einstellbar in den Einstellungen (silicaBagTara, Standard 57 g)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 101 Commits und 127 Revisionsstufen'
     ],
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
