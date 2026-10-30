@@ -1,6 +1,6 @@
 """Erzeugt rc522_holder.svg (Draufsicht + Schnitt mit Maßen). Aufruf: python3 build_drawing.py"""
 S = 8.0
-pcb_w, pcb_l, margin, plate_t, pocket, fit, hdr_w, hdr_d, r = 40, 60, 2, 2.4, 0.6, 0.4, 24, 9, 3
+pcb_w, pcb_l, margin, plate_t, pocket, fit, hdr_w, hdr_d, r = 40, 60, 2, 5.0, 0.6, 0.4, 24, 9, 3
 W, L = pcb_w + 2 * margin, pcb_l + 2 * margin
 Wd, Hd = 1100, 640
 o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {Wd} {Hd}" width="{Wd}" height="{Hd}" font-family="Arial, sans-serif">',

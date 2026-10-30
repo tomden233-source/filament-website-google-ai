@@ -3,7 +3,8 @@
 // Druck: flach auf das Bett, PETG oder ASA, 0,2 mm, 3 Wände, ohne Stützen. Alle Maße in mm.
 pcb_w = 40;  pcb_l = 60;
 margin = 2;        // Rand um die Platine
-plate_t = 2.4;     // Plattendicke
+plate_t = 5;       // Plattendicke = Abstand der Platine zur Wand (2.4 = dünne Version)
+ferrit_t = 0.5;    // Mulde auf der Wandseite für Ferrit-Folie (0 = keine)
 pocket = 0.6;      // flache Mulde als Positionshilfe (Platine liegt darin)
 fit = 0.4;
 hdr_w = 24; hdr_d = 9;   // Fenster für 8-Pin-Leiste an der Schmalseite (−Y)
@@ -16,5 +17,6 @@ module rrect(w, l, h, rad) {
 difference() {
   rrect(W, L, plate_t, r);
   translate([0, 0, plate_t - pocket]) rrect(pcb_w + fit, pcb_l + fit, pocket + 1, 1);
+  if (ferrit_t > 0) translate([-(pcb_w+fit)/2, -(pcb_l+fit)/2, -1]) cube([pcb_w+fit, pcb_l+fit, 1+ferrit_t]);
   translate([-hdr_w/2, -pcb_l/2 - 0.2, -1]) cube([hdr_w, hdr_d, plate_t + 2]);
 }

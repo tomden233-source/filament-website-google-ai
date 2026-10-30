@@ -12,11 +12,11 @@
 <line x1="104.0" y1="616.0" x2="456.0" y2="616.0" class="d"/><text x="262" y="634.0" class="t">44</text>
 <line x1="74.0" y1="74.0" x2="74.0" y2="586.0" class="d"/><text x="42.0" y="330" class="t">64</text>
 <text x="770" y="70" class="h">Schnitt</text>
-<rect x="580.0" y="276.0" width="440" height="24.0" class="p"/>
-<rect x="598.0" y="276.0" width="404.0" height="6.0" class="c"/>
-<text x="585" y="216.0" class="n">Mulde (0.6 tief) = Platz für Platine und Klebeband.</text>
-<text x="585" y="236.0" class="n">Platine mit der Rückseite aufkleben, Spulenseite zeigt zum Tag.</text>
-<line x1="1036.0" y1="300" x2="1036.0" y2="276.0" class="d"/><text x="1042.0" y="292.0" class="t">2.4</text>
+<rect x="580.0" y="250.0" width="440" height="50.0" class="p"/>
+<rect x="598.0" y="250.0" width="404.0" height="6.0" class="c"/>
+<text x="585" y="190.0" class="n">Mulde (0.6 tief) = Platz für Platine und Klebeband.</text>
+<text x="585" y="210.0" class="n">Platine mit der Rückseite aufkleben, Spulenseite zeigt zum Tag.</text>
+<line x1="1036.0" y1="300" x2="1036.0" y2="250.0" class="d"/><text x="1042.0" y="279.0" class="t">5.0</text>
 <line x1="580.0" y1="320" x2="1020.0" y2="320" class="d"/><text x="790" y="338" class="t">44</text>
 <text x="585" y="390" class="n">Unterseite der Platte: zweites Klebeband zum AMS.</text>
 <text x="585" y="412" class="n">Druck: flach aufs Bett, PETG/ASA, 0,2 mm, 3 Wände, ohne Stützen.</text>

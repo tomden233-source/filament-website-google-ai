@@ -1662,5 +1662,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.114',
+    label: '1.114 (Halter 5 mm)',
+    releaseDate: '30.10.2026',
+    description: 'Neuer Leser-Halter für das AMS: 5 mm dick, damit die Antenne Abstand zur Wand hat.',
+    features: [
+      '🖨️ rc522_holder.stl: 44 × 64 × 5 mm, PETG/ASA, flach drucken',
+      '🧲 Mulde unten für Ferrit-Folie, nur nötig wenn der Leser den Nachbar-Slot mitliest',
+      '📎 Dünne Version (2,4 mm) bleibt als rc522_holder_flach.stl',
+      '🔢 Aktualisierte Zahlen-FunFacts: 87 Commits und 114 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

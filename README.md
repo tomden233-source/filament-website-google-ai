@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.113 (Leser-Einbau)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.113 im Paket 2.0.113, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.114 (Halter 5 mm)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.114 im Paket 2.0.114, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.113 (Leser-Einbau)**. Die Zählung läuft ab 1.100 einfach
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29./30.10.2026 (1.105 bis 1.113)
+## Neu am 29./30.10.2026 (1.105 bis 1.114)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -68,6 +68,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.111 | Schneller & sparsamer: App tickt nur noch einmal pro Minute statt jede Sekunde, Drucker-Status nicht mehr doppelt (Stream + Abfrage), Lebenszeichen vom Server |
 | 1.112 | Bambu-Spulen anlegen: neue Bambu-Spule im AMS → Formular mit Sorte, Farbe, Rest, Temperaturen vom Chip (nur gelesen); Bearbeiten verliert keine NFC-Daten mehr |
 | 1.113 | Leser-Einbau: RC522 an Trennwände und linke Außenwand statt an die Bambu-Leser, Tag links außen auf die Spule, Ferrit-Folie gegen Nachbar-Slot |
+| 1.114 | Halter 5 mm dick (Abstand zur Wand) mit Mulde für Ferrit-Folie, dünne Version bleibt dabei |
 
 ### Druck-Wächter (1.105)
 
@@ -120,7 +121,7 @@ Links ein Spulen-Symbol in der Filamentfarbe; wie dick das Filament darauf ist, 
 ## Inhalt
 
 1. [Was die App kann](#was-die-app-kann-kurzüberblick)
-1. [Neu am 29./30.10.2026](#neu-am-2930102026-1105-bis-1113)
+1. [Neu am 29./30.10.2026](#neu-am-2930102026-1105-bis-1114)
 1. [App und Desktop](#app-und-desktop)
 2. [Starten](#starten)
 3. [Spulen verwalten](#spulen-verwalten)
