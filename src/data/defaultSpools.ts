@@ -1910,5 +1910,19 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.130',
+    label: '1.130 (Hellgrün leer, +1 Bambu Weiß)',
+    releaseDate: '30.10.2026',
+    description: 'Bambu Hellgrün: alles abgezogen, 1315 g Brutto = 1000 g Netto. Eine weitere Bambu PLA Weiß mit Spule (original verpackt) dazu.',
+    features: [
+      '🟢 Hellgrün (1 kg): Tara gesamt 315 g (Spule 223 + Beutel 35 + Silica 57), beim nächsten Wiegen passt die Rechnung',
+      '⚪ Neu: Bambu PLA Basic Weiß, original verpackt, mit Spule (insgesamt 4 weiße Bambu PLA)',
+      '🔢 Aktualisierte Zahlen-FunFacts: 21 Commits und 130 Revisionsstufen'
+    ],
+    spoolsSnapshot: MY_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
