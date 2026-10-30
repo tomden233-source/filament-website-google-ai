@@ -4,6 +4,7 @@ import {
   Spool,
   VersionProfile
 } from '../types/filament';
+import { MY_SPOOLS } from './mySpools';
 
 export interface MaterialPreset {
   intervalDays: number;
@@ -1878,6 +1879,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
       '🔢 Aktualisierte Zahlen-FunFacts: 101 Commits und 127 Revisionsstufen'
     ],
     spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.128',
+    label: '1.128 (Neue Spulenliste)',
+    releaseDate: '30.10.2026',
+    description: 'Alle Spulen neu eingetragen nach deinem Diktat (17 neu, Prusa PETG bleibt), mit Beutel- und Silica-Abzug.',
+    features: [
+      '🧵 18 Spulen: Bambu (7), Eono, Geeetech, YXPOLYER PA6-CF, Eryone (2), ELEGOO (2), eSUN, Overture TPU, Prusa PLA und Prusa PETG',
+      '⚖️ Netto = gewogen − Leerspule − Eibos-Beutel (35 g) − Silica (57 g), bei Bambu Hellgrün mit eigener 100-g-Spule',
+      '📦 Original verpackte Bambu-Spulen als „verschweißt“ markiert, Refill ohne Spule mit 0 g Leerspule',
+      '🔢 Aktualisierte Zahlen-FunFacts: 19 Commits und 128 Revisionsstufen'
+    ],
+    spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
   }

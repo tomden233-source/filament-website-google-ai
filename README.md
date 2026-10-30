@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.127 (Silica-Beutel 57 g)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.127 im Paket 2.0.127, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.128 (Neue Spulenliste)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.128 im Paket 2.0.128, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.127 (Silica-Beutel 57 g)**. Die Zählung läuft ab 1.100 e
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29./30.10.2026 (1.105 bis 1.127)
+## Neu am 29./30.10.2026 (1.105 bis 1.128)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -82,6 +82,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.125 | Sensor alle 10 s: SHT31-D misst alle 10 s (YAML neu aufspielen), App liest alle 10 s |
 | 1.126 | FunFacts-Zähler: Codezeilen zeigten im Desktop-Build 0 (Windows-Pfad), repariert; Zahlen geprüft |
 | 1.127 | Silica-Beutel 57 g: Wiege-Option in Spule bearbeiten und Spulenkachel, Tara wird automatisch abgezogen |
+| 1.128 | Neue Spulenliste nach Diktat: 18 Spulen mit Beutel- und Silica-Abzug, Prusa PETG blieb unverändert |
 
 ### Druck-Wächter (1.105)
 
