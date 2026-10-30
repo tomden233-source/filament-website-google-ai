@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.118 (Tag beschreiben & Spule ändern)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.118 im Paket 2.0.118, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.119 (QR öffnet App & Spule)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.119 im Paket 2.0.119, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.118 (Tag beschreiben & Spule ändern)**. Die Zählung läu
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29./30.10.2026 (1.105 bis 1.118)
+## Neu am 29./30.10.2026 (1.105 bis 1.119)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -73,6 +73,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.116 | Extern-Spule (5.) wählen setzt Material und Farbe auch am Drucker |
 | 1.117 | NFC-Leser setzt den Slot am Drucker zuverlässig und meldet Fehler ehrlich (LAN oder Cloud), Slot-Zuordnung geht sofort an PC und Handy |
 | 1.118 | Tag beschreiben/löschen wartet im selben Fenster auf den Tag und schreibt sofort; „Spule ändern“ zeigt alle Spulen zur Auswahl |
+| 1.119 | QR-Etikett scannen öffnet die App und zeigt gleich die passende Spule im Tag-Fenster |
 
 ### Druck-Wächter (1.105)
 

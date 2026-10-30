@@ -1742,5 +1742,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.119',
+    label: '1.119 (QR öffnet App & Spule)',
+    releaseDate: '30.10.2026',
+    description: 'QR-Etikett scannen öffnet die App und zeigt gleich die passende Spule.',
+    features: [
+      '📱 QR im Handy-Browser: die Seite startet die App von selbst (Knopf „Diese Spule direkt in der App öffnen“ bleibt als Reserve)',
+      '🧵 QR-Scan in der App zeigt direkt die passende Spule im Tag-Fenster (Gramm ±, Spule ändern, AMS-Slot zuweisen), wie beim NFC-Tag',
+      '🔗 Gilt für Etiketten-QR, App-Link und Tipp auf eine Spulen-Mitteilung',
+      '🔢 Aktualisierte Zahlen-FunFacts: 92 Commits und 119 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

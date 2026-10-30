@@ -125,7 +125,7 @@ export default function App() {
 
   const [activeVersionId, setActiveVersionId] = useState<string>(() => {
     const saved = safeStorage.getItem(STORAGE_KEY_ACTIVE_VER);
-    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.118';
+    const latestId = INITIAL_VERSION_PROFILES[INITIAL_VERSION_PROFILES.length - 1]?.id || 'v1.119';
     const seen = safeStorage.getItem('filamenthub_latest_seen_version');
     // Neue Version erschienen (oder nichts gespeichert): auf die neueste Revision stellen.
     // Danach bleibt die Auswahl aus dem Revisionsmenü erhalten.
@@ -294,9 +294,7 @@ export default function App() {
       if (id.startsWith('spool:')) {
         const found = spoolsLive.current.find(sp => sp.id === id.slice(6));
         if (found) {
-          setSpoolToEdit(found);
-          setSpoolPrefill(null);
-          setIsSpoolModalOpen(true);
+          showSpoolFromScan(found.id);
         } else {
           showToast('Diese Spule ist auf diesem Gerät nicht vorhanden. Im Menü unter Tools mit der Cloud abgleichen.');
         }
@@ -332,6 +330,15 @@ export default function App() {
   useEffect(() => {
     if (!isNfcModalOpen) setNfcScannedId(undefined);
   }, [isNfcModalOpen]);
+
+  // QR-Etikett gescannt (Link, App-Link oder Benachrichtigung): Tag-Fenster zeigt direkt die passende Spule
+  // (Gramm ±, Spule ändern, AMS-Slot zuweisen), genau wie beim Halten eines NFC-Tags
+  const showSpoolFromScan = (id: string) => {
+    setNfcScannedId(id);
+    setNfcSpoolId(undefined);
+    setNfcModalMode('read');
+    setIsNfcModalOpen(true);
+  };
 
   // Manuell überschreibbarer Wert für verdrucktes Filament
   const [manualUsedGrams, setManualUsedGrams] = useState<number | null>(() => {
@@ -562,8 +569,7 @@ export default function App() {
       if (!id) return;
       const found = spools.find(sp => sp.id === id);
       if (found) {
-        setSpoolToEdit(found);
-        setIsSpoolModalOpen(true);
+        showSpoolFromScan(found.id);
         window.history.replaceState({}, '', window.location.pathname + window.location.search);
       }
     };
