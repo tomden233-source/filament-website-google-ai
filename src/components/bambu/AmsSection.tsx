@@ -6,6 +6,7 @@ import type { PrinterExpandedPanelProps as ParentProps } from './PrinterExpanded
 import { readTrays, readExternal, activeSlotFromPrinter, syncSlots, mismatch, EXTERNAL_SLOT } from '../../utils/amsMatch';
 import { SpoolPicker } from '../SpoolPicker';
 import { SlotTagSheet } from './SlotTagSheet';
+import { useHumidity, amsHumidityPercent } from '../../utils/humidity';
 
 export interface AmsSectionProps {
   compact?: boolean;
@@ -32,6 +33,36 @@ export interface AmsSectionProps {
   dryLoading: ParentProps['dryLoading'];
   nfcInfo?: { readers: number; unknown: number[] };
 }
+
+// Gemessen: Box-Sensor (ESP32 über Home Assistant) und AMS selbst, alles in °C
+const BoxClimate: React.FC<{ unit: any }> = ({ unit }) => {
+  const hum = useHumidity();
+  const box = hum.external;
+  const amsTemp = Number(unit?.temp);
+  const amsHum = amsHumidityPercent(unit);
+  const fmt = (n: number | null | undefined, d = 1) => (n === null || n === undefined || !Number.isFinite(n) ? '–' : n.toLocaleString('de-DE', { maximumFractionDigits: d }));
+  const boxTemp = box?.temp ?? null;
+  return (
+    <div className="grid grid-cols-2 gap-2 text-[11px] font-mono" style={{ color: 'var(--app-text-muted)' }}>
+      <div className="rounded-xl border px-2.5 py-1.5" style={{ borderColor: 'var(--app-border)' }}>
+        <div className="text-[10px] font-bold" style={{ color: 'var(--app-text)' }}>Box-Sensor (gemessen)</div>
+        {box?.error && box.value === null ? (
+          <div>{box.error}</div>
+        ) : (
+          <div>
+            🌡️ {fmt(boxTemp)} °C · 💧 {fmt(box?.value ?? null, 0)} %
+          </div>
+        )}
+      </div>
+      <div className="rounded-xl border px-2.5 py-1.5" style={{ borderColor: 'var(--app-border)' }}>
+        <div className="text-[10px] font-bold" style={{ color: 'var(--app-text)' }}>AMS misst</div>
+        <div>
+          🌡️ {fmt(Number.isFinite(amsTemp) && amsTemp > 0 ? amsTemp : null)} °C · 💧 {fmt(amsHum, 0)} %
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const AmsSection: React.FC<AmsSectionProps> = ({
   compact = false,
@@ -272,6 +303,8 @@ export const AmsSection: React.FC<AmsSectionProps> = ({
                   )}
                 </div>
               </div>
+
+              <BoxClimate unit={liveState.data.ams?.ams?.[0]} />
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="flex items-center gap-1 flex-nowrap w-full">

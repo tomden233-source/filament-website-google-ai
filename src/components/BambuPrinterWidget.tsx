@@ -56,6 +56,9 @@ import { useDryAfterPrint } from '../hooks/useDryAfterPrint';
 import { DrySuggestSheet } from './bambu/DrySuggestSheet';
 import { armDryPlan, disarmDryPlan, dryPlanFor, needsDryingNow } from '../utils/dryAfterPrint';
 import { setHaAutoOff } from '../utils/haAutoOff';
+import { usePrintPlanRunner } from '../hooks/usePrintPlan';
+import { clearPrintPlan, setPrintPlan, clockText } from '../utils/printPlan';
+import { PrintPlanSheet } from './bambu/PrintPlanSheet';
 import { addPrintRecord, addPrintUsage, capturePrintPhoto } from '../utils/printLog';
 import { useAmsNfcReaders } from '../hooks/useAmsNfcReaders';
 import { useBambuRfid } from '../hooks/useBambuRfid';
@@ -379,6 +382,55 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     if (!haSwitchState.configured) return;
     void setHaAutoOff(haAutoOffWanted);
   }, [haAutoOffWanted, haSwitchState.configured]);
+
+  // Druck-Planer: danach trocknen / ausschalten / Druck verzögern (Fenster bei neuem Druck)
+  const armDryAfterNow = (temp: number, hours: number, ids: string[]) => {
+    armDryPlan({ temp, hours, spoolIds: ids }, true);
+  };
+  const printPlan = usePrintPlanRunner({
+    connected: Boolean(liveState.connected && liveState.receivingData !== false),
+    gcodeState: liveState.data.gcode_state,
+    jobName: liveState.data.subtask_name,
+    startTime: liveState.data.gcode_start_time,
+    percent: Number(liveState.data.mc_percent) || 0,
+    dryMinutesLeft: dryLeftNow,
+    dryTemp: Number(liveState.data.ams?.ams?.[0]?.dry_setting?.dry_temperature) || 50,
+    stopDrying: () => handleToggleAmsDrying(false),
+    restartDryAfterPrint: (temp, minutes) => {
+      if (autoOff.armed) return; // Aus nach Druck gewinnt
+      armDryAfterNow(Math.max(45, Math.min(65, Math.round(temp / 5) * 5)), Math.max(1, Math.min(24, Math.ceil(minutes / 60))), amsSpools().map(sp => sp.id));
+    },
+    notify: setActionToast
+  });
+  const applyPrintPlan = (o: { dry: boolean; off: boolean; resumeAt: number }) => {
+    const parts: string[] = [];
+    if (o.off) {
+      if (!autoOff.armed) {
+        if (!haSwitchState.configured) setActionToast({ text: 'Danach ausschalten braucht Home Assistant mit Steckdose (Verbindungen).', ok: false });
+        else {
+          if (dryAfter.plan.armed) disarmDryPlan();
+          armAutoOff(liveState.data.subtask_name || '');
+          parts.push('danach aus');
+        }
+      } else parts.push('danach aus');
+    } else if (o.dry) {
+      const inAms = amsSpools();
+      if (!inAms.length) setActionToast({ text: 'Erst Spulen den AMS-Slots zuordnen.', ok: false });
+      else if (!autoOff.armed) {
+        const due = inAms.filter(needsDryingNow);
+        const plan = dryPlanFor(due.length ? due : inAms, inAms);
+        armDryAfterNow(plan.temp, plan.hours, (due.length ? due : inAms).map(sp => sp.id));
+        parts.push(`danach trocknen (${plan.temp} °C, ${plan.hours} h)`);
+      }
+    }
+    if (o.resumeAt > Date.now()) {
+      setPrintPlan({ state: 'delayed', resumeAt: o.resumeAt });
+      parts.push(`Druck pausiert bis ${clockText(o.resumeAt)}`);
+    } else {
+      clearPrintPlan();
+    }
+    if (parts.length) setActionToast({ text: parts.join(' · ') + '.', ok: true });
+  };
 
   // Feuchte-Alarm (AMS + externer Sensor)
   useHumidityAlarm({
@@ -1272,6 +1324,23 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
           onLater={b => bambuRfid.dismiss(b.rfid)}
           onClose={() => setBambuHidden(h => [...h, ...bambuOpen.map(b => b.rfid)])}
         />
+      )}
+      {printPlan.state === 'ask' && printActive && (
+        <PrintPlanSheet
+          jobName={printPlan.jobName}
+          dryArmed={dryAfter.plan.armed}
+          offArmed={autoOff.armed}
+          drying={dryLeftNow > 0}
+          onApply={o => applyPrintPlan(o)}
+          onClose={() => setPrintPlan({ state: 'none' })}
+        />
+      )}
+      {printPlan.state === 'delayed' && (
+        <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[110] max-w-sm w-[calc(100%-1.5rem)] rounded-xl border px-3 py-2 flex items-center gap-2 text-[11px] font-bold" style={{ backgroundColor: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text)' }}>
+          <span className="flex-1">⏸️ Druck verzögert bis {clockText(printPlan.resumeAt)}</span>
+          <button className="px-2 py-1 rounded-lg border cursor-pointer" style={{ borderColor: 'var(--app-border)' }} onClick={() => setPrintPlan({ resumeAt: Date.now() })}>Jetzt fortsetzen</button>
+          <button className="px-2 py-1 rounded-lg border cursor-pointer" style={{ borderColor: 'var(--app-border)' }} onClick={() => setPrintPlan({ state: 'none', resumeAt: 0 })}>Abbrechen</button>
+        </div>
       )}
       {dryAfter.offer && (
         <DrySuggestSheet

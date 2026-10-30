@@ -1819,5 +1819,22 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.124',
+    label: '1.124 (Druck-Planer & Box-Klima)',
+    releaseDate: '30.10.2026',
+    description: 'Fenster bei neuem Druck (danach trocknen / aus / verzögern) und Box- plus AMS-Klima in °C unter dem AMS.',
+    features: [
+      '🪟 Neuer Druck: beim Öffnen der App kommt ein Fenster mit „Danach ausschalten“, „Danach trocknen“ und „Druck verzögern“. Nichts gewählt = Druck läuft normal',
+      '⏱️ Verzögern: in 1/2/3/4 h, eigene Zeit (Stunden + Minuten) oder um eine Uhrzeit. Die App pausiert den Druck und setzt ihn zur Zeit fort, mit Leiste „Jetzt fortsetzen / Abbrechen“',
+      '☀️ Lief die AMS-Trocknung, geht sie beim Fortsetzen aus und startet nach dem Druck mit der Restzeit wieder (außer „Nach Druck aus“ ist gewählt, das gewinnt)',
+      '🌡️ Unter dem AMS: Box-Sensor (gemessen) und AMS misst, jeweils Temperatur und Feuchte',
+      '🇩🇪 Temperatur immer in °C: Fahrenheit aus Home Assistant wird umgerechnet',
+      '🔢 Aktualisierte Zahlen-FunFacts: 97 Commits und 124 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

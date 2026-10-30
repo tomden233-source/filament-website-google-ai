@@ -230,8 +230,11 @@ async function readHaHumidity(url: string, token: string, entity: string): Promi
       try {
         const r2 = await fetch(`${url}/api/states/${tempEntity}`, { headers, signal: AbortSignal.timeout(8000) });
         if (r2.ok) {
-          const t = Number((await r2.json())?.state);
-          temp = Number.isFinite(t) ? t : null;
+          const j2 = await r2.json();
+          const t = Number(j2?.state);
+          // Home Assistant kann in °F anzeigen: immer in °C umrechnen
+          const unit = String(j2?.attributes?.unit_of_measurement || '');
+          temp = Number.isFinite(t) ? Math.round((/f/i.test(unit) ? (t - 32) / 1.8 : t) * 10) / 10 : null;
         }
       } catch {
         /* Temperatur ist nur Zusatz */
