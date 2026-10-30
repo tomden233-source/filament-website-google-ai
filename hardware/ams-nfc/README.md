@@ -1,5 +1,7 @@
 # NFC-Leser im AMS 2 Pro
 
+**Komplette Aufbau-Anleitung mit Diagrammen: [`AUFBAU.pdf`](AUFBAU.pdf) / [`AUFBAU.md`](AUFBAU.md).** Diagramme und Skripte: `wiring/`.
+
 Fünf RC522-Leser erkennen die NFC-Tags deiner Spulen direkt im AMS. Die FilamentHub-App ordnet dann jede Spule automatisch ihrem Slot zu und meldet Material und Farbe an den Drucker.
 
 Slot 1–4 sind die AMS-Slots, Slot 5 ist die externe Spule.

@@ -1677,5 +1677,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.115',
+    label: '1.115 (Aufbau-Anleitung)',
+    releaseDate: '30.10.2026',
+    description: 'Komplette Aufbau-Anleitung als PDF mit Verkabelungs-Diagrammen für ESP32, 5 NFC-Leser und Feuchte-Sensor.',
+    features: [
+      '📐 4 Diagramme: Testaufbau mit 1 Leser, alle 5 Leser, Feuchte-Sensor, Einbau im AMS',
+      '📄 AUFBAU.pdf und AUFBAU.md: Teileliste, Pin-Tabellen, Aufspielen, Testen, Fehlersuche',
+      '✅ ESPHome-Datei neu geprüft (gültig), alle STL-Dateien dicht',
+      '🔢 Aktualisierte Zahlen-FunFacts: 88 Commits und 115 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
