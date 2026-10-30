@@ -1850,5 +1850,19 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.126',
+    label: '1.126 (FunFacts-Zähler)',
+    releaseDate: '30.10.2026',
+    description: 'Codezeilen zeigten 0 (Desktop-Build, Windows-Pfad). Zähler repariert, FunFacts-Zahlen neu geprüft.',
+    features: [
+      '🛠️ Ursache: Beim Bauen unter Windows (Desktop-App) wurde der Projektordner falsch gelesen, deshalb „0 Zeilen“',
+      '🔢 Codezeilen werden jetzt mit dem richtigen Pfad gezählt (mit zweitem Versuch vom Arbeitsordner)',
+      '📊 Commits live bei GitHub geprüft (100), Nachrichten und Wörter nachgezählt, Versionen zählt die App selbst (126)'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

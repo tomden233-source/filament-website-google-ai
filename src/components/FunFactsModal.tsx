@@ -37,11 +37,11 @@ interface FunFactsModalProps {
 //  SCHÄTZUNG = ungefähr, genauer geht es nicht
 type Source = 'LIVE' | 'BAUEN' | 'GEZÄHLT' | 'SCHÄTZUNG';
 
-// Von Claude beim Update auf v1.125 gezählt
+// Von Claude beim Update auf v1.126 gezählt
 const CHATS = 8; // Chats im Projekt „filament webseite“
-const MESSAGES = 190; // deine Nachrichten in diesen Chats (ca.)
-const WORDS = 22360; // deine Wörter (ca., lange Sprachnachrichten zählen voll)
-const COMMITS = 98; // Commits auf GitHub (main)
+const MESSAGES = 193; // deine Nachrichten in diesen Chats (ca.)
+const WORDS = 22520; // deine Wörter (ca., lange Sprachnachrichten zählen voll)
+const COMMITS = 100; // Commits auf GitHub (main)
 const PROJECT_START = new Date('2026-10-19T00:00:00');
 
 const fmt = (n: number, digits = 0) => n.toLocaleString('de-DE', { maximumFractionDigits: digits, minimumFractionDigits: digits });
@@ -118,7 +118,7 @@ export const FunFactsModal: React.FC<FunFactsModalProps> = ({ isOpen, onClose, s
     {
       icon: Code2,
       title: 'Codezeilen',
-      value: `${fmt(typeof __CODE_LINES__ === 'number' ? __CODE_LINES__ : 0)} Zeilen`,
+      value: `${fmt(typeof __CODE_LINES__ === 'number' && __CODE_LINES__ > 0 ? __CODE_LINES__ : 0)} Zeilen`,
       desc: 'Beim Bauen dieser Version gezählt: TypeScript, React, Server und die Android-Plugins in Java.',
       source: 'BAUEN',
       big: true

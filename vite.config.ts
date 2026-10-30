@@ -4,12 +4,19 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
 const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
 // Echte Codezeilen für die Fun Facts, beim Bauen gezählt (TypeScript/React, Server, Android-Plugins)
 function countCodeLines(): number {
-  const root = path.dirname(new URL(import.meta.url).pathname);
+  // fileURLToPath statt URL.pathname: unter Windows (Desktop-Build) ergab pathname einen kaputten Pfad („/D:/…“) und damit 0 Zeilen
+  let root = process.cwd();
+  try {
+    root = path.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    /* cwd bleibt */
+  }
   let total = 0;
   const walk = (dir: string) => {
     if (!fs.existsSync(dir)) return;
@@ -21,6 +28,11 @@ function countCodeLines(): number {
   };
   ['src', 'server', 'android-native'].forEach(d => walk(path.join(root, d)));
   if (fs.existsSync(path.join(root, 'server.ts'))) total += fs.readFileSync(path.join(root, 'server.ts'), 'utf8').split('\n').length;
+  if (total === 0 && root !== process.cwd()) {
+    // Zweiter Versuch vom Arbeitsordner aus
+    const cwd = process.cwd();
+    ['src', 'server', 'android-native'].forEach(d => walk(path.join(cwd, d)));
+  }
   return total;
 }
 
