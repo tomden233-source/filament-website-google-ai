@@ -1803,5 +1803,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.123',
+    label: '1.123 (Aus beendet Trocknen)',
+    releaseDate: '30.10.2026',
+    description: '„Nach Druck aus“ gilt immer: läuft noch eine Trocknung, wird sie beendet, das AMS läuft aus und dann geht der Drucker aus.',
+    features: [
+      '⏻ Aus nach Druck + Trocknung läuft: App beendet die Trocknung (wiederholt es jede Minute, falls der Drucker nicht reagiert)',
+      '⏳ Danach 3 Minuten warten, bis das AMS ausgelaufen ist und die Ventile zu sind, dann Steckdose aus',
+      '🛟 Reagiert der Drucker gar nicht, wird spätestens nach 30 Minuten trotzdem ausgeschaltet',
+      '🌫️ Meldet der Feuchte-Sensor „muss trocknen“, wird bei gewähltem Aus nicht mehr automatisch getrocknet',
+      '🔢 Aktualisierte Zahlen-FunFacts: 96 Commits und 123 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

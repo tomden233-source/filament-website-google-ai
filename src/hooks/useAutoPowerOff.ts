@@ -11,7 +11,8 @@ import { jobKey } from '../utils/printUsage';
 //  - Fertig muss mind. 1 Minute anliegen (keine Fehlauslösung durch kurze Datenfehler)
 //  - Düse unter 60 °C, spätestens nach 20 Minuten wird trotzdem ausgeschaltet
 //  - Druck fehlgeschlagen/abgebrochen: nicht ausschalten (du willst evtl. nachsehen), nur Meldung
-//  - Trocknung läuft oder ist „nach dem Druck“ geplant: erst danach ausschalten
+//  - Aus ist stärker als Trocknen: läuft noch eine Trocknung, wird sie beendet, die App wartet das Auslaufen/Schließen
+//    des AMS ab (3 Minuten ohne Trocknung) und schaltet dann aus. Auch wenn der Feuchte-Sensor Trocknen will.
 // Läuft auf jedem Gerät, auf dem die App offen ist (Android: auch im Hintergrund mit Hintergrund-Dienst).
 
 interface Params {
@@ -22,14 +23,19 @@ interface Params {
   switchState: 'on' | 'off' | 'unknown' | 'error';
   refreshSwitch: () => void;
   notify: (t: { text: string; ok: boolean }) => void;
-  /** Noch nicht ausschalten (z. B. Trocknung läuft oder ist nach dem Druck geplant) */
-  hold?: boolean;
+  /** AMS trocknet gerade */
+  drying?: boolean;
+  /** Trocknung beenden (gibt zurück, ob der Drucker es angenommen hat) */
+  stopDrying?: () => Promise<boolean>;
 }
 
 const COOL_C = 60;
 const MIN_FINISH_MS = 60_000;
 const MAX_WAIT_MS = 20 * 60_000;
 const TICK_MS = 10_000;
+const DRY_SETTLE_MS = 3 * 60_000; // nach dem Ende der Trocknung warten (AMS-Ventile/Lüfter schließen)
+const DRY_STOP_RETRY_MS = 60_000;
+const DRY_MAX_WAIT_MS = 30 * 60_000; // spätestens dann trotzdem aus
 
 export function useAutoPowerOff(p: Params) {
   const auto = useAutoOff();
@@ -38,6 +44,8 @@ export function useAutoPowerOff(p: Params) {
   const finishSince = useRef<number | null>(null);
   const busy = useRef(false);
   const fails = useRef(0);
+  const lastDrying = useRef(0);
+  const lastStopTry = useRef(0);
 
   // Zustand des Druckers auswerten
   useEffect(() => {
@@ -72,16 +80,28 @@ export function useAutoPowerOff(p: Params) {
   useEffect(() => {
     if (!auto.armed) {
       fails.current = 0;
+      lastDrying.current = 0;
+      lastStopTry.current = 0;
       return;
     }
     const tick = async () => {
       const since = finishSince.current;
       if (since === null || busy.current) return;
-      if (latest.current.hold) {
-        finishSince.current = Date.now(); // nach der Trocknung erst wieder 1 Minute warten
-        return;
-      }
       const waited = Date.now() - since;
+      if (latest.current.drying) {
+        lastDrying.current = Date.now();
+        // Trocknung beenden, solange nicht länger als 30 Minuten gewartet wurde
+        if (waited < DRY_MAX_WAIT_MS) {
+          if (Date.now() - lastStopTry.current >= DRY_STOP_RETRY_MS && latest.current.stopDrying) {
+            lastStopTry.current = Date.now();
+            addSystemLog('steckdose', 'Trocknung beendet für Aus nach Druck', 'Aus nach Druck ist stärker als Trocknen', 'info');
+            void latest.current.stopDrying();
+          }
+          return;
+        }
+      } else if (lastDrying.current && Date.now() - lastDrying.current < DRY_SETTLE_MS) {
+        return; // AMS läuft aus, Ventile schließen noch
+      }
       if (waited < MIN_FINISH_MS) return;
       const temps = latest.current.nozzleTemps.filter(t => Number.isFinite(t) && t > 0);
       const hot = temps.length ? Math.max(...temps) : 0;

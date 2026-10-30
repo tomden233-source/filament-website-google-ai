@@ -338,7 +338,8 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
   };
 
   const autoOff = useAutoPowerOff({
-    hold: dryLeftNow > 0, // Aus nach Druck ist stärker als Trocknen nach Druck
+    drying: dryLeftNow > 0, // Aus nach Druck ist stärker als Trocknen: Trocknung wird beendet
+    stopDrying: () => handleToggleAmsDrying(false),
     connected: Boolean(liveState.connected && liveState.receivingData !== false),
     gcodeState: liveState.data.gcode_state,
     jobName: liveState.data.subtask_name,
@@ -387,6 +388,7 @@ export const BambuPrinterWidget: React.FC<BambuPrinterWidgetProps> = ({
     spools,
     amsSpools: amsSpools(),
     printActive,
+    blockDrying: autoOff.armed, // Aus nach Druck ist stärker: kein Auto-Trocknen
     startDrying: o => handleToggleAmsDrying(true, o),
     notify: setActionToast
   });

@@ -25,6 +25,8 @@ interface Params {
   amsSpools: Spool[];
   /** Druck läuft (dann wird nach dem Druck getrocknet) */
   printActive: boolean;
+  /** Kein automatisches Trocknen (z. B. „Nach Druck aus“ ist gewählt) */
+  blockDrying?: boolean;
   startDrying: (o: { hours: number; temp: number }) => Promise<boolean>;
   notify: (t: { text: string; ok: boolean }) => void;
 }
@@ -139,6 +141,10 @@ export function useHumidityAlarm(p: Params) {
     const tick = async () => {
       const cur = latest.current;
       const v = amsRef.current;
+      if (cur.blockDrying) {
+        autoHighSince.current = null;
+        return;
+      }
       if (!cur.printerConnected || v === null || cur.drying || v < settings.autoDryAt) {
         autoHighSince.current = null;
         return;
