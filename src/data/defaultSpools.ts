@@ -1647,5 +1647,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.113',
+    label: '1.113 (Leser-Einbau)',
+    releaseDate: '30.10.2026',
+    description: 'Neue Einbau-Anleitung für die NFC-Leser im AMS 2 Pro: an die Trennwände und die linke Außenwand statt an die Bambu-Leser.',
+    features: [
+      '📍 Je Slot ein Leser: Slot 1 linke Außenwand, Slot 2–4 an der Trennwand links davon',
+      '🏷️ Tag links außen auf die Spule (1–3 cm vom Rand), gelesen wird beim Drehen',
+      '🧲 Ferrit-Folie hinter jedem Leser, damit nicht der Nachbar-Slot gelesen wird',
+      '🔢 Aktualisierte Zahlen-FunFacts: 86 Commits und 113 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

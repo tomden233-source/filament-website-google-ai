@@ -60,13 +60,25 @@ Ein kleiner I2C-Sensor misst Luftfeuchte und Temperatur, z. B. in der Filament-L
 
 ## Einbau im AMS 2 Pro
 
-- ESP32 **außen** montieren. Innen wird es beim Trocknen bis 65 °C warm.
-- Innen nur die flachen RC522-Platinen, in gedruckten Haltern aus **PETG oder ASA** (kein PLA). Isolierband und normales Doppelklebeband lösen sich bei Hitze.
-- Leser auf Höhe der **Spulen-Nabe**, Abstand zum Tag höchstens 2–3 cm.
-- Den NFC-Tag mittig auf die Spulen-Seite kleben, nahe der Nabe. So bleibt er beim Drehen vor dem Leser.
-- Gehäuse für den ESP32 zum Drucken: Ordner `case/` (Unterteil, Deckel, Anleitung).
-- Halter zum Drucken: Ordner `holder/` (flache Platte zum Kleben mit doppelseitigem Klebeband: STL, SCAD und Zeichnung, Anleitung dort).
-- Nicht bohren, lieber klemmen oder kleben (Garantie).
+**Wohin mit den Lesern?** Vorne in den Zuführungen sitzen die Bambu-Leser, dort ist kein Platz und die Leser würden sich stören. Darum kommen die RC522 an die **Trennwände** zwischen den Slots und an die **linke Außenwand**:
+
+| Leser | Platz | Liest |
+|---|---|---|
+| Slot 1 | linke Außenwand innen | linke Seite der Spule in Slot 1 |
+| Slot 2 | Trennwand 1│2, Seite zu Slot 2 | linke Seite der Spule in Slot 2 |
+| Slot 3 | Trennwand 2│3, Seite zu Slot 3 | linke Seite der Spule in Slot 3 |
+| Slot 4 | Trennwand 3│4, Seite zu Slot 4 | linke Seite der Spule in Slot 4 |
+| Extern | am externen Spulenhalter hinten | – |
+
+So hat jede Trennwand nur **einen** Leser.
+
+- **Höhe und Lage:** unten an der Wand, kurz über den Laufrollen, eher **hinten/mittig** (weg von den Bambu-Lesern vorne in den Zuführungen, mindestens ca. 4 cm Abstand). Platine im Halter flach an die Wand (Einbau wie in `holder/README.md`), Abstand zur Spulenseite höchstens 2–3 cm. Stiftleiste nicht einlöten, Litzen direkt anlöten (sonst steht sie zur Spule hin ab).
+- **Tag auf die Spule:** NTAG-Aufkleber auf die **linke** Spulenseite (von vorne gesehen), ca. 1–3 cm vom äußeren Rand. Spule immer mit dem Tag nach links einlegen. Der Bambu-Chip sitzt innen an der Nabe, weit weg.
+- **Gelesen wird beim Drehen:** Der Tag kommt bei jeder Umdrehung unten am Leser vorbei. Die Spule dreht sich beim Einziehen, beim Drucken und beim Zurückspulen. Darum erkennt die App eine neue Fremd-Spule spätestens kurz nach dem Druckstart (der Spulen-Check wartet 90 s und hat sie dann). Ein Slot gilt erst nach 10 Minuten ohne Tag als leer.
+- **Ferrit-Folie hinter jeden Leser** (NFC-Ferrit-Aufkleber, „Anti-Metall“, ca. 50 × 60 mm, wenige Euro), zwischen Wand und Halter: schirmt die Rückseite ab, damit der Leser nicht durch die Trennwand einen Tag im Nachbar-Slot liest.
+- **Kleben:** hitzefestes Klebeband (3M VHB) oder der gedruckte Halter aus **PETG/ASA**. Innen bis 65 °C beim Trocknen. Normales Doppelklebeband und Isolierband lösen sich.
+- **Kabel:** dünne Litzen (26–28 AWG) flach an der Wand nach hinten führen und unter der Deckeldichtung hinaus, oder durch eine vorhandene Öffnung. ESP32 **außen** (Gehäuse: `case/`).
+- Nicht bohren (Garantie). Halter-Platte zum Kleben: `holder/`.
 
 ## Aufspielen (ESPHome)
 
