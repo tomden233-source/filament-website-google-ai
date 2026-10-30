@@ -11,7 +11,7 @@ import type { Spool } from '../types/filament';
 //
 // Felder je Spule siehe src/types/filament.ts (onSpool, sealed, inEibos, needsDrying, location, …).
 //
-// Stand 30.10.2026 (1.128): Neue Liste nach Diktat. Gewichte sind Netto = gewogen − Leerspule − Eibos-Beutel (35 g) − Silica (57 g).
+// Stand 30.10.2026 (1.129): Neue Liste nach Diktat. Gewichte sind Netto = gewogen − Leerspule − Eibos-Beutel (35 g) − Silica (57 g).
 // Nur „Prusa PETG Galaxy Black“ blieb unverändert.
 export const MY_SPOOLS: Spool[] = [
   { id: 'my-01', brand: 'Bambu Lab', name: 'PLA Basic Weiß (Refill 1)', material: 'PLA', colorName: 'Weiß', colorHex: '#f8fafc', pricePerKg: 16.99, initialWeight: 1000, remainingWeight: 1000, emptySpoolWeight: 0, storageNote: 'Original verpackt, ohne Spule', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5, onSpool: false, sealed: true, inEibos: false, silicaBag: false },
@@ -21,7 +21,7 @@ export const MY_SPOOLS: Spool[] = [
   { id: 'my-05', brand: 'Geeetech', name: 'Color Wood PLA', material: 'PLA', colorName: 'Holz / Braun', colorHex: '#a16207', pricePerKg: 16.99, initialWeight: 1000, remainingWeight: 505, emptySpoolWeight: 195, storageNote: 'Mit Spule, ohne Beutel (700 g gewogen)', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5, onSpool: true, sealed: false, inEibos: false, silicaBag: false },
   { id: 'my-06', brand: 'Bambu Lab', name: 'PLA Basic Dunkelgrün', material: 'PLA', colorName: 'Dunkelgrün', colorHex: '#166534', pricePerKg: 19.99, initialWeight: 1000, remainingWeight: 134, emptySpoolWeight: 250, storageNote: 'Mit Spule, Beutel, Silica (476 g gewogen)', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5, onSpool: true, sealed: false, inEibos: true, silicaBag: true },
   { id: 'my-07', brand: 'Eono', name: 'Silk PLA Rot-Gold-Blau', material: 'PLA', colorName: 'Rot / Gold / Blau', colorHex: '#eab308', pricePerKg: 17.99, initialWeight: 1000, remainingWeight: 849, emptySpoolWeight: 150, storageNote: 'Mit Spule, Beutel (1034 g gewogen)', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5, onSpool: true, sealed: false, inEibos: true, silicaBag: false },
-  { id: 'my-08', brand: 'Bambu Lab', name: 'PLA Basic Hellgrün (eigene 100 g Spule)', material: 'PLA', colorName: 'Hellgrün', colorHex: '#4ade80', pricePerKg: 19.99, initialWeight: 1200, remainingWeight: 1123, emptySpoolWeight: 100, storageNote: 'Eigene 100 g Spule, Beutel, Silica (1315 g gewogen)', lastDried: '2026-10-04T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5, onSpool: true, sealed: false, inEibos: true, silicaBag: true },
+  { id: 'my-08', brand: 'Bambu Lab', name: 'PLA Basic Hellgrün (eigene 100 g Spule)', material: 'PLA', colorName: 'Hellgrün', colorHex: '#4ade80', pricePerKg: 19.99, initialWeight: 1000, remainingWeight: 1000, emptySpoolWeight: 100, storageNote: 'Eigene 100 g Spule, Beutel, Silica, noch voll (1315 g gewogen, rechnerisch zu viel)', lastDried: '2026-10-04T00:00:00.000Z', dryIntervalDays: 30, dryTemp: 50, dryHours: 5, onSpool: true, sealed: false, inEibos: true, silicaBag: true },
   { id: 'my-09', brand: 'YXPOLYER', name: 'PA6-CF Schwarz', material: 'PET-CF / PA-CF', colorName: 'Schwarz', colorHex: '#27272a', pricePerKg: 39.99, initialWeight: 1000, remainingWeight: 894, emptySpoolWeight: 220, storageNote: 'Mit Spule, Beutel, Silica (1206 g gewogen)', lastDried: '2026-10-19T00:00:00.000Z', dryIntervalDays: 10, dryTemp: 80, dryHours: 8, onSpool: true, sealed: false, inEibos: true, silicaBag: true },
   { id: 'my-10', brand: 'Eryone', name: 'PLA Glow in the Dark Blau', material: 'PLA', colorName: 'Glow Blau', colorHex: '#38bdf8', pricePerKg: 21.99, initialWeight: 1000, remainingWeight: 956, emptySpoolWeight: 151, storageNote: 'Mit Spule, ohne Beutel (1107 g gewogen)', lastDried: '2026-09-01T00:00:00.000Z', dryIntervalDays: 7, dryTemp: 50, dryHours: 5, onSpool: true, sealed: false, inEibos: false, silicaBag: false },
   { id: 'my-11', brand: 'Eryone', name: 'PLA Durchsichtig', material: 'PLA', colorName: 'Durchsichtig', colorHex: '#cbd5e1', pricePerKg: 18.99, initialWeight: 1000, remainingWeight: 818, emptySpoolWeight: 151, storageNote: 'Mit Spule, ohne Beutel (969 g gewogen)', lastDried: '2026-09-01T00:00:00.000Z', dryIntervalDays: 14, dryTemp: 50, dryHours: 5, onSpool: true, sealed: false, inEibos: false, silicaBag: false },
@@ -35,6 +35,6 @@ export const MY_SPOOLS: Spool[] = [
 ];
 
 export const MY_SPOOLS_SEED: { stamp: number; spools: Spool[] } = {
-  stamp: 1793397775155,
+  stamp: 1793397903874,
   spools: MY_SPOOLS
 };

@@ -1896,5 +1896,19 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.129',
+    label: '1.129 (Hellgrün 1 kg)',
+    releaseDate: '30.10.2026',
+    description: 'Bambu Hellgrün ist eine 1-kg-Spule: Startgewicht 1000 g statt 1200 g, Spule steht auf voll.',
+    features: [
+      '🟢 Bambu PLA Basic Hellgrün: Startgewicht 1000 g, Restgewicht 1000 g (voll)',
+      '⚠️ Gewogene 1315 g ergeben rechnerisch mehr als 1 kg: Gewicht von Beutel/Silica prüfen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 20 Commits und 129 Revisionsstufen'
+    ],
+    spoolsSnapshot: MY_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
