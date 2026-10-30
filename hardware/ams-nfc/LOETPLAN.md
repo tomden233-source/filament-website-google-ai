@@ -44,7 +44,7 @@ Beide Sensoren haben Adresse 0x44, deshalb je ein eigener Bus. Beschriftung auf 
 4. Die 5 SDA-Leitungen einzeln zum ESP32.
 5. Sensoren: 4 Leitungen je Sensor. Sensor 1 zuerst anschließen, testen, dann Sensor 2.
 
-Anzahl Lötstellen am ESP32: 6 (Bus + Strom) + 5 (SDA) + 4 (Box-Sensor) + 2 (Raum-Sensor, SDA/SCL, Strom hängt am Sammelpunkt) = 17 Kabel zum ESP32.
+Leitungen zum ESP32 insgesamt: 15 (GND, 3V3, 4 Bus, 5 SDA, je 2 für Box- und Raum-Sensor). Die Sensoren holen Strom und Masse von den Sammelpunkten.
 
 ## 5. Prüfen vor dem Einschalten
 
