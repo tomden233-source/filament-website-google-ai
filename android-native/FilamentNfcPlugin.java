@@ -32,6 +32,9 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
     // Solange die App vorne ist, alle Tags selbst lesen (sonst zeigt Android seinen „Neues Tag“-Bildschirm).
     // Von Anfang an an: so greift es auch, bevor die Web-App das erste Mal etwas schickt.
     private boolean autoRead = true;
+    // Läuft der Reader-Modus gerade? Jedes erneute Einschalten lässt Android den Tag neu erkennen, und der alte Tag-Zugriff
+    // ist dann „out of date“ (Schreiben schlägt mit „Permission Denial“ fehl). Darum nur bei einer echten Änderung umschalten.
+    private boolean readerOn = false;
 
     @Override
     public void load() {
@@ -144,6 +147,7 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
         activity.runOnUiThread(() -> {
             try {
                 if (needed) {
+                    if (readerOn) return;
                     nfc.enableReaderMode(
                             activity,
                             this,
@@ -152,8 +156,10 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
                                     | NfcAdapter.FLAG_READER_NFC_F
                                     | NfcAdapter.FLAG_READER_NFC_V,
                             null);
-                } else {
+                    readerOn = true;
+                } else if (readerOn) {
                     nfc.disableReaderMode(activity);
+                    readerOn = false;
                 }
             } catch (Exception ignored) {
             }
@@ -273,6 +279,8 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
     }
 
     private void finishWrite(PluginCall call, String error, String serial) {
+        // Schon von einem anderen Versuch erledigt (oder abgebrochen): nicht noch einmal melden
+        if (pendingWrite != call) return;
         pendingWrite = null;
         updateReaderMode();
         if (error != null) {
@@ -330,6 +338,7 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
         }
         // Drei Versuche direkt hintereinander: ein leichtes Wackeln des Tags macht nichts
         for (int attempt = 0; attempt < 3; attempt++) {
+            if (pendingWrite != call) return; // inzwischen erledigt oder abgebrochen
             try {
                 String error = writeOnce(tag, message);
                 finishWrite(call, error, error == null ? serialOf(tag) : null);
@@ -337,6 +346,10 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
             } catch (FormatException e) {
                 finishWrite(call, "Ungültiges Datenformat: " + e.getMessage(), null);
                 return;
+            } catch (SecurityException e) {
+                // „Tag is out of date“: Android hat den Tag inzwischen neu erkannt, dieser Zugriff ist veraltet.
+                // Nicht aufgeben: Der neue Zugriff kommt von selbst (onTagDiscovered) und schreibt dann.
+                break;
             } catch (IOException e) {
                 // Tag verloren / Verbindung weg: nochmal versuchen
                 try {
@@ -358,6 +371,7 @@ public class FilamentNfcPlugin extends Plugin implements NfcAdapter.ReaderCallba
     @Override
     protected void handleOnPause() {
         super.handleOnPause();
+        readerOn = false; // Android schaltet den Reader-Modus beim Pausieren ab
     }
 
     // Android schaltet den Reader-Modus beim Pausieren ab: beim Zurückkommen wieder einschalten

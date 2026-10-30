@@ -1757,5 +1757,21 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.120',
+    label: '1.120 (NFC-Schreiben stabil)',
+    releaseDate: '30.10.2026',
+    description: 'Fehler „Tag is out of date“ beim Beschreiben behoben: Android erkennt den Tag nicht mehr ständig neu.',
+    features: [
+      '🛠️ Ursache: Der NFC-Leser wurde bei jedem Scan-Stopp, Schreiben und alle 15 s neu gestartet, dabei wurde der Tag neu erkannt und der Schreibzugriff war veraltet',
+      '📲 Android-Teil: Leser startet nur noch bei einer echten Änderung neu, veralteter Tag wird nicht mehr als Fehler gemeldet, Ergebnis wird nur einmal gemeldet (neue APK nötig)',
+      '🔇 App-Teil: Scan-Stopp startet den Leser nicht mehr neu (wirkt auch ohne neue APK etwas besser)',
+      '📣 Verständliche Meldung statt „Permission Denial“',
+      '🔢 Aktualisierte Zahlen-FunFacts: 93 Commits und 120 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

@@ -385,6 +385,12 @@ export const NfcModal: React.FC<NfcModalProps> = ({
   /** Fehler, bei denen ein neuer Versuch nichts bringt (anderer Tag nötig) */
   const isFinalNfcError = (msg: string) => /schreibgeschützt|zu klein|kein NDEF|NTAG215|nicht gefunden|ausgeschaltet|kein NFC/i.test(msg);
 
+  /** Android-Fehlertexte verständlich machen („Tag is out of date“ = Tag wurde gerade neu erkannt, neuer Versuch folgt von selbst) */
+  const friendlyNfcError = (msg: string) =>
+    /out of date|Permission Denial/i.test(msg)
+      ? 'Android hat den Tag gerade neu erkannt. Ich versuche es gleich nochmal, halte den Tag ruhig am Handy.'
+      : msg;
+
   const cancelWaiting = () => {
     writeAbortRef.current?.abort();
   };
@@ -412,7 +418,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
           setLoadedSpool(spoolToSave);
           return;
         }
-        setWriteErrorMessage(res.message);
+        setWriteErrorMessage(friendlyNfcError(res.message));
         if (isFinalNfcError(res.message)) return;
         await new Promise(r => setTimeout(r, 700));
       }
@@ -497,7 +503,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
           setScanStatusMessage(`✓ NFC-Tag für „${spoolName}“ erfolgreich gelöscht & formatiert! Status ist jetzt rot.`);
           return;
         }
-        setWriteErrorMessage(res.message);
+        setWriteErrorMessage(friendlyNfcError(res.message));
         if (isFinalNfcError(res.message)) return;
         await new Promise(r => setTimeout(r, 700));
       }

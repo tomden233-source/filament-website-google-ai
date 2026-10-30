@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.119 (QR öffnet App & Spule)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.119 im Paket 2.0.119, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.120 (NFC-Schreiben stabil)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.120 im Paket 2.0.120, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.119 (QR öffnet App & Spule)**. Die Zählung läuft ab 1.1
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29./30.10.2026 (1.105 bis 1.119)
+## Neu am 29./30.10.2026 (1.105 bis 1.120)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -74,6 +74,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.117 | NFC-Leser setzt den Slot am Drucker zuverlässig und meldet Fehler ehrlich (LAN oder Cloud), Slot-Zuordnung geht sofort an PC und Handy |
 | 1.118 | Tag beschreiben/löschen wartet im selben Fenster auf den Tag und schreibt sofort; „Spule ändern“ zeigt alle Spulen zur Auswahl |
 | 1.119 | QR-Etikett scannen öffnet die App und zeigt gleich die passende Spule im Tag-Fenster |
+| 1.120 | NFC-Schreiben stabil: Fehler „Tag is out of date“ behoben (Android-Leser startet nicht mehr ständig neu), braucht neue APK (`NATIVE_API` = 6) |
 
 ### Druck-Wächter (1.105)
 
@@ -225,7 +226,7 @@ Die Glocke oben öffnet das Postfach. Dort stehen alle Mitteilungen mit Details:
 - **Tipp auf die Benachrichtigung** öffnet die App direkt bei dieser Mitteilung (Android-App, Windows-App, installierte Web-App). Für Android braucht das die APK ab 2.01, die App lädt sie selbst.
 - **Trocknen gestoppt** kommt, wenn die Trocknung vor dem Ende ausgeht (mit Laufzeit und fehlender Restzeit), einzeln abschaltbar.
 - **Test-Mitteilung:** im Reiter Einstellungen die Art wählen und „Senden“.
-- **Hintergrund-Dienst (Android, schaltbar):** eine kleine dauerhafte Anzeige hält die App wach, damit „Trocknen fertig“ auch bei geschlossener App aufs Handy kommt. Braucht die APK ab 1.102 (`NATIVE_API` = 5).
+- **Hintergrund-Dienst (Android, schaltbar):** eine kleine dauerhafte Anzeige hält die App wach, damit „Trocknen fertig“ auch bei geschlossener App aufs Handy kommt. Braucht die APK ab 1.102 (`NATIVE_API` = 5). Ab 1.120 gilt `NATIVE_API` = 6 (stabiles NFC-Schreiben).
 - Ohne Hintergrund-Dienst kommen Mitteilungen, solange die App läuft oder im Hintergrund offen ist und mit dem Drucker verbunden bleibt.
 - Etiketten drucken steht unter **Werkstatt** (Schraubenschlüssel oben).
 

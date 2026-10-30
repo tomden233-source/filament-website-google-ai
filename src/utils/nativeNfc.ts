@@ -131,8 +131,10 @@ class NativeNDEFReader {
       'abort',
       () => {
         readers.delete(me);
-        // Im Dauer-Scan-Modus (alte APK) nie beenden, sonst zeigt Android sofort sein eigenes Fenster
-        if (readers.size === 0 && idleMode !== 'scan') p.call('stopScan').catch(() => {});
+        // Im Dauer-Scan-Modus (alte APK) nie beenden, sonst zeigt Android sofort sein eigenes Fenster.
+        // Im Auto-Modus liest Android ohnehin weiter: stopScan würde nur den Leser neu starten und den Tag neu erkennen
+        // (dann ist ein gerade beginnendes Schreiben „out of date“).
+        if (readers.size === 0 && idleMode !== 'scan' && idleMode !== 'auto') p.call('stopScan').catch(() => {});
       },
       { once: true }
     );
