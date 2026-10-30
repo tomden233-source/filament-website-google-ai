@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.116 (Extern-Spule setzen)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.116 im Paket 2.0.116, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.117 (NFC-Slot am Drucker & Sync)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.117 im Paket 2.0.117, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.116 (Extern-Spule setzen)**. Die Zählung läuft ab 1.100 
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29./30.10.2026 (1.105 bis 1.116)
+## Neu am 29./30.10.2026 (1.105 bis 1.117)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -71,6 +71,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.114 | Halter 5 mm dick (Abstand zur Wand) mit Mulde für Ferrit-Folie, dünne Version bleibt dabei |
 | 1.115 | Aufbau-Anleitung als PDF (`hardware/ams-nfc/AUFBAU.pdf`) mit 4 Verkabelungs-Diagrammen (`wiring/`), Teileliste, Aufspielen, Testen, Fehlersuche |
 | 1.116 | Extern-Spule (5.) wählen setzt Material und Farbe auch am Drucker |
+| 1.117 | NFC-Leser setzt den Slot am Drucker zuverlässig und meldet Fehler ehrlich (LAN oder Cloud), Slot-Zuordnung geht sofort an PC und Handy |
 
 ### Druck-Wächter (1.105)
 

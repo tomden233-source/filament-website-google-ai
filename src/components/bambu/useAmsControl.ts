@@ -85,6 +85,22 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
     return () => window.removeEventListener('filamenthub:spools-cleared', clear);
   }, []);
 
+  // Geräte-Sync hat die Slot-Zuordnung von einem anderen Gerät übernommen: sofort anzeigen (ohne Neuladen)
+  useEffect(() => {
+    const reload = () => {
+      try {
+        const parsed = JSON.parse(safeStorage.getItem('filamenthub_ams_slots_x2d') || '{}');
+        if (parsed && typeof parsed === 'object') {
+          setAmsSlots(prev => (JSON.stringify(prev) === JSON.stringify(parsed) ? prev : parsed));
+        }
+      } catch {
+        /* kaputter Eintrag: alten Stand behalten */
+      }
+    };
+    window.addEventListener('filamenthub:device-synced', reload);
+    return () => window.removeEventListener('filamenthub:device-synced', reload);
+  }, []);
+
   const [activeSlot, setActiveSlot] = useState<number>(() => {
     return Number(safeStorage.getItem('filamenthub_ams_active_slot_x2d') || 1);
   });
@@ -93,6 +109,8 @@ export function useAmsControl({ spools, liveState, onApplyDryingCredit, setActio
     const updated = { ...amsSlots, [slotIdx]: spoolId };
     setAmsSlots(updated);
     safeStorage.setItem('filamenthub_ams_slots_x2d', JSON.stringify(updated));
+    // Neue Zuordnung gleich an die anderen Geräte (PC, Handy) weitergeben, nicht erst beim nächsten Abgleich
+    window.dispatchEvent(new CustomEvent('filamenthub:sync-now'));
 
     if (spoolId) {
       const spool = spools.find(s => s.id === spoolId);

@@ -38,6 +38,8 @@ export interface AmsFilamentResponse extends ApiBase {
   blocked?: boolean;
   /** Slot ist laut Drucker leer */
   emptySlot?: boolean;
+  /** Die Verbindung war beim Senden direkt per LAN (false = Bambu Cloud) */
+  lan?: boolean;
 }
 
 export interface PrintTask {

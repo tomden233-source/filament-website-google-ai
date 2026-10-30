@@ -3,7 +3,7 @@ import type { Spool } from '../types/filament';
 import { getHaCredentials } from '../utils/haClient';
 import { getTagMappings, mapTagToSpool } from '../utils/nfcManager';
 import { readTrays, mismatch, EXTERNAL_SLOT } from '../utils/amsMatch';
-import { printerApi } from '../api/printerApi';
+import { paramsFromSpool, sendToSlot } from '../utils/slotAssign';
 import { addSystemLog } from '../utils/logService';
 import { useWorkshopSettings } from '../utils/workshopSettings';
 
@@ -53,6 +53,8 @@ export function useAmsNfcReaders(p: Params): NfcReaderState & { learn: (slot: nu
   latest.current = p;
   const handled = useRef<Record<number, string>>({});
   const warned = useRef<Record<string, boolean>>({});
+  const lastSend = useRef<Record<number, number>>({});
+  const failShown = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     if (settings.amsNfcOn === false) return;
@@ -136,30 +138,32 @@ export function useAmsNfcReaders(p: Params): NfcReaderState & { learn: (slot: nu
           }
           continue;
         }
-        if (handled.current[slot] === uid && amsSlots[slot] === spoolId) continue;
+        const sp = spools.find(s => s.id === spoolId);
+        const hw = trays.find(t => t.slot === slot);
+        // Drucker-Slot anpassen, wenn Material/Farbe dort nicht passen (nur AMS-Slots 1-4)
+        const wantPrinter = settings.amsNfcToPrinter !== false && !!sp && slot <= 4 && printerConnected && !!hw && (hw.empty || mismatch(sp!, hw!));
+        if (handled.current[slot] === uid && amsSlots[slot] === spoolId && !wantPrinter) continue;
         handled.current[slot] = uid;
         if (amsSlots[slot] !== spoolId) {
           handleSetAmsSlot(slot, spoolId);
-          const sp = spools.find(s => s.id === spoolId);
           notify({ text: `NFC: ${sp ? `${sp.brand} ${sp.name}` : 'Spule'} in ${slot === EXTERNAL_SLOT ? 'Extern' : `Slot ${slot}`} erkannt.`, ok: true });
           addSystemLog('drucker', `NFC-Leser: Slot ${slot} → ${sp?.name || spoolId}`, uid, 'info');
         }
-        // Drucker-Slot anpassen, wenn Material/Farbe dort nicht passen (nur AMS-Slots 1-4)
-        const sp = spools.find(s => s.id === spoolId);
-        const hw = trays.find(t => t.slot === slot);
-        if (settings.amsNfcToPrinter !== false && sp && slot <= 4 && printerConnected && hw && (hw.empty || mismatch(sp, hw))) {
-          printerApi
-            .amsFilament({
-              slotIdx: slot - 1,
-              colorHex: sp.colorHex || '#888888',
-              material: String(sp.material || 'PLA').split(/[\s/]/)[0],
-              minTemp: sp.nozzleTemp ? sp.nozzleTemp - 15 : undefined,
-              maxTemp: sp.nozzleTemp ? sp.nozzleTemp + 15 : undefined
-            } as any)
-            .then(r => {
-              if (r.ok && (r.data as any)?.success) notify({ text: `Slot ${slot} am Drucker auf ${sp.material} ${sp.colorName} gesetzt.`, ok: true });
-            })
-            .catch(() => {});
+        // Gleicher Weg wie beim manuellen Zuweisen (sendToSlot), mit ehrlicher Meldung. Neuer Versuch frühestens nach 60 s.
+        if (wantPrinter && sp && Date.now() - (lastSend.current[slot] || 0) > 60000) {
+          lastSend.current[slot] = Date.now();
+          const key = `${slot}:${uid}`;
+          void sendToSlot(slot, paramsFromSpool(sp)).then(r => {
+            if (r.confirmed) {
+              delete failShown.current[key];
+              notify({ text: `Slot ${slot} am Drucker auf ${sp.material} ${sp.colorName} gesetzt.`, ok: true });
+              addSystemLog('drucker', `Slot ${slot} am Drucker gesetzt`, `${sp.material} ${sp.colorName}`, 'success');
+            } else if (!failShown.current[key]) {
+              failShown.current[key] = true;
+              notify({ text: `Slot ${slot}: ${r.text}`, ok: false });
+              addSystemLog('drucker', `Slot ${slot} nicht am Drucker gesetzt`, r.text, 'error');
+            }
+          });
         }
       }
       setState({ entities: { ...entities }, tags, unknown });

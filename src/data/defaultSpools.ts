@@ -1707,5 +1707,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.117',
+    label: '1.117 (NFC-Slot am Drucker & Sync)',
+    releaseDate: '30.10.2026',
+    description: 'NFC-Leser setzt den Slot jetzt zuverlässig am Drucker, meldet Fehler ehrlich und gibt die Zuordnung sofort an PC und Handy weiter.',
+    features: [
+      '🧵 NFC-Leser nutzt denselben Weg wie das manuelle Zuweisen (gleiche Farbe, Material, Temperaturen)',
+      '📣 Fehler werden gemeldet statt verschluckt, neuer Versuch nach 60 s',
+      '📡 Meldung zeigt die echte Verbindung: „direkt per LAN“ oder „Bambu Cloud“ (vorher immer Cloud-Text)',
+      '🔁 Steht LAN im Menü, läuft aber die Cloud: App schaltet einmal auf LAN um und sendet erneut',
+      '🧹 Alter „Befehl nicht verifiziert“-Fehler im Drucker zählt nicht mehr als Ablehnung',
+      '🔄 Slot-Zuordnung geht sofort an die anderen Geräte, PC zeigt sie ohne Neuladen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 90 Commits und 117 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

@@ -1344,13 +1344,16 @@ export abstract class BambuMqttCore {
 
     // Keine Schein-Aktualisierung: die Anzeige ändert sich erst, wenn der Drucker den Slot wirklich meldet.
     this.amsCmdResult = null;
+    // Alter „Befehl nicht verifiziert“-Fehler, der schon vor diesem Befehl in der HMS-Liste stand, zählt nicht als Ablehnung
+    const hmsBlockedBefore = this.hmsBlocked;
     this.client.publish(reqTopic, JSON.stringify(payload));
     this.schedulePushall(800);
     this.schedulePushall(2500);
 
     const outcome = external
-      ? await this.waitForExternal(color.slice(0, 6), material, 5000)
-      : await this.waitForAmsSlot(slotIdx, color.slice(0, 6), material, 5000);
+      ? await this.waitForExternal(color.slice(0, 6), material, 5000, hmsBlockedBefore)
+      : await this.waitForAmsSlot(slotIdx, color.slice(0, 6), material, 5000, hmsBlockedBefore);
+    const lan = this.lanMode;
     const colorHex = `#${color.slice(0, 6)}`;
     const n = external ? 'Extern (5)' : slotIdx + 1;
     if (outcome === 'confirmed') {
@@ -1358,6 +1361,7 @@ export abstract class BambuMqttCore {
         success: true,
         confirmed: true,
         blocked: false,
+        lan,
         message: external ? `Extern (5. Spule): ${material} ${colorHex} ist am Drucker gesetzt.` : `Slot ${n}: ${material} ${colorHex} ist am Drucker gesetzt.`,
         slotIdx,
         colorHex,
@@ -1367,7 +1371,9 @@ export abstract class BambuMqttCore {
     const emptySlot = external ? false : this.isAmsSlotEmpty(slotIdx);
     const error =
       outcome === 'blocked'
-        ? 'Bambu lehnt den Befehl ab (MQTT-Befehl nicht verifiziert). Über die Cloud sind nur Lesen und Licht erlaubt. Slot-Daten schreiben geht nur im LAN-Entwicklermodus oder am Drucker selbst.'
+        ? lan
+          ? 'Der Drucker lehnt den Befehl ab, obwohl die App direkt per LAN verbunden ist. Am Drucker prüfen: „Nur LAN“ und „Entwicklermodus“ beide an (danach Drucker neu starten). Eine Bambu-Spule mit eigenem Chip im Slot lässt sich nicht überschreiben.'
+          : 'Die App ist gerade über die Bambu Cloud verbunden, nicht direkt per LAN. Die Cloud erlaubt nur Lesen und Licht. Bitte auf „Direkt (LAN)“ verbinden, dann geht das Slot-Schreiben.'
         : emptySlot
         ? `Der Drucker hat Slot ${n} nicht übernommen. Der Slot ist leer: erst Filament einlegen, dann übertragen.`
         : external
@@ -1377,6 +1383,7 @@ export abstract class BambuMqttCore {
       success: false,
       confirmed: false,
       blocked: outcome === 'blocked',
+      lan,
       emptySlot,
       error,
       message: error,
@@ -1387,7 +1394,7 @@ export abstract class BambuMqttCore {
   }
 
   /** Wartet, bis der Drucker die externe Spule (vt_tray) mit den gesendeten Werten meldet (oder ablehnt). */
-  private async waitForExternal(color6: string, material: string, timeoutMs: number): Promise<'confirmed' | 'blocked' | 'unconfirmed'> {
+  private async waitForExternal(color6: string, material: string, timeoutMs: number, hmsBlockedBefore = false): Promise<'confirmed' | 'blocked' | 'unconfirmed'> {
     const startedAt = Date.now();
     const wantColor = color6.toUpperCase();
     const wantType = material.toUpperCase();
@@ -1403,7 +1410,7 @@ export abstract class BambuMqttCore {
       }
       await new Promise(res => setTimeout(res, 300));
     }
-    return this.hmsBlocked ? 'blocked' : 'unconfirmed';
+    return this.hmsBlocked && !hmsBlockedBefore ? 'blocked' : 'unconfirmed';
   }
 
   private amsTray(slotIdx: number): any | null {
@@ -1422,7 +1429,8 @@ export abstract class BambuMqttCore {
     slotIdx: number,
     color6: string,
     material: string,
-    timeoutMs: number
+    timeoutMs: number,
+    hmsBlockedBefore = false
   ): Promise<'confirmed' | 'blocked' | 'unconfirmed'> {
     const startedAt = Date.now();
     const wantColor = color6.toUpperCase();
@@ -1443,7 +1451,7 @@ export abstract class BambuMqttCore {
       }
       await new Promise(res => setTimeout(res, 300));
     }
-    return this.hmsBlocked ? 'blocked' : 'unconfirmed';
+    return this.hmsBlocked && !hmsBlockedBefore ? 'blocked' : 'unconfirmed';
   }
 
   private getDryResult() {
