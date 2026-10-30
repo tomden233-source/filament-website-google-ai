@@ -1725,5 +1725,22 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: DEFAULT_21_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.118',
+    label: '1.118 (Tag beschreiben & Spule ändern)',
+    releaseDate: '30.10.2026',
+    description: 'Tag beschreiben und löschen wartet im selben Fenster auf den Tag und legt sofort los. „Spule ändern“ zeigt alle Spulen zur Auswahl.',
+    features: [
+      '🏷️ „Beschreiben“ und „Löschen“ warten im selben Fenster auf den Tag (kein extra Fenster) und schreiben sofort, sobald er am Handy ist',
+      '🛠️ Fehler behoben: Der Lese-Scan lief beim Schreiben weiter und fing den Tag ab, Fehler und Wartestand waren unsichtbar',
+      '📣 Fehler und Erfolg stehen jetzt im Fenster, bei verrutschtem Tag bis zu 6 Versuche, „Abbrechen“ beendet das Warten',
+      '🧵 „Spule ändern“ öffnet die Auswahl aller Spulen mit Suche, der Tag wird auf die gewählte Spule umgeschrieben',
+      '✏️ Der alte Knopf zum Bearbeiten der Spulendaten heißt jetzt „Spule bearbeiten“',
+      '🔢 Aktualisierte Zahlen-FunFacts: 91 Commits und 118 Revisionsstufen'
+    ],
+    spoolsSnapshot: DEFAULT_21_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];

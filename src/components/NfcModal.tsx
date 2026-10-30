@@ -108,7 +108,13 @@ export const NfcModal: React.FC<NfcModalProps> = ({
   const [adjustGramsInput, setAdjustGramsInput] = useState<string>('50');
   const [adjustFeedbackMessage, setAdjustFeedbackMessage] = useState<string>('');
 
+  // Wartet gerade auf den Tag zum Beschreiben (Spule) oder Löschen; „Spule ändern“-Auswahl offen
+  const [waitingSpool, setWaitingSpool] = useState<Spool | null>(null);
+  const [waitingErase, setWaitingErase] = useState<boolean>(false);
+  const [changePicker, setChangePicker] = useState<boolean>(false);
+
   const abortControllerRef = useRef<AbortController | null>(null);
+  const writeAbortRef = useRef<AbortController | null>(null);
   const batchLoopRef = useRef<boolean>(false);
   const lastReadTimeRef = useRef<number>(0);
   const prevIsOpenRef = useRef<boolean>(false);
@@ -134,6 +140,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
   useEffect(
     () => () => {
       abortControllerRef.current?.abort();
+      writeAbortRef.current?.abort();
       batchLoopRef.current = false;
     },
     []
@@ -145,6 +152,10 @@ export const NfcModal: React.FC<NfcModalProps> = ({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      writeAbortRef.current?.abort();
+      setWaitingSpool(null);
+      setWaitingErase(false);
+      setChangePicker(false);
       batchLoopRef.current = false;
       setIsScanning(false);
       setIsBatchWriting(false);
@@ -229,6 +240,8 @@ export const NfcModal: React.FC<NfcModalProps> = ({
   // NFC LESEN
   // =========================================================================
   const startNfcScan = async () => {
+    writeAbortRef.current?.abort(); // laufendes Warten auf Schreiben/Löschen beenden
+    setChangePicker(false);
     setUnwrittenTagDetected(false);
     setLoadedSpool(null);
     setLoadedPayload(null);
@@ -358,27 +371,59 @@ export const NfcModal: React.FC<NfcModalProps> = ({
   // =========================================================================
   // EINZEL-SPULE SCHREIBEN
   // =========================================================================
-  const handleWriteSpoolToCurrentTag = async (spoolToSave: Spool) => {
+  // Beschreiben/Löschen warten im selben Fenster auf den Tag (kein extra Fenster) und legen sofort los, sobald er da ist.
+  const stopScanForWrite = () => {
+    // Der laufende Lese-Scan würde den Tag abfangen, den wir gleich beschreiben wollen
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    writeAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    writeAbortRef.current = ctrl;
+    return ctrl;
+  };
+
+  /** Fehler, bei denen ein neuer Versuch nichts bringt (anderer Tag nötig) */
+  const isFinalNfcError = (msg: string) => /schreibgeschützt|zu klein|kein NDEF|NTAG215|nicht gefunden|ausgeschaltet|kein NFC/i.test(msg);
+
+  const cancelWaiting = () => {
+    writeAbortRef.current?.abort();
+  };
+
+  const handleWriteSpoolToCurrentTag = async (spoolToSave: Spool, previousSpoolId?: string) => {
+    const ctrl = stopScanForWrite();
     setIsWriting(true);
+    setWaitingSpool(spoolToSave);
     setWriteSuccessMessage('');
     setWriteErrorMessage('');
 
     try {
-      const res = await writeSpoolToNfcTag(spoolToSave, undefined, writeFormat);
-      if (!res.success) throw new Error(res.message);
-      if (detectedTagUid) {
-        mapTagToSpool(detectedTagUid, spoolToSave.id);
+      // Bis zu 6 Versuche: ein verrutschter Tag soll nicht gleich abbrechen. Der Abbrechen-Knopf beendet das Warten sofort.
+      for (let attempt = 0; attempt < 6 && !ctrl.signal.aborted; attempt++) {
+        const res = await writeSpoolToNfcTag(spoolToSave, ctrl.signal, writeFormat);
+        if (res.success) {
+          if (detectedTagUid) mapTagToSpool(detectedTagUid, spoolToSave.id);
+          playNfcSuccessChime();
+          triggerNfcHaptic();
+          if (previousSpoolId && previousSpoolId !== spoolToSave.id) onMarkSpoolWritten?.(previousSpoolId, false);
+          onMarkSpoolWritten?.(spoolToSave.id, true);
+          setWriteSuccessMessage(`Erfolgreich! NFC-Tag wurde mit „${spoolToSave.brand} ${spoolToSave.name}“ beschrieben.`);
+          setUnwrittenTagDetected(false);
+          setChangePicker(false);
+          setLoadedSpool(spoolToSave);
+          return;
+        }
+        setWriteErrorMessage(res.message);
+        if (isFinalNfcError(res.message)) return;
+        await new Promise(r => setTimeout(r, 700));
       }
-      playNfcSuccessChime();
-      triggerNfcHaptic();
-      onMarkSpoolWritten?.(spoolToSave.id, true);
-      setWriteSuccessMessage(`Erfolgreich! NFC-Tag wurde mit „${spoolToSave.brand} ${spoolToSave.name}“ beschrieben.`);
-      setUnwrittenTagDetected(false);
-      setLoadedSpool(spoolToSave);
     } catch (e: any) {
-      setWriteErrorMessage(`Fehler beim Beschreiben: ${e.message || String(e)}`);
+      if (e?.name !== 'AbortError') setWriteErrorMessage(`Fehler beim Beschreiben: ${e?.message || String(e)}`);
     } finally {
-      setIsWriting(false);
+      if (writeAbortRef.current === ctrl) {
+        writeAbortRef.current = null;
+        setIsWriting(false);
+        setWaitingSpool(null);
+      }
     }
   };
 
@@ -432,24 +477,38 @@ export const NfcModal: React.FC<NfcModalProps> = ({
 
   const handleDeleteLoadedTag = async () => {
     if (!loadedSpool) return;
+    const ctrl = stopScanForWrite();
     setIsWriting(true);
+    setWaitingErase(true);
+    setWriteSuccessMessage('');
+    setWriteErrorMessage('');
+    setChangePicker(false);
     try {
       const spoolId = loadedSpool.id;
       const spoolName = `${loadedSpool.brand} ${loadedSpool.name}`;
-      const res = await eraseNfcTag(detectedTagUid);
-      if (res.success) {
-        onMarkSpoolWritten?.(spoolId, false);
-        setLoadedSpool(null);
-        setLoadedPayload(null);
-        setUnwrittenTagDetected(true);
-        setScanStatusMessage(`✓ NFC-Tag für „${spoolName}“ erfolgreich gelöscht & formatiert! Status ist jetzt rot.`);
-      } else {
-        setScanStatusMessage(`Fehler beim Löschen: ${res.message}`);
+      for (let attempt = 0; attempt < 6 && !ctrl.signal.aborted; attempt++) {
+        const res = await eraseNfcTag(detectedTagUid, ctrl.signal);
+        if (res.success) {
+          onMarkSpoolWritten?.(spoolId, false);
+          setLoadedSpool(null);
+          setLoadedPayload(null);
+          setUnwrittenTagDetected(true);
+          setWriteErrorMessage('');
+          setScanStatusMessage(`✓ NFC-Tag für „${spoolName}“ erfolgreich gelöscht & formatiert! Status ist jetzt rot.`);
+          return;
+        }
+        setWriteErrorMessage(res.message);
+        if (isFinalNfcError(res.message)) return;
+        await new Promise(r => setTimeout(r, 700));
       }
     } catch (err: any) {
-      setScanStatusMessage(`Fehler beim Löschen: ${err.message || String(err)}`);
+      if (err?.name !== 'AbortError') setWriteErrorMessage(`Fehler beim Löschen: ${err?.message || String(err)}`);
     } finally {
-      setIsWriting(false);
+      if (writeAbortRef.current === ctrl) {
+        writeAbortRef.current = null;
+        setIsWriting(false);
+        setWaitingErase(false);
+      }
     }
   };
 
@@ -545,6 +604,16 @@ export const NfcModal: React.FC<NfcModalProps> = ({
     playNfcSuccessChime();
     triggerNfcHaptic();
     setTimeout(() => setWriteSuccessMessage(''), 3500);
+  };
+
+  // „Spule ändern“: Auswahl aller Spulen öffnen, aktuelle Spule ist vorgewählt
+  const openChangePicker = () => {
+    if (loadedSpool) setSelectedSpoolId(loadedSpool.id);
+    setSpoolSearchQuery('');
+    setSpoolMaterialFilter('ALL');
+    setWriteSuccessMessage('');
+    setWriteErrorMessage('');
+    setChangePicker(true);
   };
 
   // Wiederverwendbare Spulenauswahl
@@ -785,7 +854,7 @@ export const NfcModal: React.FC<NfcModalProps> = ({
           {/* =============================================================== */}
           {/* TAB 2: NFC-TAG LESEN                                           */}
           {/* =============================================================== */}
-          {activeTab === 'read' && <NfcReadTab unwrittenTagDetected={unwrittenTagDetected} setUnwrittenTagDetected={setUnwrittenTagDetected} startNfcScan={startNfcScan} detectedTagUid={detectedTagUid} renderSpoolPicker={renderSpoolPicker} targetSpool={targetSpool} handleWriteSpoolToCurrentTag={handleWriteSpoolToCurrentTag} isWriting={isWriting} loadedSpool={loadedSpool} activeLoadedSpool={activeLoadedSpool} adjustFeedbackMessage={adjustFeedbackMessage} handleAdjustLoadedSpoolWeight={handleAdjustLoadedSpoolWeight} adjustGramsInput={adjustGramsInput} setAdjustGramsInput={setAdjustGramsInput} handleDeleteLoadedTag={handleDeleteLoadedTag} onSelectSpoolForEdit={onSelectSpoolForEdit} onAssignToSlot={onAssignToSlot} onClose={onClose} scanStatusMessage={scanStatusMessage} handleSimulateUnwrittenTag={handleSimulateUnwrittenTag} handleSimulateLoadedTag={handleSimulateLoadedTag} />}
+          {activeTab === 'read' && <NfcReadTab unwrittenTagDetected={unwrittenTagDetected} setUnwrittenTagDetected={setUnwrittenTagDetected} startNfcScan={startNfcScan} detectedTagUid={detectedTagUid} renderSpoolPicker={renderSpoolPicker} targetSpool={targetSpool} handleWriteSpoolToCurrentTag={handleWriteSpoolToCurrentTag} isWriting={isWriting} loadedSpool={loadedSpool} activeLoadedSpool={activeLoadedSpool} adjustFeedbackMessage={adjustFeedbackMessage} handleAdjustLoadedSpoolWeight={handleAdjustLoadedSpoolWeight} adjustGramsInput={adjustGramsInput} setAdjustGramsInput={setAdjustGramsInput} handleDeleteLoadedTag={handleDeleteLoadedTag} onSelectSpoolForEdit={onSelectSpoolForEdit} onAssignToSlot={onAssignToSlot} onClose={onClose} scanStatusMessage={scanStatusMessage} handleSimulateUnwrittenTag={handleSimulateUnwrittenTag} handleSimulateLoadedTag={handleSimulateLoadedTag} waitingSpool={waitingSpool} waitingErase={waitingErase} cancelWaiting={cancelWaiting} writeSuccessMessage={writeSuccessMessage} writeErrorMessage={writeErrorMessage} changePicker={changePicker} setChangePicker={setChangePicker} openChangePicker={openChangePicker} />}
 
           {/* =============================================================== */}
           {/* TAB 3: EINZEL-SPULE AUF NFC-TAG BESCHREIBEN                     */}

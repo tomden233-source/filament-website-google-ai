@@ -25,7 +25,42 @@ export interface NfcReadTabProps {
   scanStatusMessage: any;
   handleSimulateUnwrittenTag: (...args: any[]) => any;
   handleSimulateLoadedTag: (...args: any[]) => any;
+  /** Spule, die gerade auf den Tag geschrieben wird (wartet auf den Tag) */
+  waitingSpool: any;
+  /** Löschen läuft (wartet auf den Tag) */
+  waitingErase: boolean;
+  cancelWaiting: () => void;
+  writeSuccessMessage: string;
+  writeErrorMessage: string;
+  /** „Spule ändern“: Auswahl aller Spulen offen */
+  changePicker: boolean;
+  setChangePicker: (v: boolean) => void;
+  openChangePicker: () => void;
 }
+
+/** Wartet im selben Fenster auf den Tag und schreibt/löscht, sobald er am Handy ist */
+const WaitBox: React.FC<{ title: string; hint: string; error?: string; onCancel: () => void }> = ({ title, hint, error, onCancel }) => (
+  <div className="p-4 rounded-2xl bg-orange-500/10 border-2 border-orange-500/40 text-center space-y-3">
+    <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+      <div className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping" />
+      <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+        <Radio className="w-7 h-7 animate-pulse" />
+      </div>
+    </div>
+    <div className="space-y-1">
+      <h4 className="font-extrabold text-sm text-[var(--app-text)]">{title}</h4>
+      <p className="text-[11px] text-[var(--app-text-muted)] max-w-xs mx-auto leading-relaxed">{hint}</p>
+    </div>
+    {error && <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] text-left">{error}</div>}
+    <button
+      type="button"
+      onClick={onCancel}
+      className="px-4 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-[var(--app-text)] text-xs font-bold cursor-pointer"
+    >
+      Abbrechen
+    </button>
+  </div>
+);
 
 export const NfcReadTab: React.FC<NfcReadTabProps> = ({
   unwrittenTagDetected,
@@ -48,7 +83,15 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
   onClose,
   scanStatusMessage,
   handleSimulateUnwrittenTag,
-  handleSimulateLoadedTag
+  handleSimulateLoadedTag,
+  waitingSpool,
+  waitingErase,
+  cancelWaiting,
+  writeSuccessMessage,
+  writeErrorMessage,
+  changePicker,
+  setChangePicker,
+  openChangePicker
 }) => {
   return (
 <div className="space-y-4 text-xs">
@@ -87,20 +130,33 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
                     </p>
                   </div>
 
-                  <div className="text-left space-y-2">
-                    {renderSpoolPicker()}
+                  {waitingSpool ? (
+                    <WaitBox
+                      title="Halte den Tag jetzt ans Handy"
+                      hint={`Sobald der Tag da ist, schreibe ich „${waitingSpool.brand} ${waitingSpool.name}“ sofort drauf. Nichts weiter drücken.`}
+                      error={writeErrorMessage}
+                      onCancel={cancelWaiting}
+                    />
+                  ) : (
+                    <div className="text-left space-y-2">
+                      {renderSpoolPicker()}
 
-                    {targetSpool && (
-                      <button
-                        onClick={() => handleWriteSpoolToCurrentTag(targetSpool)}
-                        disabled={isWriting}
-                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <PenTool className="w-3.5 h-3.5" />
-                        <span>Diesen Tag mit „{targetSpool.brand} {targetSpool.name}“ beschreiben</span>
-                      </button>
-                    )}
-                  </div>
+                      {writeErrorMessage && (
+                        <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px]">{writeErrorMessage}</div>
+                      )}
+
+                      {targetSpool && (
+                        <button
+                          onClick={() => handleWriteSpoolToCurrentTag(targetSpool)}
+                          disabled={isWriting}
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <PenTool className="w-3.5 h-3.5" />
+                          <span>Diesen Tag mit „{targetSpool.brand} {targetSpool.name}“ beschreiben</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : loadedSpool ? (
                 <div className="p-4 rounded-2xl bg-[var(--app-card-sub)] border border-[var(--app-border)] space-y-3">
@@ -263,17 +319,75 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
                     </>
                   )}
 
-                  {/* Tag Löschen Button */}
-                  <div className="pt-0.5">
-                    <button
-                      onClick={handleDeleteLoadedTag}
-                      disabled={isWriting}
-                      className="w-full py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer active:scale-98 shadow-xs"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                      <span>{isWriting ? 'Lösche Tag...' : 'Diesen NFC-Tag löschen & formatieren'}</span>
-                    </button>
-                  </div>
+                  {writeSuccessMessage && (
+                    <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{writeSuccessMessage}</span>
+                    </div>
+                  )}
+
+                  {/* „Spule ändern“: alle Spulen zur Auswahl, Tag wird auf die gewählte Spule umgeschrieben */}
+                  {changePicker && !waitingSpool && !waitingErase && (
+                    <div className="p-3 rounded-xl border border-orange-500/40 bg-orange-500/5 space-y-2 text-left">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-orange-400">Andere Spule für diesen Tag wählen</span>
+                        <button
+                          type="button"
+                          onClick={() => setChangePicker(false)}
+                          className="p-1 rounded-lg text-[var(--app-text-muted)] hover:text-[var(--app-text)] cursor-pointer"
+                          title="Auswahl schließen"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {renderSpoolPicker()}
+                      {writeErrorMessage && (
+                        <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px]">{writeErrorMessage}</div>
+                      )}
+                      {targetSpool && targetSpool.id !== loadedSpool.id && (
+                        <button
+                          onClick={() => handleWriteSpoolToCurrentTag(targetSpool, loadedSpool.id)}
+                          disabled={isWriting}
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <PenTool className="w-3.5 h-3.5" />
+                          <span>Tag auf „{targetSpool.brand} {targetSpool.name}“ umschreiben</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {waitingSpool && (
+                    <WaitBox
+                      title="Halte den Tag jetzt ans Handy"
+                      hint={`Sobald der Tag da ist, schreibe ich „${waitingSpool.brand} ${waitingSpool.name}“ sofort drauf. Nichts weiter drücken.`}
+                      error={writeErrorMessage}
+                      onCancel={cancelWaiting}
+                    />
+                  )}
+
+                  {/* Tag Löschen: wartet im selben Fenster auf den Tag */}
+                  {waitingErase ? (
+                    <WaitBox
+                      title="Halte den Tag jetzt ans Handy"
+                      hint="Sobald der Tag da ist, lösche und formatiere ich ihn sofort. Nichts weiter drücken."
+                      error={writeErrorMessage}
+                      onCancel={cancelWaiting}
+                    />
+                  ) : (
+                    !waitingSpool && (
+                      <div className="pt-0.5">
+                        <button
+                          onClick={handleDeleteLoadedTag}
+                          disabled={isWriting}
+                          className="w-full py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer active:scale-98 shadow-xs"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Diesen NFC-Tag löschen & formatieren</span>
+                        </button>
+                      </div>
+                    )
+                  )}
 
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                     <button
@@ -296,16 +410,24 @@ export const NfcReadTab: React.FC<NfcReadTabProps> = ({
                         <span>Einem AMS-Slot zuweisen</span>
                       </button>
                     )}
+                    <button
+                      onClick={openChangePicker}
+                      disabled={isWriting}
+                      className="px-3 py-1.5 rounded-xl bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-orange-400 font-bold text-xs border border-[var(--app-border)] transition cursor-pointer flex items-center gap-1"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span>Spule ändern</span>
+                    </button>
                     {onSelectSpoolForEdit && (
                       <button
                         onClick={() => {
                           onClose();
                           onSelectSpoolForEdit(loadedSpool);
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-orange-400 font-bold text-xs border border-[var(--app-border)] transition cursor-pointer flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-xl bg-[var(--app-card-sub)] hover:bg-[var(--app-accent-sub)] text-[var(--app-text)] font-bold text-xs border border-[var(--app-border)] transition cursor-pointer flex items-center gap-1"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        <span>Spule ändern</span>
+                        <span>Spule bearbeiten</span>
                       </button>
                     )}
                   </div>
