@@ -2,7 +2,7 @@
 
 Filament-Verwaltung für den Bambu Lab X2D mit AMS 2 Pro: Spulenbestand, Waage, Trocknen, Druckverlauf, Home Assistant, NFC-Tags und Cloud-Sync. Läuft als Webseite, Android-App und Windows-App. Frontend mit React und Vite, Server mit Express.
 
-Aktuelle Version: **1.130 (Hellgrün leer, +1 Bambu Weiß)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.130 im Paket 2.0.130, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
+Aktuelle Version: **1.131 (Bambu Weiß 3 Stück)**. Die Zählung läuft ab 1.100 einfach weiter, die 2 bleibt für ein großes Update frei (intern heißt 1.131 im Paket 2.0.131, damit Updates sicher aufwärts zählen). Alle Versionen stehen im Revisionsmenü der App und lassen sich dort auswählen.
 
 ## Was die App kann (Kurzüberblick)
 
@@ -53,7 +53,7 @@ Aktuelle Version: **1.130 (Hellgrün leer, +1 Bambu Weiß)**. Die Zählung läuf
 
 🟢 fertig · 🟡 vorbereitet · ⚪ offen
 
-## Neu am 29./30.10.2026 (1.105 bis 1.130)
+## Neu am 29./30.10.2026 (1.105 bis 1.131)
 
 Alles, was an diesem Tag dazukam, steht hier zusammen.
 
@@ -85,6 +85,7 @@ Alles, was an diesem Tag dazukam, steht hier zusammen.
 | 1.128 | Neue Spulenliste nach Diktat: 18 Spulen mit Beutel- und Silica-Abzug, Prusa PETG blieb unverändert |
 | 1.129 | Bambu Hellgrün ist eine 1-kg-Spule (Startgewicht 1000 g, voll) |
 | 1.130 | Hellgrün: Tara gesamt 315 g (1315 g Brutto = 1000 g Netto), eine weitere Bambu PLA Weiß mit Spule |
+| 1.131 | Korrektur: nur 3 Bambu PLA Weiß, Hellgrün mit Tara 100 + 35 + 57 g (1315 g ergibt über 1 kg, bitte neu wiegen) |
 
 ### Druck-Wächter (1.105)
 

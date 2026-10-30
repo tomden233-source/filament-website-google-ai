@@ -1924,5 +1924,20 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
     viewMode: 'simple'
+  },
+  {
+    id: 'v1.131',
+    label: '1.131 (Bambu Weiß 3 Stück)',
+    releaseDate: '30.10.2026',
+    description: 'Korrektur: nur 3 Bambu PLA Weiß (2 ohne Spule, 1 mit Spule). Hellgrün mit echter Tara 100 + 35 + 57 g.',
+    features: [
+      '⚪ Bambu PLA Basic Weiß: wieder 3 Stück (2 Refill ohne Spule, 1 mit Spule)',
+      '🟢 Hellgrün (1 kg, eigene 100-g-Spule): Tara 100 g + Beutel 35 g + Silica 57 g = 192 g, wird beim Wiegen abgezogen',
+      '⚠️ 1315 g gewogen − 192 g = 1123 g ist mehr als 1 kg: Spule steht auf voll, bitte neu wiegen',
+      '🔢 Aktualisierte Zahlen-FunFacts: 22 Commits und 131 Revisionsstufen'
+    ],
+    spoolsSnapshot: MY_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
   }
 ];
