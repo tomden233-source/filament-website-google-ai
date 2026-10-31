@@ -1037,6 +1037,60 @@ export abstract class BambuMqttCore {
     });
   }
 
+  // --- Sicherheitsnetz für „Druck verzögern“ ---
+  // Die App setzt einen pausierten Druck zur gewählten Zeit selbst fort. War die App dann zu oder schlief das Handy,
+  // setzt der Drucker-Kern (läuft auf dem Server bzw. im Android-Dienst) den Druck 90 Sekunden später von selbst fort.
+  private delayResumeAt = 0;
+  private delayTimer: ReturnType<typeof setInterval> | null = null;
+  private delayLastTry = 0;
+  private static readonly DELAY_GRACE_MS = 90_000;
+  private static readonly DELAY_TICK_MS = 15_000;
+  private static readonly DELAY_RETRY_MS = 30_000;
+
+  /** Zeitpunkt (ms), zu dem ein pausierter Druck spätestens fortgesetzt wird. 0 = kein Plan. */
+  public setDelayedResume(at: number): void {
+    this.delayResumeAt = Number.isFinite(at) && at > 0 ? Math.round(at) : 0;
+    this.delayLastTry = 0;
+    if (!this.delayResumeAt) {
+      if (this.delayTimer) clearInterval(this.delayTimer);
+      this.delayTimer = null;
+      return;
+    }
+    if (!this.delayTimer) {
+      this.delayTimer = setInterval(() => void this.delayTick(), BambuMqttCore.DELAY_TICK_MS);
+      (this.delayTimer as any)?.unref?.();
+    }
+  }
+
+  public getDelayedResume(): number {
+    return this.delayResumeAt;
+  }
+
+  /** Ein Prüfschritt des Sicherheitsnetzes (öffentlich, damit man ihn testen kann) */
+  public async delayTick(now = Date.now()): Promise<void> {
+    if (!this.delayResumeAt) return;
+    const st = this.printData.gcode_state;
+    const due = now >= this.delayResumeAt + BambuMqttCore.DELAY_GRACE_MS;
+    if (st === 'FINISH' || st === 'FAILED' || st === 'IDLE') {
+      this.setDelayedResume(0); // Druck vorbei oder abgebrochen
+      return;
+    }
+    if (!due) return;
+    if (st !== 'PAUSE') {
+      if (st === 'RUNNING' || st === 'PREPARE') this.setDelayedResume(0); // läuft schon
+      return;
+    }
+    if (!this.connected || now - this.delayLastTry < BambuMqttCore.DELAY_RETRY_MS) return;
+    this.delayLastTry = now;
+    try {
+      await this.sendCommand('resume');
+      console.log('[Bambu] Verzögerter Druck vom Sicherheitsnetz fortgesetzt.');
+      this.setDelayedResume(0);
+    } catch (e) {
+      console.warn('[Bambu] Sicherheitsnetz: Fortsetzen fehlgeschlagen:', e instanceof Error ? e.message : e);
+    }
+  }
+
   /**
    * Demo-Simulation für Entwicklung & Vorschau falls noch kein Live-Token hinterlegt
    */

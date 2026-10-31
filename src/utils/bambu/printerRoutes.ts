@@ -184,6 +184,13 @@ export async function handlePrinterRoute(
       }
     }
 
+    case '/api/printer/delay-resume': {
+      // „Druck verzögern“: Sicherheitsnetz im Kern (setzt fort, auch wenn die App zu ist). resumeAt = 0 schaltet es ab.
+      const at = Number(b.resumeAt) || 0;
+      svc.setDelayedResume(at);
+      return ok({ success: true, resumeAt: svc.getDelayedResume() });
+    }
+
     case '/api/printer/login': {
       try {
         const { email, password, code, tfaKey, tfaCode, resend } = b;

@@ -1891,7 +1891,7 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
       '🧵 18 Spulen: Bambu (7), Eono, Geeetech, YXPOLYER PA6-CF, Eryone (2), ELEGOO (2), eSUN, Overture TPU, Prusa PLA und Prusa PETG',
       '⚖️ Netto = gewogen − Leerspule − Eibos-Beutel (35 g) − Silica (57 g), bei Bambu Hellgrün mit eigener 100-g-Spule',
       '📦 Original verpackte Bambu-Spulen als „verschweißt“ markiert, Refill ohne Spule mit 0 g Leerspule',
-      '🔢 Aktualisierte Zahlen-FunFacts: 19 Commits und 128 Revisionsstufen'
+      '🔢 Aktualisierte Zahlen-FunFacts: 106 Commits und 128 Revisionsstufen'
     ],
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
@@ -1905,7 +1905,7 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     features: [
       '🟢 Bambu PLA Basic Hellgrün: Startgewicht 1000 g, Restgewicht 1000 g (voll)',
       '⚠️ Gewogene 1315 g ergeben rechnerisch mehr als 1 kg: Gewicht von Beutel/Silica prüfen',
-      '🔢 Aktualisierte Zahlen-FunFacts: 20 Commits und 129 Revisionsstufen'
+      '🔢 Aktualisierte Zahlen-FunFacts: 107 Commits und 129 Revisionsstufen'
     ],
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
@@ -1919,7 +1919,7 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
     features: [
       '🟢 Hellgrün (1 kg): Tara gesamt 315 g (Spule 223 + Beutel 35 + Silica 57), beim nächsten Wiegen passt die Rechnung',
       '⚪ Neu: Bambu PLA Basic Weiß, original verpackt, mit Spule (insgesamt 4 weiße Bambu PLA)',
-      '🔢 Aktualisierte Zahlen-FunFacts: 21 Commits und 130 Revisionsstufen'
+      '🔢 Aktualisierte Zahlen-FunFacts: 108 Commits und 130 Revisionsstufen'
     ],
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
@@ -1934,7 +1934,7 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
       '⚪ Bambu PLA Basic Weiß: wieder 3 Stück (2 Refill ohne Spule, 1 mit Spule)',
       '🟢 Hellgrün (1 kg, eigene 100-g-Spule): Tara 100 g + Beutel 35 g + Silica 57 g = 192 g, wird beim Wiegen abgezogen',
       '⚠️ 1315 g gewogen − 192 g = 1123 g ist mehr als 1 kg: Spule steht auf voll, bitte neu wiegen',
-      '🔢 Aktualisierte Zahlen-FunFacts: 22 Commits und 131 Revisionsstufen'
+      '🔢 Aktualisierte Zahlen-FunFacts: 109 Commits und 131 Revisionsstufen'
     ],
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],
@@ -1949,7 +1949,23 @@ export const INITIAL_VERSION_PROFILES: VersionProfile[] = [
       '🟢 Bambu PLA Basic Hellgrün: Restgewicht 960 g (Spule 100 g, Beutel 35 g, Silica 57 g bleiben als Tara)',
       '🌲 Isan PLA Plus Dunkelgrün (alter Stand 740 g) wieder dabei, war im Diktat vergessen worden',
       '🔀 Zwei Dunkelgrün sind getrennte Spulen: Bambu Lab PLA Basic und Isan PLA Plus, je eigene Nummer und Marke',
-      '🔢 Aktualisierte Zahlen-FunFacts: 23 Commits und 132 Revisionsstufen'
+      '🔢 Aktualisierte Zahlen-FunFacts: 110 Commits und 132 Revisionsstufen'
+    ],
+    spoolsSnapshot: MY_SPOOLS,
+    historySnapshot: [],
+    viewMode: 'simple'
+  },
+  {
+    id: 'v1.133',
+    label: '1.133 (Verzögerter Druck startet sicher)',
+    releaseDate: '31.10.2026',
+    description: 'Druck verzögern: Der pausierte Druck wird jetzt sicher fortgesetzt, auch wenn die Trocknung hängt, die App zu ist oder der Drucker die Startzeit erst später meldet.',
+    features: [
+      '🧩 Plan geht nicht mehr verloren: Meldet der Drucker Name oder Startzeit erst nach dem Pausieren, bleibt es derselbe Auftrag',
+      '⏱️ Hängt die Trocknung beim Fortsetzen, wird nach 90 Sekunden trotzdem fortgesetzt (der Drucker beendet sie beim Start selbst)',
+      '🛟 Sicherheitsnetz im Drucker-Kern: 90 Sekunden nach der Zeit setzt er den Druck auch bei geschlossener App fort',
+      '⚠️ Klappt Fortsetzen dreimal nicht, kommt eine Meldung „Bitte am Drucker fortsetzen“',
+      '🔢 Aktualisierte Zahlen-FunFacts: 111 Commits und 133 Revisionsstufen'
     ],
     spoolsSnapshot: MY_SPOOLS,
     historySnapshot: [],

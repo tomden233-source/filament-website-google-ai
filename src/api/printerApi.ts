@@ -70,6 +70,9 @@ export const printerApi = {
   command: (command: 'pause' | 'resume' | 'stop', pin?: string) =>
     apiPost<ApiBase>('/api/printer/command', { command, pin }),
 
+  /** „Druck verzögern“: Sicherheitsnetz im Drucker-Kern (resumeAt in ms, 0 = aus) */
+  delayResume: (resumeAt: number) => apiPost<ApiBase>('/api/printer/delay-resume', { resumeAt }),
+
   gcodeLine: (gcode: string) => apiPost<ApiBase>('/api/printer/gcode-line', { gcode }),
 
   temperature: (target: 'nozzle1' | 'nozzle2' | 'bed', temp: number) =>

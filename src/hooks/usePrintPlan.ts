@@ -5,6 +5,7 @@ import { raiseAlert } from '../utils/alerts';
 import { jobKey } from '../utils/printUsage';
 import { ACTIVE_STATES, parseStartMs } from '../utils/printSession';
 import { clearPrintPlan, getPrintPlan, setPrintPlan, usePrintPlan } from '../utils/printPlan';
+import { samePlanJob, splitId } from '../utils/printPlanJob';
 
 // Druck-Planer (siehe utils/printPlan.ts):
 //  - Neuer Druck (Start oder noch ganz am Anfang) → Fenster „Was soll mit dem Druck passieren?“ (state ask)
@@ -12,6 +13,9 @@ import { clearPrintPlan, getPrintPlan, setPrintPlan, usePrintPlan } from '../uti
 //  - Lief währenddessen die AMS-Trocknung: sie wird beim Fortsetzen beendet, der Rest der Zeit läuft nach dem Druck weiter
 //    (außer „Nach Druck aus“ ist gewählt, das gewinnt)
 //  - Wird im Fenster nichts gewählt, passiert nichts und der Druck läuft normal
+//  - Der Plan überlebt, wenn der Drucker Name oder Startzeit erst später meldet (gleicher Auftrag wird tolerant erkannt)
+//  - Hängt die Trocknung beim Fortsetzen, wird nach 90 Sekunden trotzdem fortgesetzt (der Drucker beendet sie beim Start selbst)
+//  - Ist die App zu, setzt der Drucker-Kern den Druck 90 Sekunden nach der Zeit selbst fort (printerApi.delayResume)
 
 interface Params {
   connected: boolean;
@@ -29,6 +33,9 @@ interface Params {
 
 const TICK_MS = 10_000;
 const CMD_RETRY_MS = 20_000;
+const DRY_STOP_MAX_MS = 90_000; // so lange versuchen, die Trocknung zu beenden, dann trotzdem fortsetzen
+const RESUME_FAILS_WARN = 3; // so viele Fehlversuche, dann Hinweis „bitte am Drucker fortsetzen“
+const IDLE_CLEAR_MS = 120_000; // verzögerter Plan gilt erst nach so langem „Leerlauf“ als erledigt
 
 export function usePrintPlanRunner(p: Params) {
   const plan = usePrintPlan();
@@ -36,17 +43,33 @@ export function usePrintPlanRunner(p: Params) {
   latest.current = p;
   const lastCmd = useRef(0);
   const busy = useRef(false);
+  const dueSince = useRef(0);
+  const resumeFails = useRef(0);
+  const idleSince = useRef(0);
 
   // --- Neuer Druck / Druck vorbei ---
   useEffect(() => {
     if (!p.connected || !p.gcodeState) return;
     const cur = getPrintPlan();
     const st = p.gcodeState;
-    const id = `${jobKey(p.jobName || '') || 'druck'}|${parseStartMs(p.startTime) || 0}`;
+    const startMs = parseStartMs(p.startTime);
+    const id = `${jobKey(p.jobName || '') || 'druck'}|${startMs || 0}`;
     if (ACTIVE_STATES.has(st)) {
-      if (cur.jobId === id) return;
-      // Anderer Auftrag als der gemerkte: alten Plan verwerfen
-      if (cur.jobId && cur.jobId !== id) clearPrintPlan();
+      idleSince.current = 0;
+      if (cur.jobId) {
+        // Gleicher Auftrag (Name oder Startzeit kamen nur später): Plan behalten, Kennung nachziehen
+        if (samePlanJob(cur.jobId, p.jobName, startMs)) {
+          if (cur.jobId !== id) {
+            const old = splitId(cur.jobId);
+            const betterKey = !old.key && jobKey(p.jobName || '');
+            const betterMs = !old.ms && startMs;
+            if (betterKey || betterMs) setPrintPlan({ jobId: id, jobName: p.jobName || cur.jobName });
+          }
+          return;
+        }
+        // Wirklich anderer Auftrag: alten Plan verwerfen
+        clearPrintPlan();
+      }
       // Nur frische Drucke fragen (Start oder ganz am Anfang), keine mitten im Druck
       if (st === 'PREPARE' || p.percent <= 3) {
         setPrintPlan({ jobId: id, jobName: p.jobName || '', state: 'ask', resumeAt: 0, dryMinLeft: 0, dryTemp: 50, dryWasRunning: false });
@@ -54,8 +77,18 @@ export function usePrintPlanRunner(p: Params) {
       return;
     }
     // Druck vorbei oder abgebrochen: Plan weg. Der Trocknen-Rest wurde schon beim Fortsetzen eingeplant.
-    if (cur.jobId && (st === 'FINISH' || st === 'FAILED' || st === 'IDLE')) clearPrintPlan();
+    // Ein verzögerter Plan überlebt kurze „Leerlauf“-Meldungen (Verbindungsproblem), den prüft der Takt unten.
+    if (cur.jobId && (st === 'FINISH' || st === 'FAILED' || (st === 'IDLE' && cur.state !== 'delayed'))) clearPrintPlan();
   }, [p.connected, p.gcodeState, p.jobName, p.startTime, p.percent]);
+
+  // --- Sicherheitsnetz im Drucker-Kern: setzt auch bei geschlossener App fort ---
+  useEffect(() => {
+    if (!p.connected) return;
+    const at = plan.state === 'delayed' ? plan.resumeAt : 0;
+    void printerApi.delayResume(at).catch(() => {
+      /* nächster Wechsel sendet erneut */
+    });
+  }, [plan.state, plan.resumeAt, p.connected]);
 
   // --- Pausieren, Trocknung merken, zur Zeit fortsetzen ---
   useEffect(() => {
@@ -71,8 +104,17 @@ export function usePrintPlanRunner(p: Params) {
       if (cur.state !== 'delayed') return;
       const st = q.gcodeState;
       const now = Date.now();
+      // Dauerhaft „Leerlauf“: Druck wurde abgebrochen, Plan erledigt
+      if (st === 'IDLE') {
+        if (!idleSince.current) idleSince.current = now;
+        if (now - idleSince.current >= IDLE_CLEAR_MS) clearPrintPlan();
+        return;
+      }
+      idleSince.current = 0;
       const due = now >= cur.resumeAt;
       if (!due) {
+        dueSince.current = 0;
+        resumeFails.current = 0;
         // Pause erzwingen, sobald der Druck läuft
         if (st === 'RUNNING' && now - lastCmd.current >= CMD_RETRY_MS) {
           lastCmd.current = now;
@@ -88,8 +130,9 @@ export function usePrintPlanRunner(p: Params) {
         }
         return;
       }
-      // Zeit ist da: Trocknung beenden, dann fortsetzen
-      if (q.dryMinutesLeft > 0) {
+      // Zeit ist da: Trocknung beenden, dann fortsetzen. Hängt die Trocknung, nach 90 s trotzdem fortsetzen.
+      if (!dueSince.current) dueSince.current = now;
+      if (q.dryMinutesLeft > 0 && now - dueSince.current < DRY_STOP_MAX_MS) {
         if (now - lastCmd.current >= CMD_RETRY_MS) {
           lastCmd.current = now;
           busy.current = true;
@@ -99,8 +142,9 @@ export function usePrintPlanRunner(p: Params) {
             busy.current = false;
           }
         }
-        return; // erst fortsetzen, wenn die Trocknung aus ist
+        return; // erst fortsetzen, wenn die Trocknung aus ist (oder 90 s um sind)
       }
+      if (q.dryMinutesLeft > 0) addSystemLog('drucker', 'Trocknung ließ sich nicht beenden', 'Druck wird trotzdem fortgesetzt (der Drucker beendet die Trocknung beim Start)', 'info');
       if (st === 'PAUSE') {
         if (now - lastCmd.current < CMD_RETRY_MS) return;
         lastCmd.current = now;
@@ -108,8 +152,9 @@ export function usePrintPlanRunner(p: Params) {
         try {
           const res = await printerApi.command('resume');
           if (res.ok && res.data.success) finishResume();
+          else failedResume();
         } catch {
-          /* nächster Versuch */
+          failedResume();
         } finally {
           busy.current = false;
         }
@@ -117,7 +162,17 @@ export function usePrintPlanRunner(p: Params) {
         finishResume(); // läuft schon (von Hand fortgesetzt)
       }
     };
+    const failedResume = () => {
+      resumeFails.current += 1;
+      if (resumeFails.current === RESUME_FAILS_WARN) {
+        const text = `„${getPrintPlan().jobName || 'Druck'}“ ließ sich nicht fortsetzen. Bitte am Drucker oder in der App auf „Fortsetzen“ tippen.`;
+        addSystemLog('drucker', 'Verzögerter Druck: Fortsetzen fehlgeschlagen', text, 'error');
+        void raiseAlert({ kind: 'info', key: `print-delay-fail-${getPrintPlan().jobId}-${getPrintPlan().resumeAt}`, title: 'Druck nicht fortgesetzt', text, toast: `⚠️ ${text}` }, t => latest.current.notify({ text: t, ok: false }));
+      }
+    };
     const finishResume = () => {
+      dueSince.current = 0;
+      resumeFails.current = 0;
       const cur = getPrintPlan();
       const q = latest.current;
       if (cur.dryWasRunning && cur.dryMinLeft > 0) q.restartDryAfterPrint(cur.dryTemp, cur.dryMinLeft);
